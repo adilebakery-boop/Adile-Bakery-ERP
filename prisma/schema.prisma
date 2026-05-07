@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  MANAGER
+  BAKER
+  CASHIER
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+model Role {
+  id        Int       @id @default(autoincrement())
+  name      RoleName  @unique
+  users     User[]
+}
+
+model Branch {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  users     User[]
+  productions ProductionRecord[]
+  remainings RemainingRecord[]
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  username     String    @unique
+  passwordHash String
+  roleId       Int
+  branchId     Int?
+  role         Role      @relation(fields: [roleId], references: [id])
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  createdAt    DateTime  @default(now())
+
+  productions ProductionRecord[]
+  remainings  RemainingRecord[]
+
+  @@index([username])
+  @@index([roleId])
+  @@index([branchId])
+}
+
+model Product {
+  id        Int       @id @default(autoincrement())
+  name      String
+  category  String
+  price     Decimal   @db.Decimal(10, 2)
+  unitType  String
+  isActive  Boolean   @default(true)
+  productions ProductionRecord[]
+  remainings  RemainingRecord[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model ProductionRecord {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  quantity   Decimal   @db.Decimal(10, 2)
+  branchId   Int
+  shift      Shift
+  createdAt  DateTime  @default(now())
+  userId     Int
+  product    Product   @relation(fields: [productId], references: [id])
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([branchId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model RemainingRecord {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  quantity   Decimal   @db.Decimal(10, 2)
+  branchId   Int
+  date       DateTime  @db.Date
+  userId     Int
+  product    Product   @relation(fields: [productId], references: [id])
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([productId, branchId, date])
+  @@index([productId])
+  @@index([branchId])
+  @@index([date])
+  @@index([userId])
+}
