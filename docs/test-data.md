@@ -100,23 +100,56 @@ const branches = [
 
 | ID | Name | Category | Price | Unit |
 |----|------|----------|-------|------|
-| 1 | Arabic Bread | Bread | 1.00 | piece |
-| 2 | Baguette | Bread | 3.00 | piece |
-| 3 | Burger Buns | Bread | 0.50 | piece |
-| 4 | Hot Dog Buns | Bread | 0.75 | piece |
-| 5 | Croissant | Pastries | 2.50 | piece |
-| 6 | Danish | Pastries | 3.00 | piece |
-| 7 | Pain au Chocolat | Pastries | 4.00 | piece |
-| 8 | Muffin | Pastries | 2.00 | piece |
-| 9 | Birthday Cake | Cakes | 50.00 | piece |
-| 10 | Cupcake | Cakes | 5.00 | piece |
-| 11 | Cheesecake | Cakes | 15.00 | piece |
-| 12 | Brownie | Cakes | 4.00 | piece |
-| 13 | Kunafa | Sweets | 10.00 | piece |
-| 14 | Basbousa | Sweets | 3.00 | piece |
-| 15 | Baklava | Sweets | 8.00 | piece |
-| 16 | Ma'amoul | Sweets | 5.00 | piece |
+| 1 | Normal Bread | Bread | 15.00 | piece |
+| 2 | Noraml Mid Size Bread | Bread | 25.00 | piece |
+| 3 | Normal Big SizeBread | Bread | 30.00 | piece |
+| 4 | Difo Bread | Bread | 60.00 | piece |
+| 5 | Aja Bread | Bread | 30.00 | piece |
+| 6 | Gabse Bread | Bread | 20.00 | piece |
+| 7 | Slice Bread | Bread | 70.00 | piece |
+| 8 | Bread | Bread | 15.00 | piece |
+| 9 | Bread | Bread | 15.00 | piece |
 
+ 10 | Cup Cake | Cream Cakes | 150.00 | piece |
+| 11 | Torta Cake | Soft Cakes | 1000 | piece |
+| 12 | Cake | Cream Cakes | 120.00 | piece |
+| 13 | Cake | Cream Cakes | 130.00 | piece |
+| 14 | Cake | Cream Cakes | 150.00 | piece |
+
+| 15 | Termisu | Cream Cakes | 100.00 | piece |
+| 16 | Istanbul | Soft Cakes | 150.00 | piece |
+| 17 | English | Soft Cakes | 70.00 | piece |
+| 18 | Big English | Soft Cakes | 550.00 | piece |
+
+| 19 | Venus | Dry Cakes | 150.00 | piece |
+| 20 | Zabib | Dry Cakes | 150.00 | piece |
+| 21 | Cake | Dry Cakes | 150.00 | piece |
+
+| 22 | Mushabak | Sweets | 5.00 | piece |
+| 23 | Halawa | Sweets | 5.00 | piece |
+| 24 | Ma'amoul | Sweets | 5.00 | piece |
+| 25 | Baklava | Sweets | 100.00 | piece |
+| 26 | Ma'amoul | Sweets | 5.00 | piece |
+
+| 27 | Donut | Pastry | 70.00 | piece |
+| 27 | Sambusa| Pastry | 25.00 | piece |
+| 29 | Qoqora | Pastry | 30.00 | piece |
+| 30 | Bobolino | Pastry | 60.00 | piece |
+
+| 31 | Salxi Giricillin | Snack | 80.00 | piece |
+| 32 | Giricillin | Snack | 60.00 | piece |
+| 33 | Daabboo qollo | Snack | 40.00 | piece |
+| 34 | Bobolino | Snack | 60.00 | piece |
+
+| 35 | Milk | drink | 90.00 | piece |
+| 36 | Milk 2L | drink | 250.00 | piece |
+| 37 | Normal Yogurt | drink | 120.00 | piece |
+| 38 | Special Yogurt | drink | 140.00 | piece |
+| 39 | Water | drink | 60.00 | piece |
+
+| 40 | Normal Fetire | Fetire | 200.00 | piece |
+| 41 | Special Fetire | drink | 250.00 | piece |
+| 42 | Malaw | drink | 150.00 | piece |
 ### Seed Data
 
 ```javascript
