@@ -1,13 +1,21 @@
 import api, { handleApiError } from './api';
+import { setAuth, clearAuth } from '../utils/authUtils';
 
 export const authService = {
   login: async (credentials) => {
     try {
       const response = await api.post('/auth/login', credentials);
-      const { token, role, ...user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('role', role);
-      return { success: true, data: { token, role, user } };
+      const { token, user } = response.data.data;
+      
+      setAuth(token, user, user.role);
+      
+      return { 
+        success: true, 
+        data: { 
+          token, 
+          user 
+        } 
+      };
     } catch (error) {
       return handleApiError(error);
     }
@@ -16,28 +24,17 @@ export const authService = {
   logout: async () => {
     try {
       await api.post('/auth/logout');
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      return { success: true };
     } catch (error) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      return { success: true };
+      // Continue with cleanup even if API fails
+    } finally {
+      clearAuth();
     }
+    return { success: true };
   },
 
   getCurrentUser: async () => {
     try {
       const response = await api.get('/auth/me');
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  updateProfile: async (data) => {
-    try {
-      const response = await api.put('/auth/profile', data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
