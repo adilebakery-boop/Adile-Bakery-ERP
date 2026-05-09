@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe } from 'lucide-react';
+import authService from '../services/authService';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,8 +28,8 @@ export default function MainLayout() {
     localStorage.setItem('language', language);
   }, [language]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await authService.logout();
     navigate('/login');
   };
 
