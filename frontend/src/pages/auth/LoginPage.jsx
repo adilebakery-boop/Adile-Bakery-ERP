@@ -1,18 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, ArrowRight } from 'lucide-react';
+import { User, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import authService from '../../services/authService';
 
 export default function LoginPage() {
   const [role, setRole] = useState('manager');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    localStorage.setItem('token', 'placeholder-token');
-    localStorage.setItem('role', role);
-    navigate('/dashboard');
+    setError('');
+    setIsLoading(true);
+
+    const result = await authService.login({
+      username,
+      password,
+      role: role.toUpperCase(),
+    });
+
+    setIsLoading(false);
+
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.message || 'Login failed. Please try again.');
+    }
   };
 
   return (
@@ -59,6 +75,13 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -74,6 +97,7 @@ export default function LoginPage() {
                   className="w-full pl-12 pr-4 py-4 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
                   placeholder="Enter username"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -90,6 +114,7 @@ export default function LoginPage() {
                   className="w-full pl-12 pr-4 py-4 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
                   placeholder="Enter password"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -102,10 +127,20 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              className="w-full bg-[#001F3F] text-white py-4 rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full bg-[#001F3F] text-white py-4 rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ArrowRight className="w-4 h-4" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
         </div>
