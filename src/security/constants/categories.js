@@ -1,0 +1,18 @@
+const CATEGORIES = {
+  BREAD_AND_SWEET_BREADS: 'BREAD_AND_SWEET_BREADS',
+  CREAM_CAKES: 'CREAM_CAKES',
+  SOFT_CAKES: 'SOFT_CAKES',
+  DRY_CAKES: 'DRY_CAKES',
+  DRINKS_AND_RETAIL_ITEMS: 'DRINKS_AND_RETAIL_ITEMS',
+  FETIRE: 'FETIRE'
+};
+
+const CATEGORY_LIST = Object.values(CATEGORIES);
+
+const isValidCategory = (category) => CATEGORY_LIST.includes(category);
+
+module.exports = {
+  CATEGORIES,
+  CATEGORY_LIST,
+  isValidCategory
+};
