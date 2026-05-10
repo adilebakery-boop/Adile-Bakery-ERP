@@ -27,6 +27,7 @@ const login = async (username, password) => {
     userId: user.id,
     role: user.role.name,
     branchId: user.branchId,
+    isBlocked: user.isBlocked || false,
   });
 
   return {
