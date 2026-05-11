@@ -22,13 +22,15 @@ const branchService = {
     return prisma.branch.create({
       data: {
         name: data.name,
+        address: data.address || null,
+        phone: data.phone || null,
         isActive: true,
       },
     });
   },
 
   async findAll(options = {}) {
-    const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = options;
+    const { page = 1, limit = 10, search, sortBy = 'id', sortOrder = 'desc' } = options;
     const skip = (page - 1) * limit;
 
     const where = search
@@ -89,6 +91,8 @@ const branchService = {
       where: { id },
       data: {
         name: data.name,
+        address: data.address || null,
+        phone: data.phone || null,
         isActive: data.isActive,
       },
     });
@@ -97,9 +101,8 @@ const branchService = {
   async delete(id) {
     await this.findById(id);
 
-    return prisma.branch.update({
+    return prisma.branch.delete({
       where: { id },
-      data: { isActive: false },
     });
   },
 
