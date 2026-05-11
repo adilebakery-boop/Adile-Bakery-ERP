@@ -1,4 +1,5 @@
 const ROLES = {
+  ADMIN: 'ADMIN',
   MANAGER: 'MANAGER',
   STAFF: 'STAFF',
   CAKE_CHEF: 'CAKE_CHEF',
