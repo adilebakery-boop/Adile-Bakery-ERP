@@ -11,7 +11,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('MANAGER'),
+  allowRoles('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
       const users = await prisma.user.findMany({
@@ -32,7 +32,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  allowRoles('MANAGER'),
+  allowRoles('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
       const user = await prisma.user.findUnique({
@@ -52,7 +52,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('MANAGER'),
+  allowRoles('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
       const { name, username, password, roleId, branchId } = req.body;
@@ -74,7 +74,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('MANAGER'),
+  allowRoles('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
       const { name, roleId, branchId, isBlocked } = req.body;
@@ -93,11 +93,30 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  allowRoles('MANAGER'),
+  allowRoles('ADMIN', 'MANAGER'),
   async (req, res) => {
     try {
       await prisma.user.delete({ where: { id: parseInt(req.params.id) } });
       res.json({ success: true, message: 'User deleted successfully', data: {} });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message, errors: [] });
+    }
+  }
+);
+
+router.get(
+  '/me',
+  authenticate,
+  async (req, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        include: { role: true, branch: true }
+      });
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found', errors: [] });
+      }
+      res.json({ success: true, message: 'User retrieved successfully', data: user });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message, errors: [] });
     }

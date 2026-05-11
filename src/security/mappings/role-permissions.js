@@ -2,6 +2,8 @@ const { ROLES } = require('../constants/roles');
 const { PERMISSIONS } = require('../constants/permissions');
 
 const ROLE_PERMISSIONS = {
+  [ROLES.ADMIN]: Object.values(PERMISSIONS),
+
   [ROLES.MANAGER]: [
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.USERS_CREATE,
