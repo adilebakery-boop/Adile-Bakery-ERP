@@ -47,6 +47,8 @@ model Role {
 model Branch {
   id        Int       @id @default(autoincrement())
   name      String    @unique
+  address   String?
+  phone     String?
   isActive  Boolean   @default(true)
   users     User[]
   productions ProductionRecord[]
