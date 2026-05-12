@@ -4,7 +4,7 @@ export const productService = {
   getProducts: async (params = {}) => {
     try {
       const response = await api.get('/products', { params });
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -13,7 +13,7 @@ export const productService = {
   getProduct: async (id) => {
     try {
       const response = await api.get(`/products/${id}`);
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -22,7 +22,7 @@ export const productService = {
   createProduct: async (data) => {
     try {
       const response = await api.post('/products', data);
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -31,7 +31,7 @@ export const productService = {
   updateProduct: async (id, data) => {
     try {
       const response = await api.put(`/products/${id}`, data);
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -40,7 +40,7 @@ export const productService = {
   deleteProduct: async (id) => {
     try {
       const response = await api.delete(`/products/${id}`);
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -49,7 +49,7 @@ export const productService = {
   getCategories: async () => {
     try {
       const response = await api.get('/products/categories');
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }

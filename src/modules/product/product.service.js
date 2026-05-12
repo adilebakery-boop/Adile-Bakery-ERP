@@ -30,7 +30,7 @@ const productService = {
       search,
       category,
       isActive,
-      sortBy = 'createdAt',
+      sortBy = 'id',
       sortOrder = 'desc',
     } = options;
 
