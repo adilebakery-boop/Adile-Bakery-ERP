@@ -43,7 +43,7 @@ const PERMISSIONS = {
   // Dashboard
   DASHBOARD_VIEW: 'dashboard:view',
 
-  // Category ownership
+  // Category access
   CATEGORY_ACCESS: 'category:access'
 };
 

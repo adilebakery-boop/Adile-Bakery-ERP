@@ -8,11 +8,24 @@ import ReportsPage from '../pages/reports/ReportsPage';
 import ProductsPage from '../pages/products/ProductsPage';
 import BranchesPage from '../pages/branches/BranchesPage';
 import UsersPage from '../pages/users/UsersPage';
+import ProfilePage from '../pages/profile/ProfilePage';
 import NotFoundPage from '../pages/NotFoundPage';
+import { getUserRole, getToken } from '../utils/authUtils';
+import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
 
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+const ProtectedRoute = ({ children, requiredPage }) => {
+  const token = getToken();
+  const role = getUserRole();
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredPage && !hasPageAccess(role, requiredPage)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 };
 
 const router = createBrowserRouter([
@@ -34,31 +47,67 @@ const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.DASHBOARD}>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'production',
-        element: <ProductionPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.PRODUCTION}>
+            <ProductionPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'remaining',
-        element: <RemainingPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.REMAINING}>
+            <RemainingPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'reports',
-        element: <ReportsPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.REPORTS}>
+            <ReportsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'products',
-        element: <ProductsPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.PRODUCTS}>
+            <ProductsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'branches',
-        element: <BranchesPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.BRANCHES}>
+            <BranchesPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'users',
-        element: <UsersPage />,
+        element: (
+          <ProtectedRoute requiredPage={PAGES.USERS}>
+            <UsersPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <ProtectedRoute requiredPage={PAGES.PROFILE}>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
