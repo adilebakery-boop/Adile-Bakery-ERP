@@ -1,0 +1,404 @@
+{
+  "info": {
+    "name": "Adile Bakery ERP - Security Tests",
+    "description": "Security and RBAC test scenarios for Adile Bakery ERP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "MANAGER_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "STAFF_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "CASHIER_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "BLOCKED_TOKEN",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication Tests",
+      "item": [
+        {
+          "name": "Login - Valid Credentials",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Invalid Password",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager\",\n  \"password\": \"wrongpassword\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Blocked User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"blocked.user\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authorization - Protected Routes",
+      "item": [
+        {
+          "name": "No Token - Access Denied",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Token - Access Denied",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid_token_123"
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "Blocked User Token - Access Denied",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{BLOCKED_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role-Based Access Tests",
+      "item": [
+        {
+          "name": "MANAGER - Access Users Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MANAGER_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "STAFF - Access Users Page - Should Fail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{STAFF_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "CASHIER - Access Reports Page - Should Fail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/reports/daily",
+              "host": ["{{BASE_URL}}"],
+              "path": ["reports", "daily"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CASHIER_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "MANAGER - Access All Pages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/branches",
+              "host": ["{{BASE_URL}}"],
+              "path": ["branches"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MANAGER_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permission Tests",
+      "item": [
+        {
+          "name": "STAFF - Try to Create User - Should Fail",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{STAFF_TOKEN}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleId\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "MANAGER - Create User - Should Succeed",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MANAGER_TOKEN}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleId\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "STAFF - Delete User - Should Fail",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/users/5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users", "5"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{STAFF_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        },
+        {
+          "name": "MANAGER - Delete User - Should Succeed",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/users/5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users", "5"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MANAGER_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile Tests",
+      "item": [
+        {
+          "name": "Any User - Change Own Password",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{BASE_URL}}/users/change-password",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users", "change-password"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{STAFF_TOKEN}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Non-Manager - Try to Block User - Should Fail",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{BASE_URL}}/users/3/block",
+              "host": ["{{BASE_URL}}"],
+              "path": ["users", "3", "block"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{STAFF_TOKEN}}"
+              }
+            ]
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

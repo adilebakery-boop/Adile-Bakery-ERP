@@ -8,9 +8,10 @@ datasource db {
 }
 
 enum RoleName {
-  ADMIN
   MANAGER
-  BAKER
+  STAFF
+  CAKE_CHEF
+  FETIR_CHEF
   CASHIER
 }
 
@@ -41,6 +42,7 @@ model User {
   passwordHash String
   roleId       Int
   branchId     Int?
+  isBlocked    Boolean   @default(false)
   role         Role      @relation(fields: [roleId], references: [id])
   branch       Branch?   @relation(fields: [branchId], references: [id])
   createdAt    DateTime  @default(now())
@@ -51,6 +53,7 @@ model User {
   @@index([username])
   @@index([roleId])
   @@index([branchId])
+  @@index([isBlocked])
 }
 
 model Product {
