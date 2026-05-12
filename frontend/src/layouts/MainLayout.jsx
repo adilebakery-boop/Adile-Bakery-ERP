@@ -1,28 +1,37 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe } from 'lucide-react';
+import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User } from 'lucide-react';
 import authService from '../services/authService';
-
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/production', label: 'Production', icon: Factory },
-  { path: '/remaining', label: 'Remaining', icon: Package },
-  { path: '/reports', label: 'Reports', icon: FileText },
-  { path: '/products', label: 'Products', icon: ShoppingBag },
-  { path: '/branches', label: 'Branches', icon: Store },
-  { path: '/users', label: 'Users', icon: Users },
-];
-
-const languages = [
-  { code: 'en', label: 'EN' },
-  { code: 'am', label: 'AM' },
-];
+import { getUserRole, getUser } from '../utils/authUtils';
+import { getPagesForRole, PAGES } from '../utils/permissions';
 
 export default function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const userRole = getUserRole();
+  const user = getUser();
+  
+  const allowedPages = getPagesForRole(userRole);
+
+  const allNavItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, page: PAGES.DASHBOARD },
+    { path: '/production', label: 'Production', icon: Factory, page: PAGES.PRODUCTION },
+    { path: '/remaining', label: 'Remaining', icon: Package, page: PAGES.REMAINING },
+    { path: '/reports', label: 'Reports', icon: FileText, page: PAGES.REPORTS },
+    { path: '/products', label: 'Products', icon: ShoppingBag, page: PAGES.PRODUCTS },
+    { path: '/branches', label: 'Branches', icon: Store, page: PAGES.BRANCHES },
+    { path: '/users', label: 'Users', icon: Users, page: PAGES.USERS },
+    { path: '/profile', label: 'Profile', icon: User, page: PAGES.PROFILE },
+  ];
+
+  const navItems = allNavItems.filter(item => allowedPages.includes(item.page));
+
+  const languages = [
+    { code: 'en', label: 'EN' },
+    { code: 'am', label: 'AM' },
+  ];
 
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -31,6 +40,18 @@ export default function MainLayout() {
   const handleLogout = async () => {
     await authService.logout();
     navigate('/login');
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.name) return user.name;
+    if (user?.username) return user.username;
+    return 'User';
+  };
+
+  const getUserInitial = () => {
+    if (user?.name) return user.name.charAt(0).toUpperCase();
+    if (user?.username) return user.username.charAt(0).toUpperCase();
+    return 'U';
   };
 
   const SidebarContent = () => (
@@ -145,9 +166,9 @@ export default function MainLayout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3 ml-auto">
-            <span className="text-sm text-gray-600">Admin</span>
+            <span className="text-sm text-gray-600">{getUserDisplayName()}</span>
             <div className="w-8 h-8 bg-[#001F3F] rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-medium">A</span>
+              <span className="text-white text-sm font-medium">{getUserInitial()}</span>
             </div>
           </div>
         </header>

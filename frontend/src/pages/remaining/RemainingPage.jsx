@@ -1,14 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
+import { getUserRole } from '../../utils/authUtils';
+import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 
-const productsByCategory = {
-  Bread: ['White Bread', 'Whole Wheat', 'Sourdough', 'Baguette', 'Rye Bread'],
-  Cake: ['Chocolate Cake', 'Vanilla Cake', 'Red Velvet', 'Carrot Cake', 'Cheesecake'],
-  Fetir: ['Plain Fetir', 'Cheese Fetir', 'Butter Fetir', 'Honey Fetir']
+const PRODUCTS_BY_CATEGORY = {
+  [CATEGORIES.BREAD_AND_SWEET_BREADS]: [
+    'Arabic Bread', 'Baguette', 'Burger Buns', 'Hot Dog Buns', 'Croissant', 'Danish'
+  ],
+  [CATEGORIES.CREAM_CAKES]: [
+    'Birthday Cake', 'Wedding Cake', 'Cream Roll'
+  ],
+  [CATEGORIES.SOFT_CAKES]: [
+    'Cupcake', 'Muffin', 'Sponge Cake'
+  ],
+  [CATEGORIES.DRY_CAKES]: [
+    'Brownie', 'Cookies', 'Biscuits'
+  ],
+  [CATEGORIES.COOKIES]: [
+    'Chocolate Chip Cookies', 'Butter Cookies', 'Oatmeal Cookies'
+  ],
+  [CATEGORIES.FETIRE_AND_SNACKS]: [
+    'Fetire', 'Fetire with Cheese', 'Snack Pack'
+  ],
+  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: [
+    'Soft Drink', 'Water', 'Juice'
+  ],
+};
+
+const CATEGORY_LABELS = {
+  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
+  [CATEGORIES.CREAM_CAKES]: 'Cream Cakes',
+  [CATEGORIES.SOFT_CAKES]: 'Soft Cakes',
+  [CATEGORIES.DRY_CAKES]: 'Dry Cakes',
+  [CATEGORIES.COOKIES]: 'Cookies',
+  [CATEGORIES.FETIRE_AND_SNACKS]: 'Fetire & Snacks',
+  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'Drinks & Retail Items',
 };
 
 export default function RemainingPage() {
   const [remaining, setRemaining] = useState({});
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  
+  const userRole = getUserRole();
+  const allowedCategories = getCategoriesForRole(userRole);
+
+  useEffect(() => {
+    setFilteredCategories(allowedCategories);
+  }, [userRole, allowedCategories]);
 
   const handleQuantityChange = (product, value) => {
     setRemaining({ ...remaining, [product]: value });
@@ -20,11 +58,13 @@ export default function RemainingPage() {
         <h1 className="text-[32px] font-bold text-[#001F3F]">Remaining Stock</h1>
       </div>
 
-      {Object.entries(productsByCategory).map(([category, products]) => (
+      {filteredCategories.map(category => (
         <div key={category} className="mb-8">
-          <h2 className="text-xl font-bold text-[#001F3F] mb-4">{category}</h2>
+          <h2 className="text-xl font-bold text-[#001F3F] mb-4">
+            {CATEGORY_LABELS[category] || category}
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {products.map((product) => (
+            {(PRODUCTS_BY_CATEGORY[category] || []).map((product) => (
               <div key={product} className="bg-white p-5 rounded-[24px] border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
                 <p className="text-sm text-gray-500 mb-3">{product}</p>
                 <input

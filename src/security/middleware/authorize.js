@@ -27,23 +27,29 @@ const authorizeAny = (roles) => {
 
 const isManager = () => authorize(ROLES.MANAGER);
 
-const isStaff = () => authorize(ROLES.STAFF);
+const isAdmin = () => authorize(ROLES.ADMIN);
+
+const isManagerOrAdmin = () => authorize(ROLES.MANAGER, ROLES.ADMIN);
+
+const isBaker = () => authorize(ROLES.BAKER);
 
 const isCakeChef = () => authorize(ROLES.CAKE_CHEF);
+
+const isCookieBaker = () => authorize(ROLES.COOKIE_BAKER);
 
 const isFetirChef = () => authorize(ROLES.FETIR_CHEF);
 
 const isCashier = () => authorize(ROLES.CASHIER);
 
-const isManagerOrAdmin = () => authorize(ROLES.MANAGER);
-
 module.exports = {
   authorize,
   authorizeAny,
   isManager,
-  isStaff,
+  isAdmin,
+  isManagerOrAdmin,
+  isBaker,
   isCakeChef,
+  isCookieBaker,
   isFetirChef,
-  isCashier,
-  isManagerOrAdmin
+  isCashier
 };
