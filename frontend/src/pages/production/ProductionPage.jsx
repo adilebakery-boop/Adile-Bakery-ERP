@@ -1,20 +1,106 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Package } from 'lucide-react';
+import { getUserRole } from '../../utils/authUtils';
+import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
+
+const MOCK_PRODUCTS = {
+  [CATEGORIES.BREAD_AND_SWEET_BREADS]: [
+    { id: 1, name: 'Arabic Bread' },
+    { id: 2, name: 'Baguette' },
+    { id: 3, name: 'Burger Buns' },
+    { id: 4, name: 'Hot Dog Buns' },
+    { id: 5, name: 'Croissant' },
+    { id: 6, name: 'Danish' },
+  ],
+  [CATEGORIES.CREAM_CAKES]: [
+    { id: 7, name: 'Birthday Cake' },
+    { id: 8, name: 'Wedding Cake' },
+    { id: 9, name: 'Cream Roll' },
+  ],
+  [CATEGORIES.SOFT_CAKES]: [
+    { id: 10, name: 'Cupcake' },
+    { id: 11, name: 'Muffin' },
+    { id: 12, name: 'Sponge Cake' },
+  ],
+  [CATEGORIES.DRY_CAKES]: [
+    { id: 13, name: 'Brownie' },
+    { id: 14, name: 'Cookies' },
+    { id: 15, name: ' Biscuits' },
+  ],
+  [CATEGORIES.COOKIES]: [
+    { id: 16, name: 'Chocolate Chip Cookies' },
+    { id: 17, name: 'Butter Cookies' },
+    { id: 18, name: 'Oatmeal Cookies' },
+  ],
+  [CATEGORIES.FETIRE_AND_SNACKS]: [
+    { id: 19, name: 'Fetire' },
+    { id: 20, name: 'Fetire with Cheese' },
+    { id: 21, name: 'Snack Pack' },
+  ],
+  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: [
+    { id: 22, name: 'Soft Drink' },
+    { id: 23, name: 'Water' },
+    { id: 24, name: 'Juice' },
+  ],
+};
+
+const SHIFTS = [
+  { value: 'MORNING', label: 'Morning 8:30-13:30' },
+  { value: 'AFTERNOON', label: 'Afternoon 13:30-20:30' },
+  { value: 'EVENING', label: 'Evening 20:30-00:30' },
+];
 
 export default function ProductionPage() {
   const [product, setProduct] = useState('');
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
   const [entries, setEntries] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  
+  const userRole = getUserRole();
+  const allowedCategories = getCategoriesForRole(userRole);
+
+  useEffect(() => {
+    const products = [];
+    allowedCategories.forEach(category => {
+      if (MOCK_PRODUCTS[category]) {
+        products.push(...MOCK_PRODUCTS[category].map(p => ({
+          ...p,
+          category
+        })));
+      }
+    });
+    setAvailableProducts(products);
+  }, [userRole, allowedCategories]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (product && shift && quantity) {
-      setEntries([...entries, { id: Date.now(), product, shift, quantity, time: new Date().toLocaleTimeString() }]);
+      const selectedProduct = availableProducts.find(p => p.id === parseInt(product));
+      setEntries([...entries, { 
+        id: Date.now(), 
+        product: selectedProduct?.name || product, 
+        shift, 
+        quantity, 
+        time: new Date().toLocaleTimeString() 
+      }]);
       setProduct('');
       setShift('');
       setQuantity('');
     }
+  };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
+      [CATEGORIES.CREAM_CAKES]: 'Cream Cakes',
+      [CATEGORIES.SOFT_CAKES]: 'Soft Cakes',
+      [CATEGORIES.DRY_CAKES]: 'Dry Cakes',
+      [CATEGORIES.COOKIES]: 'Cookies',
+      [CATEGORIES.FETIRE_AND_SNACKS]: 'Fetire & Snacks',
+      [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'Drinks & Retail',
+    };
+    return labels[category] || category;
   };
 
   return (
@@ -33,8 +119,11 @@ export default function ProductionPage() {
               required
             >
               <option value="">Select product</option>
-              <option value="bread">Bread</option>
-              <option value="cake">Cake</option>
+              {availableProducts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({getCategoryLabel(p.category)})
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-[180px]">
@@ -46,8 +135,9 @@ export default function ProductionPage() {
               required
             >
               <option value="">Select shift</option>
-              <option value="morning">Morning 8:30-13:30</option>
-              <option value="night">Night 13:30-20:30</option>
+              {SHIFTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
             </select>
           </div>
           <div className="w-40">
@@ -90,8 +180,10 @@ export default function ProductionPage() {
               {entries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-[#F9F7F2]">
                   <td className="px-6 py-4 text-sm text-gray-600">{entry.time}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] capitalize">{entry.product}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{entry.shift === 'morning' ? 'Morning' : 'Night'}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{entry.product}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {SHIFTS.find(s => s.value === entry.shift)?.label || entry.shift}
+                  </td>
                   <td className="px-6 py-4 text-sm font-medium text-[#001F3F]">{entry.quantity}</td>
                 </tr>
               ))}

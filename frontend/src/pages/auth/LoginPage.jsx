@@ -4,7 +4,6 @@ import { User, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import authService from '../../services/authService';
 
 export default function LoginPage() {
-  const [role, setRole] = useState('manager');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +18,6 @@ export default function LoginPage() {
     const result = await authService.login({
       username,
       password,
-      role: role.toUpperCase(),
     });
 
     setIsLoading(false);
@@ -51,28 +49,6 @@ export default function LoginPage() {
             <div className="w-20 h-20 bg-[#001F3F] rounded-[16px] flex items-center justify-center">
               <span className="text-4xl">🥐</span>
             </div>
-          </div>
-
-          {/* Role Toggle */}
-          <div className="flex bg-[#F9F7F2] rounded-[50px] p-1 mb-8">
-            <button
-              type="button"
-              onClick={() => setRole('manager')}
-              className={`flex-1 py-3 px-4 rounded-[40px] text-sm font-medium transition-all ${
-                role === 'manager' ? 'bg-white text-[#001F3F] shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              Manager
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('staff')}
-              className={`flex-1 py-3 px-4 rounded-[40px] text-sm font-medium transition-all ${
-                role === 'staff' ? 'bg-white text-[#001F3F] shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              Staff
-            </button>
           </div>
 
           {/* Error Message */}

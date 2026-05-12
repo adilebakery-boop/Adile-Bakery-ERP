@@ -1,0 +1,115 @@
+export const ROLES = {
+  ADMIN: 'ADMIN',
+  MANAGER: 'MANAGER',
+  BAKER: 'BAKER',
+  CAKE_CHEF: 'CAKE_CHEF',
+  COOKIE_BAKER: 'COOKIE_BAKER',
+  FETIR_CHEF: 'FETIR_CHEF',
+  CASHIER: 'CASHIER'
+};
+
+export const PAGES = {
+  DASHBOARD: 'dashboard',
+  PRODUCTION: 'production',
+  REMAINING: 'remaining',
+  REPORTS: 'reports',
+  PRODUCTS: 'products',
+  BRANCHES: 'branches',
+  USERS: 'users',
+  PROFILE: 'profile'
+};
+
+export const CATEGORIES = {
+  BREAD_AND_SWEET_BREADS: 'BREAD_AND_SWEET_BREADS',
+  CREAM_CAKES: 'CREAM_CAKES',
+  SOFT_CAKES: 'SOFT_CAKES',
+  DRY_CAKES: 'DRY_CAKES',
+  DRINKS_AND_RETAIL_ITEMS: 'DRINKS_AND_RETAIL_ITEMS',
+  FETIRE_AND_SNACKS: 'FETIRE_AND_SNACKS',
+  COOKIES: 'COOKIES'
+};
+
+export const MANAGER_ROLES = [ROLES.ADMIN, ROLES.MANAGER];
+
+export const isManagerOrAdmin = (role) => MANAGER_ROLES.includes(role);
+
+export const ROLE_PAGE_ACCESS = {
+  [ROLES.ADMIN]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.REPORTS,
+    PAGES.PRODUCTS,
+    PAGES.BRANCHES,
+    PAGES.USERS,
+    PAGES.PROFILE
+  ],
+  [ROLES.MANAGER]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.REPORTS,
+    PAGES.PRODUCTS,
+    PAGES.BRANCHES,
+    PAGES.USERS,
+    PAGES.PROFILE
+  ],
+  [ROLES.BAKER]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.PROFILE
+  ],
+  [ROLES.CAKE_CHEF]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.PROFILE
+  ],
+  [ROLES.COOKIE_BAKER]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.PROFILE
+  ],
+  [ROLES.FETIR_CHEF]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.PROFILE
+  ],
+  [ROLES.CASHIER]: [
+    PAGES.DASHBOARD,
+    PAGES.PRODUCTION,
+    PAGES.REMAINING,
+    PAGES.PROFILE
+  ]
+};
+
+export const ROLE_CATEGORY_ACCESS = {
+  [ROLES.ADMIN]: Object.values(CATEGORIES),
+  [ROLES.MANAGER]: Object.values(CATEGORIES),
+  [ROLES.BAKER]: [CATEGORIES.BREAD_AND_SWEET_BREADS],
+  [ROLES.CAKE_CHEF]: [CATEGORIES.CREAM_CAKES, CATEGORIES.SOFT_CAKES, CATEGORIES.DRY_CAKES],
+  [ROLES.COOKIE_BAKER]: [CATEGORIES.COOKIES],
+  [ROLES.FETIR_CHEF]: [CATEGORIES.FETIRE_AND_SNACKS],
+  [ROLES.CASHIER]: [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]
+};
+
+export const getPagesForRole = (role) => {
+  return ROLE_PAGE_ACCESS[role] || [];
+};
+
+export const getCategoriesForRole = (role) => {
+  return ROLE_CATEGORY_ACCESS[role] || [];
+};
+
+export const hasPageAccess = (role, page) => {
+  const pages = ROLE_PAGE_ACCESS[role] || [];
+  return pages.includes(page);
+};
+
+export const hasCategoryAccess = (role, category) => {
+  const categories = ROLE_CATEGORY_ACCESS[role] || [];
+  return categories.includes(category);
+};
