@@ -101,8 +101,8 @@ const branches = [
 | ID | Name | Category | Price | Unit |
 |----|------|----------|-------|------|
 | 1 | Normal Bread | Bread | 15.00 | piece |
-| 2 | Noraml Mid Size Bread | Bread | 25.00 | piece |
-| 3 | Normal Big SizeBread | Bread | 30.00 | piece |
+| 2 | Normal Mid Size Bread | Bread | 25.00 | piece |
+| 3 | Normal Big Size Bread | Bread | 30.00 | piece |
 | 4 | Difo Bread | Bread | 60.00 | piece |
 | 5 | Aja Bread | Bread | 30.00 | piece |
 | 6 | Gabse Bread | Bread | 20.00 | piece |
@@ -132,7 +132,7 @@ const branches = [
 | 26 | Ma'amoul | Sweets | 5.00 | piece |
 
 | 27 | Donut | Pastry | 70.00 | piece |
-| 27 | Sambusa| Pastry | 25.00 | piece |
+| 28 | Sambusa| Pastry | 25.00 | piece |
 | 29 | Qoqora | Pastry | 30.00 | piece |
 | 30 | Bobolino | Pastry | 60.00 | piece |
 
@@ -141,15 +141,15 @@ const branches = [
 | 33 | Daabboo qollo | Snack | 40.00 | piece |
 | 34 | Bobolino | Snack | 60.00 | piece |
 
-| 35 | Milk | drink | 90.00 | piece |
-| 36 | Milk 2L | drink | 250.00 | piece |
-| 37 | Normal Yogurt | drink | 120.00 | piece |
-| 38 | Special Yogurt | drink | 140.00 | piece |
-| 39 | Water | drink | 60.00 | piece |
+| 35 | Milk | Drink | 90.00 | piece |
+| 36 | Milk 1L | Drink | 250.00 | piece |
+| 37 | Normal Yogurt | Drink | 120.00 | piece |
+| 38 | Special Yogurt | Drink | 140.00 | piece |
+| 39 | Water | Drink | 60.00 | piece |
 
 | 40 | Normal Fetire | Fetire | 200.00 | piece |
-| 41 | Special Fetire | drink | 250.00 | piece |
-| 42 | Malaw | drink | 150.00 | piece |
+| 41 | Special Fetire |  Fetire  | 250.00 | piece |
+| 42 | Malaw |  Fetire  | 150.00 | piece |
 ### Seed Data
 
 ```javascript

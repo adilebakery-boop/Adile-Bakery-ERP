@@ -3,88 +3,120 @@ const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
+const SALT_ROUNDS = 10;
+
 async function main() {
+  console.log('Seeding database...');
+
   // Create roles
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'ADMIN' },
-    update: {},
-    create: { name: 'ADMIN' },
-  });
+  const roles = [
+    { name: 'MANAGER' },
+    { name: 'STAFF' },
+    { name: 'CAKE_CHEF' },
+    { name: 'FETIR_CHEF' },
+    { name: 'CASHIER' },
+  ];
 
-  const managerRole = await prisma.role.upsert({
-    where: { name: 'MANAGER' },
-    update: {},
-    create: { name: 'MANAGER' },
-  });
+  for (const role of roles) {
+    await prisma.role.upsert({
+      where: { name: role.name },
+      update: {},
+      create: role,
+    });
+  }
+  console.log('Roles created');
 
-  const bakerRole = await prisma.role.upsert({
-    where: { name: 'BAKER' },
-    update: {},
-    create: { name: 'BAKER' },
-  });
-
-  const cashierRole = await prisma.role.upsert({
-    where: { name: 'CASHIER' },
-    update: {},
-    create: { name: 'CASHIER' },
-  });
+  // Get role IDs
+  const managerRole = await prisma.role.findUnique({ where: { name: 'MANAGER' } });
+  const staffRole = await prisma.role.findUnique({ where: { name: 'STAFF' } });
+  const cakeChefRole = await prisma.role.findUnique({ where: { name: 'CAKE_CHEF' } });
+  const fetirChefRole = await prisma.role.findUnique({ where: { name: 'FETIR_CHEF' } });
+  const cashierRole = await prisma.role.findUnique({ where: { name: 'CASHIER' } });
 
   // Create branches
-  const branch1 = await prisma.branch.upsert({
-    where: { name: 'Main Branch' },
-    update: {},
-    create: { name: 'Main Branch' },
-  });
+  const branches = [
+    { name: 'Main Branch' },
+    { name: 'Branch 2' },
+    { name: 'Branch 3' },
+  ];
 
-  const branch2 = await prisma.branch.upsert({
-    where: { name: 'Branch 2' },
-    update: {},
-    create: { name: 'Branch 2' },
-  });
+  for (const branch of branches) {
+    await prisma.branch.upsert({
+      where: { name: branch.name },
+      update: {},
+      create: branch,
+    });
+  }
+  console.log('Branches created');
 
-  // Hash password
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  // Get branch IDs
+  const mainBranch = await prisma.branch.findUnique({ where: { name: 'Main Branch' } });
 
-  // Create admin user
-  await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: {},
-    create: {
+  // Hash passwords
+  const passwordHash = await bcrypt.hash('password123', SALT_ROUNDS);
+
+  // Create users
+  const users = [
+    {
       name: 'Ahmed Mohamed',
-      username: 'admin',
-      passwordHash: hashedPassword,
-      roleId: adminRole.id,
-    },
-  });
-
-  // Create manager user
-  const managerPassword = await bcrypt.hash('password123', 10);
-  await prisma.user.upsert({
-    where: { username: 'sara.manager' },
-    update: {},
-    create: {
-      name: 'Sara Ali',
-      username: 'sara.manager',
-      passwordHash: managerPassword,
+      username: 'manager',
+      passwordHash,
       roleId: managerRole.id,
-      branchId: branch1.id,
+      branchId: mainBranch.id,
+      isBlocked: false,
     },
-  });
-
-  // Create baker user
-  await prisma.user.upsert({
-    where: { username: 'omar.baker' },
-    update: {},
-    create: {
-      name: 'Omar Hassan',
-      username: 'omar.baker',
-      passwordHash: managerPassword,
-      roleId: bakerRole.id,
-      branchId: branch1.id,
+    {
+      name: 'Ali Hassan',
+      username: 'staff',
+      passwordHash,
+      roleId: staffRole.id,
+      branchId: mainBranch.id,
+      isBlocked: false,
     },
-  });
+    {
+      name: 'Sara Mahmoud',
+      username: 'cake_chef',
+      passwordHash,
+      roleId: cakeChefRole.id,
+      branchId: mainBranch.id,
+      isBlocked: false,
+    },
+    {
+      name: 'Omar Ibrahim',
+      username: 'fetir_chef',
+      passwordHash,
+      roleId: fetirChefRole.id,
+      branchId: mainBranch.id,
+      isBlocked: false,
+    },
+    {
+      name: 'Fatma Ahmed',
+      username: 'cashier',
+      passwordHash,
+      roleId: cashierRole.id,
+      branchId: mainBranch.id,
+      isBlocked: false,
+    },
+    {
+      name: 'Blocked User',
+      username: 'blocked_user',
+      passwordHash,
+      roleId: staffRole.id,
+      branchId: mainBranch.id,
+      isBlocked: true,
+    },
+  ];
 
-  console.log('Seed completed!');
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { username: user.username },
+      update: {},
+      create: user,
+    });
+  }
+  console.log('Users created');
+
+  console.log('Database seeded successfully!');
 }
 
 main()
