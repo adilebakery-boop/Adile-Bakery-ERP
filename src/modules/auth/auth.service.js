@@ -5,6 +5,12 @@ const { generateToken } = require('../../utils/jwt');
 const SALT_ROUNDS = 10;
 
 const login = async (username, password) => {
+  if (!username || !password) {
+    const error = new Error('Username and password are required');
+    error.code = 'VALIDATION';
+    throw error;
+  }
+
   const user = await prisma.user.findUnique({
     where: { username },
     include: {
@@ -14,13 +20,17 @@ const login = async (username, password) => {
   });
 
   if (!user) {
-    throw new Error('Invalid credentials');
+    const error = new Error('Invalid username or password');
+    error.code = 'INVALID_CREDENTIALS';
+    throw error;
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isPasswordValid) {
-    throw new Error('Invalid credentials');
+    const error = new Error('Invalid username or password');
+    error.code = 'INVALID_CREDENTIALS';
+    throw error;
   }
 
   const token = generateToken({

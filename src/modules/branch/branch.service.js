@@ -19,11 +19,11 @@ const branchService = {
       throw error;
     }
 
-    return prisma.branch.create({
+return prisma.branch.create({
       data: {
         name: data.name,
-        address: data.address || null,
-        phone: data.phone || null,
+        address: data.address,
+        phone: data.phone,
         isActive: true,
       },
     });
@@ -87,12 +87,12 @@ const branchService = {
       }
     }
 
-    return prisma.branch.update({
+return prisma.branch.update({
       where: { id },
       data: {
         name: data.name,
-        address: data.address || null,
-        phone: data.phone || null,
+        address: data.address,
+        phone: data.phone,
         isActive: data.isActive,
       },
     });

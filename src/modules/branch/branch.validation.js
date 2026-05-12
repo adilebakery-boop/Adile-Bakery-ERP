@@ -5,6 +5,8 @@ const createBranchSchema = z.object({
     .min(1, 'Branch name is required')
     .max(100, 'Branch name must not exceed 100 characters')
     .transform(val => val.trim()),
+  address: z.string().max(255).optional(),
+  phone: z.string().max(20).optional(),
 });
 
 const updateBranchSchema = z.object({
@@ -13,6 +15,8 @@ const updateBranchSchema = z.object({
     .max(100, 'Branch name must not exceed 100 characters')
     .transform(val => val.trim())
     .optional(),
+  address: z.string().max(255).optional(),
+  phone: z.string().max(20).optional(),
   isActive: z.boolean().optional(),
 });
 

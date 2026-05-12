@@ -8,7 +8,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   async (req, res) => {
     try {
       const { branchId, startDate, endDate } = req.query;
@@ -37,7 +37,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   async (req, res) => {
     try {
       const { productId, quantity, branchId, date } = req.body;
@@ -77,7 +77,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   async (req, res) => {
     try {
       const { quantity } = req.body;
