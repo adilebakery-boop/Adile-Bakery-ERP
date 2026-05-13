@@ -3,13 +3,16 @@ const productionService = require('./production.service');
 const productionController = {
   async create(req, res) {
     try {
+      console.log('Create production:', req.body, 'User:', req.user);
       const production = await productionService.create(req.body, req.user);
+      console.log('Created:', production);
       res.status(201).json({
         success: true,
         message: 'Production record created successfully',
         data: production,
       });
     } catch (error) {
+      console.error('Create production error:', error);
       if (error.code === 'P2025') {
         return res.status(404).json({ success: false, message: error.message, errors: [] });
       }

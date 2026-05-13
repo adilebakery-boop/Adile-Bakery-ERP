@@ -34,7 +34,8 @@ const productService = {
       sortOrder = 'desc',
     } = options;
 
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
     const where = {};
     if (search) {
@@ -43,15 +44,16 @@ const productService = {
     if (category) {
       where.category = category;
     }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
+    if (isActive !== undefined && isActive !== null && isActive !== '') {
+      const isActiveBool = isActive === true || isActive === 'true' || isActive === true;
+      where.isActive = isActiveBool;
     }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         skip,
-        take: limit,
+        take,
         orderBy: { [sortBy]: sortOrder },
       }),
       prisma.product.count({ where }),
