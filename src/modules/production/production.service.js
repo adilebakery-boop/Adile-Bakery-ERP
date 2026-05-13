@@ -84,7 +84,8 @@ const productionService = {
       sortOrder = 'desc',
     } = options;
 
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
     const where = {};
 
     if (branchId) where.branchId = parseInt(branchId);
@@ -107,7 +108,7 @@ const productionService = {
       prisma.productionRecord.findMany({
         where,
         skip,
-        take: limit,
+        take,
         orderBy: { [sortBy]: sortOrder },
         include: {
           product: { select: { id: true, name: true, category: true, unitType: true } },
