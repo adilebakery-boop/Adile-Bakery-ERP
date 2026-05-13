@@ -1,3 +1,13 @@
-.env
 node_modules/
-.vscode/v
+frontend/node_modules/
+
+.vite/
+frontend/.vite/
+
+.env
+frontend/.env
+
+dist/
+build/
+
+.vscode/
