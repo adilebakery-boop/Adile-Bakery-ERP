@@ -4,7 +4,9 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "seed": "node prisma/seed.js",
+    "seed:products": "node prisma/seed-products.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
