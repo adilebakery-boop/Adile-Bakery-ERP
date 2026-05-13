@@ -18,9 +18,8 @@ enum RoleName {
 }
 
 enum Shift {
-  MORNING
-  AFTERNOON
-  EVENING
+  DAY
+  NIGHT
 }
 
 enum ProductCategory {

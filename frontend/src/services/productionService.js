@@ -3,17 +3,8 @@ import api, { handleApiError } from './api';
 export const productionService = {
   getProductions: async (params = {}) => {
     try {
-      const response = await api.get('/productions', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getTodayProductions: async (params = {}) => {
-    try {
-      const response = await api.get('/productions/today', { params });
-      return { success: true, data: response.data };
+      const response = await api.get('/production', { params });
+      return { success: true, data: response.data.data, pagination: response.data.pagination };
     } catch (error) {
       return handleApiError(error);
     }
@@ -21,8 +12,8 @@ export const productionService = {
 
   createProduction: async (data) => {
     try {
-      const response = await api.post('/productions', data);
-      return { success: true, data: response.data };
+      const response = await api.post('/production', data);
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -30,7 +21,7 @@ export const productionService = {
 
   updateProduction: async (id, data) => {
     try {
-      const response = await api.put(`/productions/${id}`, data);
+      const response = await api.put(`/production/${id}`, data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -39,25 +30,16 @@ export const productionService = {
 
   deleteProduction: async (id) => {
     try {
-      const response = await api.delete(`/productions/${id}`);
+      const response = await api.delete(`/production/${id}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
     }
   },
 
-  getProductionByDate: async (date, params = {}) => {
+  getProductionById: async (id) => {
     try {
-      const response = await api.get(`/productions/date/${date}`, { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getProductionSummary: async (params = {}) => {
-    try {
-      const response = await api.get('/productions/summary', { params });
+      const response = await api.get(`/production/${id}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
