@@ -35,29 +35,21 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
-  (req, res, next) => {
-    try {
-      querySchema.parse(req.query);
-      next();
-    } catch (error) {
-      return res.status(400).json({ success: false, message: 'Invalid query', errors: error.errors });
-    }
-  },
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   productController.findAll
 );
 
 router.get(
   '/categories',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   productController.getCategories
 );
 
 router.get(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   validateParams(productIdSchema),
   productController.findById
 );

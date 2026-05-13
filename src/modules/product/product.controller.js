@@ -20,7 +20,9 @@ const productController = {
 
   async findAll(req, res) {
     try {
+      console.log('findAll called with:', req.query);
       const result = await productService.findAll(req.query);
+      console.log('findAll result:', result.data.length, 'products');
       res.json({
         success: true,
         message: 'Products retrieved successfully',
@@ -28,6 +30,7 @@ const productController = {
         pagination: result.pagination,
       });
     } catch (error) {
+      console.error('findAll error:', error);
       res.status(500).json({
         success: false,
         message: error.message,

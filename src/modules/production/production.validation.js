@@ -1,11 +1,11 @@
 const z = require('zod');
 
-const shifts = ['MORNING', 'AFTERNOON', 'EVENING'];
+const shifts = ['DAY', 'NIGHT'];
 
 const createProductionSchema = z.object({
   productId: z.coerce.number().int('Product ID must be an integer').positive('Product ID must be positive'),
   branchId: z.coerce.number().int('Branch ID must be an integer').positive('Branch ID must be positive'),
-  shift: z.enum(shifts, { errorMap: () => ({ message: 'Invalid shift. Must be MORNING, AFTERNOON, or EVENING' }) }),
+  shift: z.enum(shifts, { errorMap: () => ({ message: 'Invalid shift. Must be DAY or NIGHT' }) }),
   quantity: z.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be greater than 0')
     .max(999999.99, 'Quantity must not exceed 999999.99'),

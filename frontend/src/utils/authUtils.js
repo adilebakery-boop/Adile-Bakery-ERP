@@ -13,6 +13,11 @@ export const getUser = () => {
 
 export const getUserRole = () => localStorage.getItem(AUTH_KEYS.ROLE);
 
+export const getUserBranchId = () => {
+  const user = getUser();
+  return user?.branchId || null;
+};
+
 export const setAuth = (token, user, role) => {
   localStorage.setItem(AUTH_KEYS.TOKEN, token);
   localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(user));
