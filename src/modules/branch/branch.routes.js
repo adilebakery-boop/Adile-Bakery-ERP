@@ -35,7 +35,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   (req, res, next) => {
     try {
       querySchema.parse(req.query);
@@ -50,14 +50,14 @@ router.get(
 router.get(
   '/active',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   branchController.findActive
 );
 
 router.get(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'STAFF', 'CAKE_CHEF', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
   validateParams(branchIdSchema),
   branchController.findById
 );
