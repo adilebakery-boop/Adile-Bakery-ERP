@@ -37,91 +37,216 @@ enum UnitType {
   kg
 }
 
+enum RemainingStatus {
+  DRAFT
+  FINAL
+}
+
 model Role {
-  id        Int       @id @default(autoincrement())
-  name      RoleName  @unique
-  users     User[]
+  id   Int      @id @default(autoincrement())
+  name RoleName @unique
+  users User[]
 }
 
 model Branch {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  address   String?
-  phone     String?
-  isActive  Boolean   @default(true)
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  address  String?
+  phone    String?
+  isActive Boolean @default(true)
   users     User[]
   productions ProductionRecord[]
-  remainings RemainingRecord[]
-
+  remainings  RemainingRecord[]
+  wastes      WasteRecord[]
+  closures    DailyClosure[]
+  snapshots   DailySnapshot[]
   @@index([isActive])
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   name         String
-  username     String    @unique
+  username     String   @unique
   passwordHash String
   roleId       Int
   branchId     Int?
-  isBlocked    Boolean   @default(false)
-  role         Role      @relation(fields: [roleId], references: [id])
-  branch       Branch?   @relation(fields: [branchId], references: [id])
-  createdAt    DateTime  @default(now())
-
-  productions ProductionRecord[]
-  remainings  RemainingRecord[]
-
+  isBlocked    Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  role         Role     @relation(fields: [roleId], references: [id])
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  createdAt    DateTime @default(now())
+  productions ProductionRecord[] @relation("ProductionCreatedBy")
+  productionsUpdated ProductionRecord[] @relation("ProductionUpdatedBy")
+  remainings  RemainingRecord[]  @relation("RemainingCreatedBy")
+  remainingsUpdated  RemainingRecord[]  @relation("RemainingUpdatedBy")
+  wastes      WasteRecord[]       @relation("WasteCreatedBy")
+  auditLogs   AuditLog[]
+  closures    DailyClosure[]       @relation("ClosureClosedBy")
+  reopenLogs  ReopenLog[]         @relation("ReopenReopenedBy")
+  snapshotsClosed   DailySnapshot[] @relation("SnapshotClosedBy")
+  snapshotsInvalidated DailySnapshot[] @relation("SnapshotInvalidatedBy")
   @@index([username])
   @@index([roleId])
   @@index([branchId])
+  @@index([isActive])
 }
 
 model Product {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  category  ProductCategory
-  price     Decimal   @db.Decimal(10, 2)
-  unitType  UnitType
-  isActive  Boolean   @default(true)
-  productions ProductionRecord[]
-  remainings  RemainingRecord[]
-
+  id            Int             @id @default(autoincrement())
+  name          String          @unique
+  category      ProductCategory
+  price         Decimal         @db.Decimal(12, 2)
+  unitType      UnitType
+  isActive      Boolean         @default(true)
+  costPrice     Decimal?        @db.Decimal(12, 2)
+  sellingPrice  Decimal?        @db.Decimal(12, 2)
+  productions   ProductionRecord[]
+  remainings    RemainingRecord[]
+  wastes        WasteRecord[]
+  snapshotItems DailySnapshotItem[]
   @@index([category])
   @@index([isActive])
 }
 
 model ProductionRecord {
-  id         Int       @id @default(autoincrement())
-  productId  Int
-  quantity   Decimal   @db.Decimal(10, 2)
-  branchId   Int
-  shift      Shift
-  createdAt  DateTime  @default(now())
-  userId     Int
-  product    Product   @relation(fields: [productId], references: [id])
-  branch     Branch    @relation(fields: [branchId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
-
-  @@index([productId])
-  @@index([branchId])
-  @@index([createdAt])
-  @@index([userId])
+  id              Int       @id @default(autoincrement())
+  productId       Int
+  branchId        Int
+  productionDate  DateTime
+  operationalDate DateTime  @db.Date
+  shift           Shift
+  quantity        Decimal   @db.Decimal(12, 3)
+  createdBy       Int
+  updatedBy       Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  product         Product   @relation(fields: [productId], references: [id])
+  branch          Branch    @relation(fields: [branchId], references: [id])
+  creator         User      @relation("ProductionCreatedBy", fields: [createdBy], references: [id])
+  updater         User?     @relation("ProductionUpdatedBy", fields: [updatedBy], references: [id])
+  @@index([branchId, operationalDate, productId])
+  @@index([productId, operationalDate])
+  @@index([shift])
+  @@index([createdBy])
+  @@index([operationalDate])
 }
 
 model RemainingRecord {
-  id         Int       @id @default(autoincrement())
-  productId  Int
-  quantity   Decimal   @db.Decimal(10, 2)
-  branchId   Int
-  date       DateTime  @db.Date
-  userId     Int
-  product    Product   @relation(fields: [productId], references: [id])
-  branch     Branch    @relation(fields: [branchId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
+  id              Int             @id @default(autoincrement())
+  productId       Int
+  branchId        Int
+  operationalDate DateTime        @db.Date
+  quantity        Decimal         @db.Decimal(12, 3)
+  status          RemainingStatus @default(FINAL)
+  createdBy       Int
+  updatedBy       Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  product         Product         @relation(fields: [productId], references: [id])
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  creator         User            @relation("RemainingCreatedBy", fields: [createdBy], references: [id])
+  updater         User?           @relation("RemainingUpdatedBy", fields: [updatedBy], references: [id])
+  @@unique([branchId, operationalDate, productId])
+  @@index([branchId, operationalDate, productId])
+  @@index([createdBy])
+  @@index([status])
+}
 
-  @@unique([productId, branchId, date])
-  @@index([productId])
+model WasteRecord {
+  id              Int      @id @default(autoincrement())
+  productId       Int
+  branchId        Int
+  operationalDate DateTime @db.Date
+  quantity        Decimal  @db.Decimal(12, 3)
+  reason          String?
+  createdBy       Int
+  createdAt       DateTime @default(now())
+  product         Product  @relation(fields: [productId], references: [id])
+  branch          Branch   @relation(fields: [branchId], references: [id])
+  creator         User     @relation("WasteCreatedBy", fields: [createdBy], references: [id])
+  @@index([branchId, operationalDate, productId])
+  @@index([createdBy])
+}
+
+model DailyClosure {
+  id              Int       @id @default(autoincrement())
+  branchId        Int
+  operationalDate DateTime  @db.Date
+  isClosed        Boolean   @default(false)
+  closedBy        Int?
+  closedAt         DateTime?
+  note            String?
+  branch          Branch     @relation(fields: [branchId], references: [id])
+  closedByUser    User?      @relation("ClosureClosedBy", fields: [closedBy], references: [id])
+  snapshot        DailySnapshot?
+  reopenLogs      ReopenLog[]
+  @@unique([branchId, operationalDate])
   @@index([branchId])
-  @@index([date])
+  @@index([isClosed])
+}
+
+model DailySnapshot {
+  id              Int       @id @default(autoincrement())
+  closureId       Int       @unique
+  branchId        Int
+  operationalDate DateTime  @db.Date
+  closedBy        Int?
+  closedAt        DateTime?
+  isInvalidated   Boolean   @default(false)
+  invalidatedAt    DateTime?
+  invalidatedBy    Int?
+  createdAt       DateTime  @default(now())
+  closure         DailyClosure @relation(fields: [closureId], references: [id])
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  closedByUser    User?           @relation("SnapshotClosedBy", fields: [closedBy], references: [id])
+  invalidatedByUser User?          @relation("SnapshotInvalidatedBy", fields: [invalidatedBy], references: [id])
+  items           DailySnapshotItem[]
+  @@index([branchId])
+  @@index([isInvalidated])
+  @@index([operationalDate])
+}
+
+model DailySnapshotItem {
+  id               Int      @id @default(autoincrement())
+  snapshotId       Int
+  productId        Int
+  openingStock     Decimal  @db.Decimal(12, 3) @default(0)
+  dayProduction    Decimal  @db.Decimal(12, 3) @default(0)
+  nightProduction  Decimal  @db.Decimal(12, 3) @default(0)
+  sellableStock    Decimal  @db.Decimal(12, 3) @default(0)
+  remainingStock   Decimal  @db.Decimal(12, 3) @default(0)
+  wasteQuantity    Decimal  @db.Decimal(12, 3) @default(0)
+  estimatedSold    Decimal  @db.Decimal(12, 3) @default(0)
+  estimatedRevenue Decimal  @db.Decimal(12, 2) @default(0)
+  snapshot         DailySnapshot @relation(fields: [snapshotId], references: [id])
+  product          Product       @relation(fields: [productId], references: [id])
+  @@unique([snapshotId, productId])
+}
+
+model ReopenLog {
+  id              Int       @id @default(autoincrement())
+  branchId        Int
+  operationalDate DateTime  @db.Date
+  reopenedBy      Int
+  reopenedAt      DateTime  @default(now())
+  reason          String?
+  closure         DailyClosure @relation(fields: [branchId, operationalDate], references: [branchId, operationalDate])
+  user            User         @relation("ReopenReopenedBy", fields: [reopenedBy], references: [id])
+  @@index([reopenedBy])
+  @@index([reopenedAt])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  entityType String
+  entityId   Int
+  action     String
+  oldValue   Json?
+  newValue   Json?
+  userId     Int
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  @@index([entityType, entityId])
   @@index([userId])
+  @@index([createdAt])
 }

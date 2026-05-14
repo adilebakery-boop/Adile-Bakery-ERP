@@ -1,94 +1,87 @@
-const productionService = require('./production.service');
+const productionService = require('../../services/productionService');
+const { asyncHandler } = require('../../middlewares/errorHandler');
+const { buildProductionAccessFilter } = require('../../utils/accessFilters');
 
-const productionController = {
-  async create(req, res) {
-    try {
-      console.log('Create production:', req.body, 'User:', req.user);
-      const production = await productionService.create(req.body, req.user);
-      console.log('Created:', production);
-      res.status(201).json({
-        success: true,
-        message: 'Production record created successfully',
-        data: production,
-      });
-    } catch (error) {
-      console.error('Create production error:', error);
-      if (error.code === 'P2025') {
-        return res.status(404).json({ success: false, message: error.message, errors: [] });
-      }
-      if (error.code === 'INACTIVE_PRODUCT' || error.code === 'INACTIVE_BRANCH') {
-        return res.status(400).json({ success: false, message: error.message, errors: [] });
-      }
-      if (error.code === 'CATEGORY_ACCESS_DENIED') {
-        return res.status(403).json({ success: false, message: error.message, errors: [] });
-      }
-      res.status(500).json({ success: false, message: error.message || 'Failed to create production record', errors: [] });
-    }
-  },
+const findAll = asyncHandler(async (req, res) => {
+  const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
+  const { role, userId } = req.user;
 
-  async findAll(req, res) {
-    try {
-      const result = await productionService.findAll(req.query, req.user);
-      res.json({
-        success: true,
-        message: 'Production records retrieved successfully',
-        data: result.data,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message, errors: [] });
-    }
-  },
+  const filters = { branchId, operationalDate, shift, productId, startDate, endDate };
 
-  async findById(req, res) {
-    try {
-      const production = await productionService.findById(parseInt(req.params.id));
-      res.json({
-        success: true,
-        message: 'Production record retrieved successfully',
-        data: production,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Production record not found' : error.message,
-        errors: [],
-      });
-    }
-  },
+  const accessFilter = buildProductionAccessFilter({ role, userId });
+  Object.assign(filters, accessFilter);
 
-  async update(req, res) {
-    try {
-      const production = await productionService.update(parseInt(req.params.id), req.body);
-      res.json({
-        success: true,
-        message: 'Production record updated successfully',
-        data: production,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Production record not found' : error.message,
-        errors: [],
-      });
-    }
-  },
+  const productions = await productionService.findAll(filters);
+  res.json({
+    success: true,
+    data: productions,
+    count: productions.length,
+  });
+});
 
-  async delete(req, res) {
-    try {
-      await productionService.delete(parseInt(req.params.id));
-      res.json({ success: true, message: 'Production record deleted successfully' });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Production record not found' : error.message,
-        errors: [],
-      });
-    }
-  },
+const findById = asyncHandler(async (req, res) => {
+  const production = await productionService.findById(req.params.id);
+  res.json({
+    success: true,
+    data: production,
+  });
+});
+
+const findByOperationalDate = asyncHandler(async (req, res) => {
+  const { branchId, shift } = req.query;
+  const productions = await productionService.findByOperationalDate(
+    branchId || req.user.branchId,
+    req.params.operationalDate,
+    shift
+  );
+  res.json({
+    success: true,
+    data: productions,
+    count: productions.length,
+  });
+});
+
+const create = asyncHandler(async (req, res) => {
+  const production = await productionService.create(req.body, req.user);
+  res.status(201).json({
+    success: true,
+    message: 'Production record created successfully',
+    data: production,
+  });
+});
+
+const update = asyncHandler(async (req, res) => {
+  const production = await productionService.update(req.params.id, req.body, req.user);
+  res.json({
+    success: true,
+    message: 'Production record updated successfully',
+    data: production,
+  });
+});
+
+const remove = asyncHandler(async (req, res) => {
+  await productionService.remove(req.params.id, req.user);
+  res.json({
+    success: true,
+    message: 'Production record deleted successfully',
+  });
+});
+
+const getToday = asyncHandler(async (req, res) => {
+  const productions = await productionService.getTodayProductions(req.query.branchId, req.user);
+  res.json({
+    success: true,
+    data: productions,
+    count: productions.length,
+  });
+});
+
+module.exports = {
+  findAll,
+  findById,
+  findByOperationalDate,
+  create,
+  update,
+  remove,
+  getToday,
 };
-
-module.exports = productionController;
