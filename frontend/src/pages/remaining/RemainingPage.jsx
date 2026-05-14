@@ -116,6 +116,7 @@ export default function RemainingPage() {
 
     const result = await remainingService.saveBulk({
       branchId: userBranchId,
+      operationalDate,
       items,
     });
 
@@ -152,6 +153,7 @@ export default function RemainingPage() {
 
     const result = await remainingService.saveBulk({
       branchId: userBranchId,
+      operationalDate,
       items,
     });
 

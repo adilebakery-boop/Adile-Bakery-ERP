@@ -87,7 +87,7 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
   return remainings;
 }
 
-async function create(data, userId) {
+async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
   const product = await prisma.product.findUnique({
@@ -100,7 +100,7 @@ async function create(data, userId) {
     throw error;
   }
 
-  const opDate = new Date(operationalDate);
+  const opDate = operationalDate ? new Date(operationalDate) : new Date();
 
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
 
@@ -121,7 +121,7 @@ async function create(data, userId) {
       data: {
         quantity: new Prisma.Decimal(String(quantity)),
         status,
-        updatedBy: userId.userId,
+        updatedBy: user.userId,
       },
       include: {
         product: { select: { id: true, name: true, category: true } },
@@ -130,7 +130,7 @@ async function create(data, userId) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, userId.userId);
+    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
   } else {
     remaining = await prisma.remainingRecord.create({
       data: {
@@ -139,7 +139,7 @@ async function create(data, userId) {
         operationalDate: opDate,
         quantity: new Prisma.Decimal(String(quantity)),
         status,
-        createdBy: userId.userId,
+        createdBy: user.userId,
       },
       include: {
         product: { select: { id: true, name: true, category: true } },
@@ -148,16 +148,16 @@ async function create(data, userId) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, userId.userId);
+    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, user.userId);
   }
 
   return remaining;
 }
 
-async function createBulk(data, userId) {
-  const { branchId, operationalDate, items } = data;
+async function createBulk(data, user) {
+  const { branchId, operationalDate: opDateParam, items } = data;
 
-  const opDate = new Date(operationalDate);
+  const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
 
@@ -189,9 +189,9 @@ async function createBulk(data, userId) {
         remaining = await tx.remainingRecord.update({
           where: { id: existing.id },
           data: {
-            quantity: new Prisma.Decimal(String(item.quantity)),
+            quantity: new Prisma.Decimal(String(item.remainingQuantity ?? 0)),
             status: item.status || 'FINAL',
-            updatedBy: userId.userId,
+            updatedBy: user.userId,
           },
           include: {
             product: { select: { id: true, name: true, category: true } },
@@ -205,7 +205,7 @@ async function createBulk(data, userId) {
           action: 'UPDATE',
           oldValue: JSON.parse(JSON.stringify(oldValue)),
           newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: userId.userId,
+          userId: user.userId,
         });
       } else {
         remaining = await tx.remainingRecord.create({
@@ -213,9 +213,9 @@ async function createBulk(data, userId) {
             productId: parseInt(item.productId),
             branchId: parseInt(branchId),
             operationalDate: opDate,
-            quantity: new Prisma.Decimal(String(item.quantity)),
+            quantity: new Prisma.Decimal(String(item.remainingQuantity ?? 0)),
             status: item.status || 'FINAL',
-            createdBy: userId.userId,
+            createdBy: user.userId,
           },
           include: {
             product: { select: { id: true, name: true, category: true } },
@@ -229,7 +229,7 @@ async function createBulk(data, userId) {
           action: 'CREATE',
           oldValue: null,
           newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: userId.userId,
+          userId: user.userId,
         });
       }
 
@@ -244,13 +244,13 @@ async function createBulk(data, userId) {
   return result;
 }
 
-async function update(id, data, userId) {
+async function update(id, data, user) {
   const existing = await findById(id);
 
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   const updateData = {
-    updatedBy: userId.userId,
+    updatedBy: user.userId,
   };
 
   if (data.quantity !== undefined) {
@@ -273,13 +273,13 @@ async function update(id, data, userId) {
     },
   });
 
-  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, userId.userId);
+  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
 
   return remaining;
 }
 
-async function remove(id, userId) {
-  if (userId.role !== 'ADMIN' && userId.role !== 'MANAGER') {
+async function remove(id, user) {
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
     const error = new Error('Only ADMIN or MANAGER can delete remaining records');
     error.status = 403;
     throw error;
@@ -293,7 +293,7 @@ async function remove(id, userId) {
     where: { id: parseInt(id) },
   });
 
-  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, userId.userId);
+  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, user.userId);
 
   return { message: 'Remaining record deleted successfully' };
 }
