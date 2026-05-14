@@ -3,7 +3,7 @@ const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { calculateOperationalDate } = require('../utils/dateUtils');
-const { buildProductionAccessFilter, isAdminOrManager } = require('../utils/accessFilters');
+const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 
 const ZERO = new Prisma.Decimal('0');
 
