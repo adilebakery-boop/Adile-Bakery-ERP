@@ -1,7 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { allowRoles } = require('../../middlewares/role.middleware');
-const productionController = require('./production.controller');
+const wasteController = require('./waste.controller');
 
 const router = express.Router();
 
@@ -9,49 +9,35 @@ router.get(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.findAll
-);
-
-router.get(
-  '/today',
-  authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.getToday
-);
-
-router.get(
-  '/by-date/:operationalDate',
-  authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.findByOperationalDate
+  wasteController.findAll
 );
 
 router.get(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.findById
+  wasteController.findById
 );
 
 router.post(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.create
+  wasteController.create
 );
 
 router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
-  productionController.update
+  wasteController.update
 );
 
 router.delete(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
-  productionController.remove
+  wasteController.remove
 );
 
 module.exports = router;

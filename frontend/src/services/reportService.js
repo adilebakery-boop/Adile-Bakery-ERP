@@ -1,6 +1,15 @@
 import api, { handleApiError } from './api';
 
 export const reportService = {
+  getInventoryFlowReport: async (params = {}) => {
+    try {
+      const response = await api.get('/reports/inventory-flow', { params });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
   getDailyReport: async (params = {}) => {
     try {
       const response = await api.get('/reports/daily', { params });
@@ -28,50 +37,12 @@ export const reportService = {
     }
   },
 
-  getReportByDateRange: async (startDate, endDate, params = {}) => {
+  exportToCSV: async (params = {}) => {
     try {
-      const response = await api.get('/reports/range', {
-        params: { startDate, endDate, ...params },
-      });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getBranchReport: async (branchId, params = {}) => {
-    try {
-      const response = await api.get(`/reports/branch/${branchId}`, { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  exportReport: async (type, params = {}) => {
-    try {
-      const response = await api.get(`/reports/export/${type}`, {
+      const response = await api.get('/reports/export', {
         params,
         responseType: 'blob',
       });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getSalesReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/sales', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getProductionReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/production', { params });
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
