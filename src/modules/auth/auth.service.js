@@ -47,7 +47,22 @@ const hashPassword = async (password) => {
   return bcrypt.hash(password, SALT_ROUNDS);
 };
 
+const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+
+  const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!isValid) throw new Error('Current password is incorrect');
+
+  const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash },
+  });
+};
+
 module.exports = {
   login,
   hashPassword,
+  changePassword,
 };
