@@ -1,76 +1,37 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const userService = {
   getUsers: async (params = {}) => {
-    try {
-      const response = await api.get('/users', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/users', { params }));
   },
 
   getUser: async (id) => {
-    try {
-      const response = await api.get(`/users/${id}`);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get(`/users/${id}`));
   },
 
   createUser: async (data) => {
-    try {
-      const response = await api.post('/users', data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post('/users', data));
   },
 
   updateUser: async (id, data) => {
-    try {
-      const response = await api.put(`/users/${id}`, data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.put(`/users/${id}`, data));
   },
 
   deleteUser: async (id) => {
-    try {
-      const response = await api.delete(`/users/${id}`);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.delete(`/users/${id}`));
   },
 
   updateUserStatus: async (id, status) => {
-    try {
-      const response = await api.patch(`/users/${id}/status`, { status });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.patch(`/users/${id}/status`, { status }));
   },
 
   getStaffUsers: async (params = {}) => {
-    try {
-      const response = await api.get('/users/staff', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/users/staff', { params }));
   },
 
   assignBranch: async (userId, branchId) => {
-    try {
-      const response = await api.post(`/users/${userId}/assign-branch`, { branchId });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post(`/users/${userId}/assign-branch`, { branchId }));
   },
 };
 

@@ -1,15 +1,57 @@
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString } = require('../utils/dateUtils');
+const prisma = require('../config/prisma');
 
 async function getInventoryFlowReport(branchId, operationalDate) {
-  const report = await inventoryFlowService.getInventoryFlowReport(branchId, operationalDate);
-  
-  return report;
+  if (!branchId) {
+    const branches = await prisma.branch.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    });
+    const branchReports = await Promise.all(
+      branches.map(b => inventoryFlowService.getInventoryFlowReport(b.id, operationalDate))
+    );
+    const allProducts = new Map();
+    for (const r of branchReports) {
+      for (const p of r.products) {
+        const key = `${p.productId}`;
+        if (allProducts.has(key)) {
+          const existing = allProducts.get(key);
+          existing.openingStock += p.openingStock;
+          existing.dayProduction += p.dayProduction;
+          existing.nightProduction += p.nightProduction;
+          existing.sellableStock += p.sellableStock;
+          existing.remainingStock += p.remainingStock;
+          existing.wasteQuantity += p.wasteQuantity;
+          existing.estimatedSold += p.estimatedSold;
+          existing.estimatedRevenue += p.estimatedRevenue;
+          existing.branchNames.push(r.branchName);
+        } else {
+          allProducts.set(key, {
+            ...p,
+            branchName: r.branchName,
+            branchNames: [r.branchName],
+          });
+        }
+      }
+    }
+    const combined = Array.from(allProducts.values());
+    const totals = inventoryFlowService.getTotals(combined);
+    return {
+      source: 'combined',
+      branchId: null,
+      branchName: 'All Branches',
+      operationalDate: toDateString(new Date(operationalDate)),
+      isClosed: false,
+      products: combined,
+      totals,
+    };
+  }
+  return inventoryFlowService.getInventoryFlowReport(branchId, operationalDate);
 }
 
 async function getDailyReport(branchId, date) {
-  const report = await inventoryFlowService.getInventoryFlowReport(branchId, date);
-
+  const report = await getInventoryFlowReport(branchId, date);
   return {
     ...report,
     reportType: 'DAILY',
@@ -18,6 +60,10 @@ async function getDailyReport(branchId, date) {
 }
 
 async function getWeeklyReport(branchId, weekStartDate) {
+  const branches = !branchId
+    ? await prisma.branch.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } })
+    : [{ id: parseInt(branchId), name: '' }];
+
   const startDate = new Date(weekStartDate);
   const weekData = [];
 
@@ -26,13 +72,32 @@ async function getWeeklyReport(branchId, weekStartDate) {
     currentDate.setDate(startDate.getDate() + i);
     const dateStr = toDateString(currentDate);
 
-    const dailyReport = await inventoryFlowService.getInventoryFlowReport(branchId, dateStr);
+    const dailyTotals = { totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0, totalNightProductionPreparedFor: 0, totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0, totalEstimatedSold: 0, totalEstimatedRevenue: 0 };
+    let isClosed = false;
+    let source = 'live';
+
+    if (!branchId) {
+      for (const b of branches) {
+        const r = await inventoryFlowService.getInventoryFlowReport(b.id, dateStr);
+        for (const key of Object.keys(dailyTotals)) {
+          dailyTotals[key] += r.totals[key] || 0;
+        }
+        if (r.isClosed) isClosed = true;
+        if (r.source === 'snapshot') source = 'snapshot';
+      }
+    } else {
+      const r = await inventoryFlowService.getInventoryFlowReport(branchId, dateStr);
+      Object.assign(dailyTotals, r.totals);
+      isClosed = r.isClosed;
+      source = r.source;
+    }
+
     weekData.push({
       date: dateStr,
       dayName: currentDate.toLocaleDateString('en-US', { weekday: 'long' }),
-      totals: dailyReport.totals,
-      isClosed: dailyReport.isClosed,
-      source: dailyReport.source,
+      totals: dailyTotals,
+      isClosed,
+      source,
     });
   }
 
@@ -48,21 +113,12 @@ async function getWeeklyReport(branchId, weekStartDate) {
       totalEstimatedSold: acc.totalEstimatedSold + (day.totals?.totalEstimatedSold || 0),
       totalEstimatedRevenue: acc.totalEstimatedRevenue + (day.totals?.totalEstimatedRevenue || 0),
     }),
-    {
-      totalOpeningStock: 0,
-      totalDayProduction: 0,
-      totalNightProduction: 0,
-      totalNightProductionPreparedFor: 0,
-      totalSellableStock: 0,
-      totalRemainingStock: 0,
-      totalWasteQuantity: 0,
-      totalEstimatedSold: 0,
-      totalEstimatedRevenue: 0,
-    }
+    { totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0, totalNightProductionPreparedFor: 0, totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0, totalEstimatedSold: 0, totalEstimatedRevenue: 0 }
   );
 
   return {
-    branchId: parseInt(branchId),
+    branchId: branchId ? parseInt(branchId) : null,
+    branchName: !branchId ? 'All Branches' : '',
     weekStartDate: toDateString(startDate),
     reportType: 'WEEKLY',
     days: weekData,
@@ -117,7 +173,8 @@ async function getMonthlyReport(branchId, year, month) {
   );
 
   return {
-    branchId: parseInt(branchId),
+    branchId: branchId ? parseInt(branchId) : null,
+    branchName: !branchId ? 'All Branches' : '',
     year: parseInt(year),
     month: parseInt(month),
     monthName: new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'long' }),
