@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import reportService from '../../services/reportService';
@@ -7,24 +7,24 @@ import branchService from '../../services/branchService';
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('daily');
   const [date, setDate] = useState(getOperationalDate());
-  const [branchId, setBranchId] = useState(getUserBranchId()?.toString() || '');
+  const userRole = getUserRole();
+  const canManageAll = isManagerOrAdmin();
+  const [branchId, setBranchId] = useState(canManageAll ? '' : (getUserBranchId()?.toString() || ''));
   const [branches, setBranches] = useState([]);
-  const [reportData, setReportData] = useState(null);
+  const [productionData, setProductionData] = useState([]);
+  const [remainingData, setRemainingData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const userRole = getUserRole();
-  const canManageAll = isManagerOrAdmin();
-
   useEffect(() => {
     if (canManageAll) loadBranches();
-  }, []);
+  }, [canManageAll]);
 
   useEffect(() => {
-    if (date && branchId) {
+    if (date) {
       loadReport();
     }
-  }, [activeTab, date, branchId]);
+  }, [date, branchId]);
 
   const loadBranches = async () => {
     try {
@@ -39,62 +39,125 @@ export default function ReportsPage() {
     setLoading(true);
     setError('');
     try {
-      let res;
-      const params = {
-        operationalDate: date,
-        branchId: branchId || undefined,
-      };
+      let prodRes, remainRes;
+      const params = { operationalDate: date, branchId: branchId || undefined };
 
-      switch (activeTab) {
-        case 'daily':
-          res = await reportService.getDailyReport(params);
-          break;
-        case 'weekly':
-          res = await reportService.getWeeklyReport(params);
-          break;
-        case 'monthly':
-          res = await reportService.getMonthlyReport(params);
-          break;
-        default:
-          res = await reportService.getDailyReport(params);
+      if (activeTab === 'daily') {
+        prodRes = await reportService.getProductionReport(params);
+        remainRes = await reportService.getRemainingReport(params);
+      } else if (activeTab === 'weekly') {
+        const startOfWeek = getWeekStart(date);
+        prodRes = await reportService.getProductionReport({ ...params, startDate: startOfWeek, endDate: date });
+        remainRes = await reportService.getRemainingReport({ ...params, startDate: startOfWeek, endDate: date });
+      } else if (activeTab === 'monthly') {
+        const startOfMonth = date.substring(0, 7) + '-01';
+        prodRes = await reportService.getProductionReport({ ...params, startDate: startOfMonth, endDate: date });
+        remainRes = await reportService.getRemainingReport({ ...params, startDate: startOfMonth, endDate: date });
+      } else {
+        prodRes = await reportService.getProductionReport(params);
+        remainRes = await reportService.getRemainingReport(params);
       }
 
-      if (res.success) {
-        setReportData(res.data);
+      if (prodRes.success) {
+        setProductionData(prodRes.data || []);
       } else {
-        setError(res.message || 'Failed to load report');
-        setReportData(null);
+        setProductionData([]);
+      }
+
+      if (remainRes.success) {
+        setRemainingData(remainRes.data || []);
+      } else {
+        setRemainingData([]);
       }
     } catch (err) {
       setError('Error loading report: ' + err.message);
-      setReportData(null);
+      setProductionData([]);
+      setRemainingData([]);
     }
     setLoading(false);
   };
 
   const handleExport = async () => {
-    try {
-      const res = await reportService.exportToCSV({
-        type: activeTab,
-        operationalDate: date,
-        branchId: branchId || undefined,
-      });
-      if (res.success && res.data) {
-        const url = URL.createObjectURL(res.data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${activeTab}-report-${date}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('Export error:', err);
-    }
+    if (!mergedData.length) return;
+    
+    const headers = ['Product', 'Category', 'Branch', 'Production', 'Remaining', 'Est. Sold', 'Revenue'];
+    const rows = mergedData.map(p => [
+      p.productName,
+      p.category,
+      p.branchName,
+      p.production,
+      p.remaining,
+      p.estimatedSold,
+      p.revenue.toFixed(2),
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const summary = reportData?.summary || {};
-  const products = reportData?.products || [];
-  const hasData = products.length > 0;
+  const getWeekStart = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  };
+
+  const mergedData = useMemo(() => {
+    const prodMap = new Map();
+    
+    productionData.forEach((prod) => {
+      const key = `${prod.productId}-${prod.branchId}`;
+      if (prodMap.has(key)) {
+        prodMap.get(key).production += parseFloat(prod.quantity) || 0;
+      } else {
+        prodMap.set(key, {
+          productId: prod.productId,
+          productName: prod.product?.name || 'Unknown',
+          category: prod.product?.category || '-',
+          branchId: prod.branchId,
+          branchName: prod.branch?.name || '-',
+          production: parseFloat(prod.quantity) || 0,
+          price: parseFloat(prod.product?.price) || 0,
+          remaining: 0,
+        });
+      }
+    });
+
+    remainingData.forEach((rem) => {
+      const key = `${rem.productId}-${rem.branchId}`;
+      if (prodMap.has(key)) {
+        prodMap.get(key).remaining = parseFloat(rem.quantity) || 0;
+      }
+    });
+
+    let rows = Array.from(prodMap.values());
+
+    rows.forEach(row => {
+      row.sellable = row.production;
+      row.estimatedSold = row.production - row.remaining;
+      row.revenue = row.estimatedSold * row.price;
+    });
+
+    return rows;
+  }, [productionData, remainingData, branchId]);
+
+  const summary = useMemo(() => {
+    return {
+      totalProduction: mergedData.reduce((sum, r) => sum + r.production, 0),
+      totalRemaining: mergedData.reduce((sum, r) => sum + r.remaining, 0),
+      totalEstimatedSold: mergedData.reduce((sum, r) => sum + r.estimatedSold, 0),
+      totalRevenue: mergedData.reduce((sum, r) => sum + r.revenue, 0),
+    };
+  }, [mergedData]);
+
+  const hasData = mergedData.length > 0;
 
   return (
     <div>
@@ -177,7 +240,7 @@ export default function ReportsPage() {
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
             <p className="text-gray-400 text-sm">
-              {reportData ? 'No data for this period' : 'No report data available'}
+              {productionData.length > 0 || remainingData.length > 0 ? 'No production data for this date' : 'No report data available'}
             </p>
           </div>
         ) : (
@@ -200,17 +263,17 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E1D8]">
-                  {products.map((p, idx) => (
+                  {mergedData.map((p, idx) => (
                     <tr key={idx} className="hover:bg-[#F9F7F2]">
                       <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{p.productName}</td>
                       <td className="px-6 py-4 text-sm text-gray-400">{p.category}</td>
                       {canManageAll && (
                         <td className="px-6 py-4 text-sm text-gray-400">{p.branchName || '-'}</td>
                       )}
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.openingStock}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.totalProduction}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.sellableStock}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.remainingQuantity}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">0</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.production}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.sellable}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.remaining}</td>
                       <td className="px-6 py-4 text-sm font-medium text-[#001F3F]">{p.estimatedSold}</td>
                       <td className="px-6 py-4 text-sm text-right font-semibold text-[#D2B48C]">
                         {p.revenue ? `${p.revenue.toLocaleString()} ETB` : '-'}

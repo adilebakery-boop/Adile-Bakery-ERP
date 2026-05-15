@@ -1,19 +1,10 @@
 import api, { handleApiError } from './api';
 
 export const reportService = {
-  getInventoryFlowReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/inventory-flow', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
   getDailyReport: async (params = {}) => {
     try {
       const response = await api.get('/reports/daily', { params });
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -22,7 +13,7 @@ export const reportService = {
   getWeeklyReport: async (params = {}) => {
     try {
       const response = await api.get('/reports/weekly', { params });
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
@@ -31,7 +22,61 @@ export const reportService = {
   getMonthlyReport: async (params = {}) => {
     try {
       const response = await api.get('/reports/monthly', { params });
-      return { success: true, data: response.data };
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getProductionReport: async (params = {}) => {
+    try {
+      const response = await api.get('/productions', { params });
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getProductionByDate: async (operationalDate) => {
+    try {
+      const response = await api.get(`/productions/by-date/${operationalDate}`);
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getTodayProduction: async () => {
+    try {
+      const response = await api.get('/productions/today');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getRemainingReport: async (params = {}) => {
+    try {
+      const response = await api.get('/remainings', { params });
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getRemainingByDate: async (operationalDate) => {
+    try {
+      const response = await api.get(`/remainings/by-date/${operationalDate}`);
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getSalesSummary: async (params = {}) => {
+    try {
+      const response = await api.get('/sales', { params });
+      return { success: true, data: response.data.data };
     } catch (error) {
       return handleApiError(error);
     }
