@@ -57,34 +57,29 @@ async function assertDayOpen(branchId, operationalDate) {
 }
 
 async function getOpeningStock(branchId, operationalDate, productId) {
-  const opDate = new Date(operationalDate);
-  const prevDate = getPreviousDay(opDate);
-  const opDateStr = toDateString(opDate);
-  const prevDateStr = toDateString(prevDate);
-  
+  const prevDay = getPreviousDay(new Date(operationalDate));
+
   const prevRemaining = await prisma.remainingRecord.findFirst({
-    where: { branchId: parseInt(branchId), productId: parseInt(productId), status: 'FINAL' },
+    where: {
+      branchId: parseInt(branchId),
+      productId: parseInt(productId),
+      operationalDate: prevDay,
+      status: 'FINAL',
+    },
   });
 
-  const prevNightProduction = await prisma.productionRecord.findMany({
-    where: { branchId: parseInt(branchId), productId: parseInt(productId), shift: 'NIGHT' },
+  const prevNightProduction = await prisma.productionRecord.aggregate({
+    where: {
+      branchId: parseInt(branchId),
+      productId: parseInt(productId),
+      operationalDate: prevDay,
+      shift: 'NIGHT',
+    },
+    _sum: { quantity: true },
   });
 
-  let remainingQty = ZERO;
-  if (prevRemaining) {
-    const remDateStr = toDateString(new Date(prevRemaining.operationalDate));
-    if (remDateStr === prevDateStr) {
-      remainingQty = toDecimal(prevRemaining.quantity);
-    }
-  }
-
-  let nightProdQty = ZERO;
-  for (const prod of prevNightProduction) {
-    const prodOpDateStr = toDateString(new Date(prod.operationalDate));
-    if (prodOpDateStr === opDateStr) {
-      nightProdQty = safePlus(nightProdQty, toDecimal(prod.quantity));
-    }
-  }
+  const remainingQty = prevRemaining ? toDecimal(prevRemaining.quantity) : ZERO;
+  const nightProdQty = prevNightProduction._sum.quantity ? toDecimal(prevNightProduction._sum.quantity) : ZERO;
 
   return safePlus(remainingQty, nightProdQty);
 }
@@ -98,12 +93,9 @@ async function getDayProduction(branchId, operationalDate, productId) {
 }
 
 async function getNightProduction(branchId, operationalDate, productId) {
-  // NIGHT production on this productionDate becomes operational for NEXT day
-  // So for operationalDate D, NIGHT production here represents what's prepared FOR D+1
-  // This query returns 0 because there's no NIGHT production recorded on this date itself
-  // Night production that feeds into D's opening was recorded on D-1
+  const prevDay = getPreviousDay(new Date(operationalDate));
   const result = await prisma.productionRecord.aggregate({
-    where: { branchId: parseInt(branchId), productionDate: new Date(operationalDate), shift: 'NIGHT', productId: parseInt(productId) },
+    where: { branchId: parseInt(branchId), operationalDate: prevDay, shift: 'NIGHT', productId: parseInt(productId) },
     _sum: { quantity: true },
   });
   return result._sum.quantity ? toDecimal(result._sum.quantity) : ZERO;

@@ -118,6 +118,7 @@ export default function ProductionPage() {
       branchId: parseInt(requiredBranch),
       shift,
       quantity: parseFloat(quantity),
+      operationalDate,
     });
 
     setIsSubmitting(false);
@@ -282,12 +283,15 @@ export default function ProductionPage() {
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Shift</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Qty</th>
                 {canManageAll && (
-                  <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch</th>
+                  <>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Recorded By</th>
+                  </>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8]">
-              {entries.map((entry) => (
+{entries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-[#F9F7F2]">
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
@@ -302,9 +306,14 @@ export default function ProductionPage() {
                     {entry.quantity}
                   </td>
                   {canManageAll && (
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {entry.branch?.name || '-'}
-                    </td>
+                    <>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {entry.branch?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {entry.creator?.name || entry.creator?.username || '-'}
+                      </td>
+                    </>
                   )}
                 </tr>
               ))}

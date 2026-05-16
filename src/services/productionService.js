@@ -89,7 +89,7 @@ async function findByOperationalDate(branchId, operationalDate, shift = null) {
 }
 
 async function create(data, user) {
-  const { productId, quantity, branchId, shift, productionDate } = data;
+  const { productId, quantity, branchId, shift, productionDate, operationalDate: userOpDate } = data;
 
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
@@ -119,7 +119,9 @@ async function create(data, user) {
   }
 
   const prodDate = productionDate ? new Date(productionDate) : new Date();
-  const opDate = calculateOperationalDate(prodDate, shift);
+  const opDate = userOpDate
+    ? new Date(userOpDate)
+    : calculateOperationalDate(prodDate, shift);
 
   await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
 

@@ -1,58 +1,29 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const branchService = {
   getBranches: async (params = {}) => {
-    try {
-      const response = await api.get('/branches', { params });
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/branches', { params }));
   },
 
   getBranch: async (id) => {
-    try {
-      const response = await api.get(`/branches/${id}`);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get(`/branches/${id}`));
   },
 
   createBranch: async (data) => {
-    try {
-      const response = await api.post('/branches', data);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post('/branches', data));
   },
 
   updateBranch: async (id, data) => {
-    try {
-      const response = await api.put(`/branches/${id}`, data);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.put(`/branches/${id}`, data));
   },
 
   deleteBranch: async (id) => {
-    try {
-      const response = await api.delete(`/branches/${id}`);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.delete(`/branches/${id}`));
   },
 
   getActiveBranches: async () => {
-    try {
-      const response = await api.get('/branches/active');
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/branches/active'));
   },
 };
 
