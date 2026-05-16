@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import reportService from '../../services/reportService';
@@ -16,6 +16,8 @@ export default function ReportsPage() {
   const [productList, setProductList] = useState([]);
   const [allProductsData, setAllProductsData] = useState([]);
   const [reportData, setReportData] = useState(null);
+  const [productionData, setProductionData] = useState([]);
+  const [remainingData, setRemainingData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -77,71 +79,130 @@ export default function ReportsPage() {
     setLoading(true);
     setError('');
     try {
-      let res;
-      const params = { operationalDate: date };
-      if (branchId) params.branchId = branchId;
-      if (category) params.category = category;
-      if (productId) params.productId = productId;
+      let prodRes, remainRes;
+      const params = { operationalDate: date, branchId: branchId || undefined };
 
-      switch (activeTab) {
-        case 'daily':
-          res = await reportService.getDailyReport(params);
-          break;
-        case 'weekly':
-          res = await reportService.getWeeklyReport(params);
-          break;
-        case 'monthly':
-          res = await reportService.getMonthlyReport(params);
-          break;
-        default:
-          res = await reportService.getDailyReport(params);
-      }
-
-      if (res.success) {
-        setReportData(res.data);
+      if (activeTab === 'daily') {
+        prodRes = await reportService.getProductionReport(params);
+        remainRes = await reportService.getRemainingReport(params);
+      } else if (activeTab === 'weekly') {
+        const startOfWeek = getWeekStart(date);
+        prodRes = await reportService.getProductionReport({ startDate: startOfWeek, endDate: date, branchId: branchId || undefined });
+        remainRes = await reportService.getRemainingReport({ startDate: startOfWeek, endDate: date, branchId: branchId || undefined });
+      } else if (activeTab === 'monthly') {
+        const startOfMonth = date.substring(0, 7) + '-01';
+        prodRes = await reportService.getProductionReport({ startDate: startOfMonth, endDate: date, branchId: branchId || undefined });
+        remainRes = await reportService.getRemainingReport({ startDate: startOfMonth, endDate: date, branchId: branchId || undefined });
       } else {
-        setError(res.message || 'Failed to load report');
-        setReportData(null);
+        prodRes = await reportService.getProductionReport(params);
+        remainRes = await reportService.getRemainingReport(params);
       }
+
+      const prodData = prodRes.success ? (prodRes.data?.data || prodRes.data || []) : [];
+      const remainData = remainRes.success ? (remainRes.data?.data || remainRes.data || []) : [];
+
+      setProductionData(prodData);
+      setRemainingData(remainData);
+      setReportData(null);
     } catch (err) {
       setError('Error loading report: ' + (err.message || 'Unknown error'));
-      setReportData(null);
+      setProductionData([]);
+      setRemainingData([]);
     }
-    setLoading(false);
+setLoading(false);
   };
 
   const handleExport = async () => {
-    try {
-      const params = {
-        type: activeTab,
-        operationalDate: date,
-      };
-      if (branchId) params.branchId = branchId;
-      if (category) params.category = category;
-      if (productId) params.productId = productId;
-
-      const res = await reportService.exportToCSV(params);
-      if (res.success && res.data) {
-        const url = URL.createObjectURL(res.data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${activeTab}-report-${date}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        setError(res.message || 'Export failed');
-      }
-    } catch (err) {
-      console.error('Export error:', err);
-      setError('Export failed. Please try again.');
-    }
+    if (!mergedProducts.length) return;
+    
+    const headers = ['Product', 'Category', 'Branch', 'Day Prod', 'Night Prod', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
+    const rows = mergedProducts.map(p => [
+      p.productName,
+      p.category,
+      p.branchName,
+      p.dayProduction,
+      p.nightProduction,
+      p.sellableStock,
+      p.remainingStock,
+      p.wasteQuantity,
+      p.estimatedSold,
+      p.estimatedRevenue.toFixed(2),
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const totals = reportData?.totals || {};
-  const products = reportData?.products || [];
-  const days = reportData?.days || [];
-  const weeks = reportData?.weeks || [];
-  const hasData = activeTab === 'daily' ? products.length > 0 : activeTab === 'weekly' ? days.length > 0 : weeks.length > 0;
+  const getWeekStart = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  };
+
+  const mergedProducts = useMemo(() => {
+    const prodMap = new Map();
+    
+    productionData.forEach((prod) => {
+      const key = `${prod.productId}-${prod.branchId}`;
+      if (prodMap.has(key)) {
+        prodMap.get(key).dayProduction += parseFloat(prod.quantity) || 0;
+      } else {
+        prodMap.set(key, {
+          productId: prod.productId,
+          productName: prod.product?.name || 'Unknown',
+          category: prod.product?.category || '-',
+          branchId: prod.branchId,
+          branchName: prod.branch?.name || '-',
+          dayProduction: parseFloat(prod.quantity) || 0,
+          nightProduction: 0,
+          openingStock: 0,
+          remainingStock: 0,
+          wasteQuantity: 0,
+          estimatedSold: 0,
+          estimatedRevenue: 0,
+          price: parseFloat(prod.product?.price) || 0,
+        });
+      }
+    });
+
+    remainingData.forEach((rem) => {
+      const key = `${rem.productId}-${rem.branchId}`;
+      if (prodMap.has(key)) {
+        prodMap.get(key).remainingStock = parseFloat(rem.quantity) || 0;
+      }
+    });
+
+    const rows = Array.from(prodMap.values());
+    rows.forEach(row => {
+      row.sellableStock = row.dayProduction;
+      row.estimatedSold = row.dayProduction - row.remainingStock;
+      row.estimatedRevenue = row.estimatedSold * row.price;
+    });
+
+    return rows;
+  }, [productionData, remainingData]);
+
+  const totals = activeTab === 'daily' ? {
+    totalDayProduction: mergedProducts.reduce((sum, p) => sum + p.dayProduction, 0),
+    totalNightProduction: mergedProducts.reduce((sum, p) => sum + p.nightProduction, 0),
+    totalRemainingStock: mergedProducts.reduce((sum, p) => sum + p.remainingStock, 0),
+    totalWaste: mergedProducts.reduce((sum, p) => sum + p.wasteQuantity, 0),
+    totalEstSold: mergedProducts.reduce((sum, p) => sum + p.estimatedSold, 0),
+    totalRevenue: mergedProducts.reduce((sum, p) => sum + p.estimatedRevenue, 0),
+  } : {};
+
+  const products = activeTab === 'daily' ? mergedProducts : [];
+  const days = [];
+  const weeks = [];
+  const hasData = activeTab === 'daily' ? products.length > 0 : false;
 
   return (
     <div>
@@ -150,7 +211,7 @@ export default function ReportsPage() {
           <h1 className="text-[32px] font-bold text-[#001F3F]">Reports</h1>
           <p className="text-sm text-gray-400 mt-1">
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - {formatOperationalDate(date)}
-            {reportData?.branchName ? ` — ${reportData.branchName}` : ''}
+            {branchId ? ` — ${branches.find(b => b.id.toString() === branchId)?.name || ''}` : ''}
           </p>
         </div>
         <button
@@ -288,11 +349,8 @@ export default function ReportsPage() {
                           <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{p.productName}</td>
                           <td className="px-6 py-4 text-sm text-gray-400">{p.category}</td>
                           {canManageAll && <td className="px-6 py-4 text-sm text-gray-400">
-                          {reportData.branchName === 'All Branches'
-                            ? (p.branchNames ? p.branchNames.join(', ') : p.branchName || '-')
-                            : (reportData.branchName || '-')
-                          }
-                        </td>}
+                            {p.branchName || '-'}
+                          </td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction}</td>
@@ -343,9 +401,9 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                {reportData.source === 'snapshot' && (
+                {activeTab !== 'daily' && products.length > 0 && (
                   <div className="px-6 py-3 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
-                    This report is from a closed day (snapshot taken at closure).
+                    Showing aggregated data for selected period.
                   </div>
                 )}
               </>
