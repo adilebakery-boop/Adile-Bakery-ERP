@@ -1,4 +1,4 @@
-const { addDays, subDays, format, parseISO, startOfDay, endOfDay } = require('date-fns');
+const { addDays, subDays, format, parseISO, startOfDay, endOfDay, getDay } = require('date-fns');
 const { formatInTimeZone, toZonedTime } = require('date-fns-tz');
 
 const TIMEZONE = 'Africa/Addis_Ababa';
@@ -7,13 +7,13 @@ function calculateOperationalDate(productionDate, shift) {
   if (!productionDate) {
     throw new Error('productionDate is required');
   }
-  
+
   const date = productionDate instanceof Date ? productionDate : new Date(productionDate);
-  
+
   if (shift === 'NIGHT') {
     return addDays(startOfDay(date), 1);
   }
-  
+
   return startOfDay(date);
 }
 
@@ -25,6 +25,20 @@ function addOneDay(date) {
 function getPreviousDay(date) {
   const d = date instanceof Date ? date : new Date(date);
   return subDays(startOfDay(d), 1);
+}
+
+function getMonday(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const day = getDay(d);
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return startOfDay(monday);
+}
+
+function getSunday(date) {
+  const monday = getMonday(date);
+  return addDays(monday, 6);
 }
 
 function toDateString(date) {
@@ -96,6 +110,8 @@ module.exports = {
   calculateOperationalDate,
   addOneDay,
   getPreviousDay,
+  getMonday,
+  getSunday,
   toDateString,
   toISODateString,
   getStartOfDayUTC,

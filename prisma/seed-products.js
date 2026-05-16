@@ -53,7 +53,7 @@ const PRODUCTS = [
   { name: 'Fetire with Cheese', category: 'FETIRE_AND_SNACKS', price: 10.00, unitType: 'piece' },
   { name: 'Fetire with Honey', category: 'FETIRE_AND_SNACKS', price: 10.00, unitType: 'piece' },
   { name: 'Fetire Special', category: 'FETIRE_AND_SNACKS', price: 12.00, unitType: 'piece' },
-  { name: 'Snack Pack Mix', category: 'FETIRE_AND_SNACKS', price: 15.00, unitType: 'pack' },
+  { name: 'Snack Pack Mix', category: 'FETIRE_AND_SNACKS', price: 15.00, unitType: 'piece' },
   { name: 'Baklava', category: 'FETIRE_AND_SNACKS', price: 8.00, unitType: 'piece' },
   { name: 'Kunafa', category: 'FETIRE_AND_SNACKS', price: 10.00, unitType: 'piece' },
   { name: 'Basbousa', category: 'FETIRE_AND_SNACKS', price: 3.00, unitType: 'piece' },
@@ -69,7 +69,7 @@ const PRODUCTS = [
   { name: 'Coffee', category: 'DRINKS_AND_RETAIL_ITEMS', price: 5.00, unitType: 'piece' },
   { name: 'Tea', category: 'DRINKS_AND_RETAIL_ITEMS', price: 3.00, unitType: 'piece' },
   { name: '包装纸巾', category: 'DRINKS_AND_RETAIL_ITEMS', price: 2.00, unitType: 'piece' },
-  { name: '一次性餐具', category: 'DRINKS_AND_RETAIL_ITEMS', price: 1.00, unitType: 'pack' },
+  { name: '一次性餐具', category: 'DRINKS_AND_RETAIL_ITEMS', price: 1.00, unitType: 'piece' },
 ];
 
 async function main() {
