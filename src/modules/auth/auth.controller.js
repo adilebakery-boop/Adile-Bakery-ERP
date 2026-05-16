@@ -1,23 +1,40 @@
 const authService = require('./auth.service');
+const { asyncHandler } = require('../../middlewares/errorHandler');
 
-const login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const result = await authService.login(username, password);
+const login = asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  const result = await authService.login(username, password);
 
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: result,
-    });
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: error.message || 'Invalid credentials',
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: 'Login successful',
+    data: result,
+  });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+const me = asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    data: req.user,
+  });
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  await authService.changePassword(req.user.userId, currentPassword, newPassword);
+  res.json({
+    success: true,
+    message: 'Password changed successfully',
+  });
+});
 
 module.exports = {
   login,
+  logout,
+  me,
+  changePassword,
 };

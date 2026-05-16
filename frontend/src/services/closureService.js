@@ -1,40 +1,21 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const closureService = {
   getStatus: async (operationalDate) => {
-    try {
-      const response = await api.get('/closures/status', { params: { operationalDate } });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/closures/status', { params: { operationalDate } }));
   },
 
   validate: async (operationalDate) => {
-    try {
-      const response = await api.get('/closures/validate', { params: { operationalDate } });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/closures/validate', { params: { operationalDate } }));
   },
 
   closeDay: async (operationalDate) => {
-    try {
-      const response = await api.post('/closures/close', { operationalDate });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post('/closures/close', { operationalDate }));
   },
 
   reopenDay: async (operationalDate, reason) => {
-    try {
-      const response = await api.post('/closures/reopen', { operationalDate, reason });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post('/closures/reopen', { operationalDate, reason }));
   },
 };
 
