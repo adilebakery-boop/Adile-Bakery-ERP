@@ -11,7 +11,7 @@ const findAll = asyncHandler(async (req, res) => {
   const accessFilter = buildProductionAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const productions = await productionService.findAll(filters);
+  const productions = await productionService.findAll(filters, req.user);
   res.json({
     success: true,
     data: productions,
