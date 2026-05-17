@@ -23,6 +23,10 @@ const login = async (username, password) => {
     throw new Error('Invalid credentials');
   }
 
+  if (user.isBlocked) {
+    throw new Error('Your account has been blocked. Contact your manager.');
+  }
+
   const token = generateToken({
     userId: user.id,
     role: user.role.name,

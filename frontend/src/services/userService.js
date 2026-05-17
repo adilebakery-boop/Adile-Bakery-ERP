@@ -26,6 +26,14 @@ export const userService = {
     return safeCall(api.patch(`/users/${id}/status`, { status }));
   },
 
+  blockUser: async (id) => {
+    return safeCall(api.patch(`/users/${id}/block`));
+  },
+
+  unblockUser: async (id) => {
+    return safeCall(api.patch(`/users/${id}/unblock`));
+  },
+
   getStaffUsers: async (params = {}) => {
     return safeCall(api.get('/users/staff', { params }));
   },

@@ -80,6 +80,7 @@ const productionService = {
       startDate,
       endDate,
       userId,
+      operationalDate,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = options;
@@ -92,6 +93,10 @@ const productionService = {
     if (productId) where.productId = parseInt(productId);
     if (shift) where.shift = shift;
     if (userId) where.userId = parseInt(userId);
+
+    if (operationalDate) {
+      where.operationalDate = new Date(operationalDate);
+    }
 
     if (startDate && endDate) {
       where.createdAt = {

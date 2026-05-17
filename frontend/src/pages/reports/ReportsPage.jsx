@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import reportService from '../../services/reportService';
@@ -71,7 +71,7 @@ export default function ReportsPage() {
     } else {
       setProductList(allProductsData);
     }
-};
+  };
 
   const loadReport = async () => {
     setLoading(true);
@@ -137,11 +137,49 @@ export default function ReportsPage() {
     }
   };
 
-  const totals = reportData?.totals || {};
   const products = reportData?.products || [];
   const days = reportData?.days || [];
   const weeks = reportData?.weeks || [];
   const hasData = activeTab === 'daily' ? products.length > 0 : activeTab === 'weekly' ? days.length > 0 : weeks.length > 0;
+
+  const totals = useMemo(() => {
+    if (activeTab === 'daily') {
+      return products.reduce((acc, p) => ({
+        totalDayProduction: acc.totalDayProduction + (parseFloat(p.dayProduction) || 0),
+        totalNightProduction: acc.totalNightProduction + (parseFloat(p.nightProduction) || 0),
+        totalRemainingStock: acc.totalRemainingStock + (parseFloat(p.remainingStock) || 0),
+        totalWaste: acc.totalWaste + (parseFloat(p.wasteQuantity) || 0),
+        totalEstSold: acc.totalEstSold + (parseFloat(p.estimatedSold) || 0),
+        totalRevenue: acc.totalRevenue + (parseFloat(p.estimatedRevenue) || 0),
+      }), { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    if (activeTab === 'weekly') {
+      return days.reduce((acc, d) => {
+        const t = d.totals || {};
+        return {
+          totalDayProduction: acc.totalDayProduction + (parseFloat(t.totalDayProduction) || 0),
+          totalNightProduction: acc.totalNightProduction + (parseFloat(t.totalNightProduction) || 0),
+          totalRemainingStock: acc.totalRemainingStock + (parseFloat(t.totalRemainingStock) || 0),
+          totalWaste: acc.totalWaste + (parseFloat(t.totalWasteQuantity) || 0),
+          totalEstSold: acc.totalEstSold + (parseFloat(t.totalEstimatedSold) || 0),
+          totalRevenue: acc.totalRevenue + (parseFloat(t.totalEstimatedRevenue) || 0),
+        };
+      }, { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    if (activeTab === 'monthly') {
+      return weeks.reduce((acc, w) => {
+        const t = w.totals || {};
+        return {
+          totalDayProduction: acc.totalDayProduction + (parseFloat(t.totalDayProduction) || 0) + (parseFloat(t.totalNightProduction) || 0),
+          totalRemainingStock: acc.totalRemainingStock + (parseFloat(t.totalRemainingStock) || 0),
+          totalWaste: acc.totalWaste + (parseFloat(t.totalWasteQuantity) || 0),
+          totalEstSold: acc.totalEstSold + (parseFloat(t.totalEstimatedSold) || 0),
+          totalRevenue: acc.totalRevenue + (parseFloat(t.totalEstimatedRevenue) || 0),
+        };
+      }, { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    return {};
+  }, [activeTab, products, days, weeks]);
 
   return (
     <div>
@@ -150,7 +188,7 @@ export default function ReportsPage() {
           <h1 className="text-[32px] font-bold text-[#001F3F]">Reports</h1>
           <p className="text-sm text-gray-400 mt-1">
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - {formatOperationalDate(date)}
-            {reportData?.branchName ? ` — ${reportData.branchName}` : ''}
+            {branchId ? ` — ${branches.find(b => b.id.toString() === branchId)?.name || ''}` : ''}
           </p>
         </div>
         <button
@@ -158,7 +196,7 @@ export default function ReportsPage() {
           className="bg-[#001F3F] text-white px-5 py-3 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#001a35] transition-colors"
         >
           <Download className="w-4 h-4" />
-          Export CSV
+          Export
         </button>
       </div>
 
@@ -288,20 +326,17 @@ export default function ReportsPage() {
                           <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{p.productName}</td>
                           <td className="px-6 py-4 text-sm text-gray-400">{p.category}</td>
                           {canManageAll && <td className="px-6 py-4 text-sm text-gray-400">
-                          {reportData.branchName === 'All Branches'
-                            ? (p.branchNames ? p.branchNames.join(', ') : p.branchName || '-')
-                            : (reportData.branchName || '-')
-                          }
-                        </td>}
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.sellableStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.remainingStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.wasteQuantity}</td>
-                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F]">{p.estimatedSold}</td>
+                            {p.branchName || '-'}
+                          </td>}
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.sellableStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.remainingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.wasteQuantity || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F]">{p.estimatedSold || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-[#D2B48C]">
-                            {p.estimatedRevenue ? `${p.estimatedRevenue.toLocaleString()} ETB` : '-'}
+                            {p.estimatedRevenue ? `${parseFloat(p.estimatedRevenue).toLocaleString()} ETB` : '-'}
                           </td>
                         </tr>
                       ))}
@@ -327,27 +362,21 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Waste</p>
-                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalWasteQuantity || 0}</p>
+                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalWaste || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Est. Sold</p>
-                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Revenue</p>
                         <p className="text-2xl font-bold text-[#001F3F]">
-                          {totals.totalEstimatedRevenue ? `${totals.totalEstimatedRevenue.toLocaleString()} ETB` : '-'}
+                          {totals.totalRevenue ? `${totals.totalRevenue.toLocaleString()} ETB` : '-'}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {reportData.source === 'snapshot' && (
-                  <div className="px-6 py-3 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
-                    This report is from a closed day (snapshot taken at closure).
-                  </div>
-                )}
               </>
             )}
 
@@ -357,8 +386,8 @@ export default function ReportsPage() {
                   {days.map((day, idx) => (
                     <div key={idx} className="bg-[#F9F7F2] rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-[#001F3F]">{day.dayName}</span>
-                        <span className="text-xs text-gray-400">{day.date}</span>
+                        <span className="text-sm font-semibold text-[#001F3F]">{day.dayName || `Day ${idx + 1}`}</span>
+                        <span className="text-xs text-gray-400">{day.date || '-'}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
@@ -404,12 +433,12 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Est. Sold</p>
-                        <p className="text-xl font-bold">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Revenue</p>
                         <p className="text-2xl font-bold">
-                          {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
+                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
                       </div>
                     </div>
@@ -438,7 +467,7 @@ export default function ReportsPage() {
                         return (
                           <tr key={idx} className="hover:bg-[#F9F7F2]">
                             <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">
-                              Week {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate})</span>
+                              Week {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
                             </td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">
                               {(wTotals.totalDayProduction || 0) + (wTotals.totalNightProduction || 0)}
@@ -463,7 +492,7 @@ export default function ReportsPage() {
                       <div>
                         <p className="text-xs text-white/60">Production</p>
                         <p className="text-xl font-bold">
-                          {(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}
+                          {(totals.totalDayProduction || 0)}
                         </p>
                       </div>
                       <div>
@@ -472,12 +501,12 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Est. Sold</p>
-                        <p className="text-xl font-bold">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Revenue</p>
                         <p className="text-2xl font-bold">
-                          {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
+                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
                       </div>
                     </div>
