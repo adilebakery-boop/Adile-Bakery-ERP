@@ -16,8 +16,6 @@ export default function ReportsPage() {
   const [productList, setProductList] = useState([]);
   const [allProductsData, setAllProductsData] = useState([]);
   const [reportData, setReportData] = useState(null);
-  const [productionData, setProductionData] = useState([]);
-  const [remainingData, setRemainingData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -73,136 +71,115 @@ export default function ReportsPage() {
     } else {
       setProductList(allProductsData);
     }
-};
+  };
 
   const loadReport = async () => {
     setLoading(true);
     setError('');
     try {
-      let prodRes, remainRes;
-      const params = { operationalDate: date, branchId: branchId || undefined };
+      let res;
+      const params = { operationalDate: date };
+      if (branchId) params.branchId = branchId;
+      if (category) params.category = category;
+      if (productId) params.productId = productId;
 
-      if (activeTab === 'daily') {
-        prodRes = await reportService.getProductionReport(params);
-        remainRes = await reportService.getRemainingReport(params);
-      } else if (activeTab === 'weekly') {
-        const startOfWeek = getWeekStart(date);
-        prodRes = await reportService.getProductionReport({ startDate: startOfWeek, endDate: date, branchId: branchId || undefined });
-        remainRes = await reportService.getRemainingReport({ startDate: startOfWeek, endDate: date, branchId: branchId || undefined });
-      } else if (activeTab === 'monthly') {
-        const startOfMonth = date.substring(0, 7) + '-01';
-        prodRes = await reportService.getProductionReport({ startDate: startOfMonth, endDate: date, branchId: branchId || undefined });
-        remainRes = await reportService.getRemainingReport({ startDate: startOfMonth, endDate: date, branchId: branchId || undefined });
-      } else {
-        prodRes = await reportService.getProductionReport(params);
-        remainRes = await reportService.getRemainingReport(params);
+      switch (activeTab) {
+        case 'daily':
+          res = await reportService.getDailyReport(params);
+          break;
+        case 'weekly':
+          res = await reportService.getWeeklyReport(params);
+          break;
+        case 'monthly':
+          res = await reportService.getMonthlyReport(params);
+          break;
+        default:
+          res = await reportService.getDailyReport(params);
       }
 
-      const prodData = prodRes.success ? (prodRes.data?.data || prodRes.data || []) : [];
-      const remainData = remainRes.success ? (remainRes.data?.data || remainRes.data || []) : [];
-
-      setProductionData(prodData);
-      setRemainingData(remainData);
-      setReportData(null);
+      if (res.success) {
+        setReportData(res.data);
+      } else {
+        setError(res.message || 'Failed to load report');
+        setReportData(null);
+      }
     } catch (err) {
       setError('Error loading report: ' + (err.message || 'Unknown error'));
-      setProductionData([]);
-      setRemainingData([]);
+      setReportData(null);
     }
-setLoading(false);
+    setLoading(false);
   };
 
   const handleExport = async () => {
-    if (!mergedProducts.length) return;
-    
-    const headers = ['Product', 'Category', 'Branch', 'Day Prod', 'Night Prod', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
-    const rows = mergedProducts.map(p => [
-      p.productName,
-      p.category,
-      p.branchName,
-      p.dayProduction,
-      p.nightProduction,
-      p.sellableStock,
-      p.remainingStock,
-      p.wasteQuantity,
-      p.estimatedSold,
-      p.estimatedRevenue.toFixed(2),
-    ]);
-    
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report-${date}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    try {
+      const params = {
+        type: activeTab,
+        operationalDate: date,
+      };
+      if (branchId) params.branchId = branchId;
+      if (category) params.category = category;
+      if (productId) params.productId = productId;
 
-  const getWeekStart = (dateStr) => {
-    const d = new Date(dateStr);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0];
-  };
-
-  const mergedProducts = useMemo(() => {
-    const prodMap = new Map();
-    
-    productionData.forEach((prod) => {
-      const key = `${prod.productId}-${prod.branchId}`;
-      if (prodMap.has(key)) {
-        prodMap.get(key).dayProduction += parseFloat(prod.quantity) || 0;
+      const res = await reportService.exportToCSV(params);
+      if (res.success && res.data) {
+        const url = URL.createObjectURL(res.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${activeTab}-report-${date}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
       } else {
-        prodMap.set(key, {
-          productId: prod.productId,
-          productName: prod.product?.name || 'Unknown',
-          category: prod.product?.category || '-',
-          branchId: prod.branchId,
-          branchName: prod.branch?.name || '-',
-          dayProduction: parseFloat(prod.quantity) || 0,
-          nightProduction: 0,
-          openingStock: 0,
-          remainingStock: 0,
-          wasteQuantity: 0,
-          estimatedSold: 0,
-          estimatedRevenue: 0,
-          price: parseFloat(prod.product?.price) || 0,
-        });
+        setError(res.message || 'Export failed');
       }
-    });
+    } catch (err) {
+      console.error('Export error:', err);
+      setError('Export failed. Please try again.');
+    }
+  };
 
-    remainingData.forEach((rem) => {
-      const key = `${rem.productId}-${rem.branchId}`;
-      if (prodMap.has(key)) {
-        prodMap.get(key).remainingStock = parseFloat(rem.quantity) || 0;
-      }
-    });
+  const products = reportData?.products || [];
+  const days = reportData?.days || [];
+  const weeks = reportData?.weeks || [];
+  const hasData = activeTab === 'daily' ? products.length > 0 : activeTab === 'weekly' ? days.length > 0 : weeks.length > 0;
 
-    const rows = Array.from(prodMap.values());
-    rows.forEach(row => {
-      row.sellableStock = row.dayProduction;
-      row.estimatedSold = row.dayProduction - row.remainingStock;
-      row.estimatedRevenue = row.estimatedSold * row.price;
-    });
-
-    return rows;
-  }, [productionData, remainingData]);
-
-  const totals = activeTab === 'daily' ? {
-    totalDayProduction: mergedProducts.reduce((sum, p) => sum + p.dayProduction, 0),
-    totalNightProduction: mergedProducts.reduce((sum, p) => sum + p.nightProduction, 0),
-    totalRemainingStock: mergedProducts.reduce((sum, p) => sum + p.remainingStock, 0),
-    totalWaste: mergedProducts.reduce((sum, p) => sum + p.wasteQuantity, 0),
-    totalEstSold: mergedProducts.reduce((sum, p) => sum + p.estimatedSold, 0),
-    totalRevenue: mergedProducts.reduce((sum, p) => sum + p.estimatedRevenue, 0),
-  } : {};
-
-  const products = activeTab === 'daily' ? mergedProducts : [];
-  const days = [];
-  const weeks = [];
-  const hasData = activeTab === 'daily' ? products.length > 0 : false;
+  const totals = useMemo(() => {
+    if (activeTab === 'daily') {
+      return products.reduce((acc, p) => ({
+        totalDayProduction: acc.totalDayProduction + (parseFloat(p.dayProduction) || 0),
+        totalNightProduction: acc.totalNightProduction + (parseFloat(p.nightProduction) || 0),
+        totalRemainingStock: acc.totalRemainingStock + (parseFloat(p.remainingStock) || 0),
+        totalWaste: acc.totalWaste + (parseFloat(p.wasteQuantity) || 0),
+        totalEstSold: acc.totalEstSold + (parseFloat(p.estimatedSold) || 0),
+        totalRevenue: acc.totalRevenue + (parseFloat(p.estimatedRevenue) || 0),
+      }), { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    if (activeTab === 'weekly') {
+      return days.reduce((acc, d) => {
+        const t = d.totals || {};
+        return {
+          totalDayProduction: acc.totalDayProduction + (parseFloat(t.totalDayProduction) || 0),
+          totalNightProduction: acc.totalNightProduction + (parseFloat(t.totalNightProduction) || 0),
+          totalRemainingStock: acc.totalRemainingStock + (parseFloat(t.totalRemainingStock) || 0),
+          totalWaste: acc.totalWaste + (parseFloat(t.totalWasteQuantity) || 0),
+          totalEstSold: acc.totalEstSold + (parseFloat(t.totalEstimatedSold) || 0),
+          totalRevenue: acc.totalRevenue + (parseFloat(t.totalEstimatedRevenue) || 0),
+        };
+      }, { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    if (activeTab === 'monthly') {
+      return weeks.reduce((acc, w) => {
+        const t = w.totals || {};
+        return {
+          totalDayProduction: acc.totalDayProduction + (parseFloat(t.totalDayProduction) || 0) + (parseFloat(t.totalNightProduction) || 0),
+          totalRemainingStock: acc.totalRemainingStock + (parseFloat(t.totalRemainingStock) || 0),
+          totalWaste: acc.totalWaste + (parseFloat(t.totalWasteQuantity) || 0),
+          totalEstSold: acc.totalEstSold + (parseFloat(t.totalEstimatedSold) || 0),
+          totalRevenue: acc.totalRevenue + (parseFloat(t.totalEstimatedRevenue) || 0),
+        };
+      }, { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+    }
+    return {};
+  }, [activeTab, products, days, weeks]);
 
   return (
     <div>
@@ -219,7 +196,7 @@ setLoading(false);
           className="bg-[#001F3F] text-white px-5 py-3 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#001a35] transition-colors"
         >
           <Download className="w-4 h-4" />
-          Export CSV
+          Export
         </button>
       </div>
 
@@ -351,15 +328,15 @@ setLoading(false);
                           {canManageAll && <td className="px-6 py-4 text-sm text-gray-400">
                             {p.branchName || '-'}
                           </td>}
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.sellableStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.remainingStock}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.wasteQuantity}</td>
-                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F]">{p.estimatedSold}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.sellableStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.remainingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.wasteQuantity || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F]">{p.estimatedSold || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-[#D2B48C]">
-                            {p.estimatedRevenue ? `${p.estimatedRevenue.toLocaleString()} ETB` : '-'}
+                            {p.estimatedRevenue ? `${parseFloat(p.estimatedRevenue).toLocaleString()} ETB` : '-'}
                           </td>
                         </tr>
                       ))}
@@ -385,27 +362,21 @@ setLoading(false);
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Waste</p>
-                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalWasteQuantity || 0}</p>
+                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalWaste || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Est. Sold</p>
-                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold text-[#001F3F]">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-[#001F3F]/60">Revenue</p>
                         <p className="text-2xl font-bold text-[#001F3F]">
-                          {totals.totalEstimatedRevenue ? `${totals.totalEstimatedRevenue.toLocaleString()} ETB` : '-'}
+                          {totals.totalRevenue ? `${totals.totalRevenue.toLocaleString()} ETB` : '-'}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {activeTab !== 'daily' && products.length > 0 && (
-                  <div className="px-6 py-3 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
-                    Showing aggregated data for selected period.
-                  </div>
-                )}
               </>
             )}
 
@@ -415,8 +386,8 @@ setLoading(false);
                   {days.map((day, idx) => (
                     <div key={idx} className="bg-[#F9F7F2] rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-[#001F3F]">{day.dayName}</span>
-                        <span className="text-xs text-gray-400">{day.date}</span>
+                        <span className="text-sm font-semibold text-[#001F3F]">{day.dayName || `Day ${idx + 1}`}</span>
+                        <span className="text-xs text-gray-400">{day.date || '-'}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
@@ -462,12 +433,12 @@ setLoading(false);
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Est. Sold</p>
-                        <p className="text-xl font-bold">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Revenue</p>
                         <p className="text-2xl font-bold">
-                          {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
+                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
                       </div>
                     </div>
@@ -496,7 +467,7 @@ setLoading(false);
                         return (
                           <tr key={idx} className="hover:bg-[#F9F7F2]">
                             <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">
-                              Week {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate})</span>
+                              Week {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
                             </td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">
                               {(wTotals.totalDayProduction || 0) + (wTotals.totalNightProduction || 0)}
@@ -521,7 +492,7 @@ setLoading(false);
                       <div>
                         <p className="text-xs text-white/60">Production</p>
                         <p className="text-xl font-bold">
-                          {(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}
+                          {(totals.totalDayProduction || 0)}
                         </p>
                       </div>
                       <div>
@@ -530,12 +501,12 @@ setLoading(false);
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Est. Sold</p>
-                        <p className="text-xl font-bold">{totals.totalEstimatedSold || 0}</p>
+                        <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">Revenue</p>
                         <p className="text-2xl font-bold">
-                          {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
+                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
                       </div>
                     </div>
