@@ -100,6 +100,40 @@ const productController = {
       });
     }
   },
+
+  async restore(req, res) {
+    try {
+      const product = await productService.restore(parseInt(req.params.id));
+      res.json({
+        success: true,
+        message: 'Product restored successfully',
+        data: product,
+      });
+    } catch (error) {
+      const statusCode = error.code === 'P2025' ? 404 : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.code === 'P2025' ? 'Product not found' : error.message,
+      });
+    }
+  },
+
+  async getDeleted(req, res) {
+    try {
+      const result = await productService.getDeleted(req.query);
+      res.json({
+        success: true,
+        message: 'Deleted products retrieved successfully',
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
 };
 
 module.exports = productController;

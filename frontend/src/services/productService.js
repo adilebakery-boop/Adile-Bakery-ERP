@@ -22,6 +22,14 @@ export const productService = {
     return safeCall(api.delete(`/products/${id}`));
   },
 
+  restoreProduct: async (id) => {
+    return safeCall(api.patch(`/products/${id}/restore`));
+  },
+
+  getDeletedProducts: async (params = {}) => {
+    return safeCall(api.get('/products/deleted', { params }));
+  },
+
   getCategories: async () => {
     return safeCall(api.get('/products/categories'));
   },
