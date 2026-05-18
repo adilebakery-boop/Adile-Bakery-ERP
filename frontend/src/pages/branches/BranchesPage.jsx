@@ -59,6 +59,14 @@ export default function BranchesPage() {
     }
   };
 
+  const handleToggleStatus = async (branch) => {
+    const newStatus = branch.isActive === false ? true : false;
+    const res = await editBranch(branch.id, { isActive: newStatus });
+    if (!res.success) {
+      setError(res.message || 'Failed to update branch status');
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -123,6 +131,16 @@ export default function BranchesPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleToggleStatus(branch)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              branch.isActive !== false 
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            {branch.isActive !== false ? 'Active' : 'Inactive'}
+                          </button>
                           <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
