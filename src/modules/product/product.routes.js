@@ -79,4 +79,19 @@ router.delete(
   productController.delete
 );
 
+router.patch(
+  '/:id/restore',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  validateParams(productIdSchema),
+  productController.restore
+);
+
+router.get(
+  '/deleted',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  productController.getDeleted
+);
+
 module.exports = router;

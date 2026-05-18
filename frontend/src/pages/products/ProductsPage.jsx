@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Search, RotateCcw, Eye } from 'lucide-react';
 import Modal from '../../components/Modal';
 import useProducts from '../../hooks/useProducts';
 import { getUser } from '../../utils/authUtils';
+import productService from '../../services/productService';
 
 const CATEGORIES = [
+  { value: '', label: 'All Categories' },
   { value: 'BREAD_AND_SWEET_BREADS', label: 'Bread & Sweet Breads' },
   { value: 'CREAM_CAKES', label: 'Cream Cakes' },
   { value: 'SOFT_CAKES', label: 'Soft Cakes' },
@@ -19,17 +21,29 @@ export default function ProductsPage() {
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
-  const { products, loading, error, fetchProducts, addProduct, editProduct, removeProduct } = useProducts();
+  const { products, loading, error, fetchProducts, addProduct, editProduct, removeProduct, restoreProduct } = useProducts();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [deletedProducts, setDeletedProducts] = useState([]);
+  const [deletedLoading, setDeletedLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', category: '', price: '', unitType: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      fetchProducts({ search: searchTerm, category: selectedCategory });
+    }, 300);
+    return () => clearTimeout(delaySearch);
+  }, [searchTerm, selectedCategory, fetchProducts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,19 +95,73 @@ export default function ProductsPage() {
     }
   };
 
+  const loadDeletedProducts = async () => {
+    setDeletedLoading(true);
+    const result = await productService.getDeletedProducts();
+    if (result.success) {
+      setDeletedProducts(result.data?.data || result.data || []);
+    }
+    setDeletedLoading(false);
+  };
+
+  const handleRestore = async (id) => {
+    const result = await restoreProduct(id);
+    if (result.success) {
+      await loadDeletedProducts();
+    }
+  };
+
+  const openDeletedModal = () => {
+    loadDeletedProducts();
+    setIsDeletedModalOpen(true);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F]">Products</h1>
-        {canManage && (
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {canManage && (
+            <button 
+              onClick={openDeletedModal}
+              className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Deleted Products
+            </button>
+          )}
+          {canManage && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Search products..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-[#E5E1D8] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm"
+          />
+        </div>
+        <select 
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="px-4 py-3 bg-white border border-[#E5E1D8] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm"
+        >
+          {CATEGORIES.map((cat) => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && (
@@ -222,6 +290,42 @@ export default function ProductsPage() {
             <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? 'Saving...' : 'Save'}</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title="Deleted Products">
+        {deletedLoading ? (
+          <div className="py-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+          </div>
+        ) : deletedProducts.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">No deleted products</div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {deletedProducts.map((product) => (
+              <div key={product.id} className="flex items-center justify-between p-3 bg-[#F9F7F2] rounded-xl">
+                <div>
+                  <div className="font-medium text-[#001F3F]">{product.name}</div>
+                  <div className="text-sm text-gray-500">{product.category} - {product.price} ETB</div>
+                </div>
+                <button
+                  onClick={() => handleRestore(product.id)}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Restore"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
+          <button 
+            onClick={() => setIsDeletedModalOpen(false)} 
+            className="w-full px-6 py-3 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm"
+          >
+            Close
+          </button>
+        </div>
       </Modal>
     </div>
   );
