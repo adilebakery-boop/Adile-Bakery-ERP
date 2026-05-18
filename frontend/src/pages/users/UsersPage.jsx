@@ -187,7 +187,7 @@ export default function UsersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F]">Users</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Users</h1>
         {canManage && (
           <button onClick={() => setIsModalOpen(true)} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" />
@@ -200,43 +200,43 @@ export default function UsersPage() {
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
       )}
 
-      <div className="bg-white rounded-[24px] overflow-hidden border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F9F7F2]/50">
+            <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Username</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">No users found</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No users found</td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="hover:bg-[#F9F7F2]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{user.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{user.username}</td>
+                  <tr key={user.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{user.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role?.name === 'ADMIN' || user.role?.name === 'MANAGER' ? 'bg-[#001F3F] text-white' : 'bg-[#F9F7F2] text-gray-700'}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role?.name === 'ADMIN' || user.role?.name === 'MANAGER' ? 'bg-[#001F3F] text-white dark:bg-[#001F3F]/80' : 'bg-[#F9F7F2] text-gray-700 dark:bg-[#2d2d4a] dark:text-gray-300'}`}>
                         {user.role?.name || '-'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{user.branch?.name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.branch?.name || '-'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.isBlocked ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.isBlocked ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
                         {user.isBlocked ? 'Blocked' : 'Active'}
                       </span>
                     </td>
@@ -246,19 +246,19 @@ export default function UsersPage() {
                           {canUserBlockTarget(user.role?.name) && (
                             <button 
                               onClick={() => handleToggleBlock(user)} 
-                              className={`p-2 rounded-lg transition-colors ${user.isBlocked ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+                              className={`p-2 rounded-lg transition-colors ${user.isBlocked ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'}`}
                               title={user.isBlocked ? 'Unblock' : 'Block'}
                             >
                               {user.isBlocked ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
                             </button>
                           )}
                           {canUserEditTarget(user.role?.name) && (
-                            <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
+                            <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors">
                               <Edit2 className="w-4 h-4" />
                             </button>
                           )}
                           {canUserDeleteTarget(user.role?.name) && (
-                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}

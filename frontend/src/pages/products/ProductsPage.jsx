@@ -119,7 +119,7 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F]">Products</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Products</h1>
         <div className="flex items-center gap-3">
           {canManage && (
             <button 
@@ -144,19 +144,19 @@ export default function ProductsPage() {
 
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input 
             type="text" 
             placeholder="Search products..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-[#E5E1D8] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
         <select 
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-3 bg-white border border-[#E5E1D8] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm"
+          className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
         >
           {CATEGORIES.map((cat) => (
             <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -170,47 +170,47 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-[24px] overflow-hidden border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F9F7F2]/50">
+            <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Price (ETB)</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Unit</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Price (ETB)</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Unit</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                     No products found
                   </td>
                 </tr>
               ) : (
                 products.map((product) => (
-                  <tr key={product.id} className="hover:bg-[#F9F7F2]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{product.name}</td>
+                  <tr key={product.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{product.name}</td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#D2B48C]/20 text-[#D2B48C]">{product.category}</span>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-[#D2B48C]">{product.price} ETB</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{product.unitType}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{product.unitType}</td>
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditClick(product)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
+                          <button onClick={() => handleEditClick(product)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>

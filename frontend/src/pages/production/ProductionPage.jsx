@@ -190,7 +190,7 @@ export default function ProductionPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F]">Production</h1>
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Production</h1>
           <p className="text-sm text-gray-400 mt-1">Operational Date: {formatOperationalDate(operationalDate)}</p>
 </div>
       </div>
@@ -198,20 +198,20 @@ export default function ProductionPage() {
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Production">
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Product</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Product</label>
             <input 
               type="text" 
               value={editingEntry?.product?.name || ''} 
               disabled 
-              className="w-full px-4 py-3.5 bg-gray-100 border-0 rounded-xl text-sm"
+              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] border-0 rounded-xl text-sm dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Shift</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Shift</label>
             <select 
               value={editFormData.shift} 
               onChange={(e) => setEditFormData({ ...editFormData, shift: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
             >
               <option value="">Select shift</option>
@@ -219,12 +219,12 @@ export default function ProductionPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Quantity</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Quantity</label>
             <input 
               type="number" 
               value={editFormData.quantity} 
               onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
               step="0.01"
               min="0"
@@ -234,7 +234,7 @@ export default function ProductionPage() {
             <button 
               type="button" 
               onClick={() => setIsEditModalOpen(false)}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm"
             >
               Cancel
             </button>
@@ -250,25 +250,25 @@ export default function ProductionPage() {
       </Modal>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-[24px] p-6 mb-8 border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Product</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Product</label>
             {isLoadingProducts ? (
-              <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] rounded-xl">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                <span className="text-sm text-gray-400">Loading...</span>
+              <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-xl">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-500" />
+                <span className="text-sm text-gray-400 dark:text-gray-500">Loading...</span>
               </div>
             ) : (
               <select
                 value={product}
                 onChange={(e) => setProduct(e.target.value)}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 disabled={isSubmitting}
               >
@@ -284,11 +284,11 @@ export default function ProductionPage() {
 
           {canManageAll && (
             <div className="flex-1 min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 mb-2">Branch</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Branch</label>
               <select
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 disabled={isSubmitting}
               >
@@ -301,11 +301,11 @@ export default function ProductionPage() {
           )}
 
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Shift</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Shift</label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
               disabled={isSubmitting}
             >
@@ -317,12 +317,12 @@ export default function ProductionPage() {
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Quantity</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Quantity</label>
             <input
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               placeholder="0"
               required
               disabled={isSubmitting}
@@ -351,9 +351,9 @@ export default function ProductionPage() {
         </form>
       </div>
 
-      <div className="bg-white rounded-[24px] overflow-hidden border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-5 border-b border-[#E5E1D8] flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[#001F3F]">
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
             {canManageAll ? 'All Production Records' : "Today's Entries"}
           </h2>
           <button
@@ -373,45 +373,45 @@ export default function ProductionPage() {
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Time</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Shift</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Qty</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Time</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shift</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Qty</th>
                 {canManageAll && (
                   <>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Recorded By</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Recorded By</th>
                   </>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
 {entries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-[#F9F7F2]">
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                <tr key={entry.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">
+                  <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">
                     {entry.product?.name || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {getShiftLabel(entry.shift)}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-[#001F3F]">
+                  <td className="px-6 py-4 text-sm font-medium text-[#001F3F] dark:text-white">
                     {entry.quantity}
                   </td>
                   {canManageAll && (
                     <>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                         {entry.branch?.name || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                         {entry.creator?.name || entry.creator?.username || '-'}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => handleEditClick(entry)} 
-                          className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors"
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>

@@ -70,7 +70,7 @@ export default function BranchesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F]">Branches</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Branches</h1>
         {canManage && (
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -88,42 +88,42 @@ export default function BranchesPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-[24px] overflow-hidden border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F9F7F2]/50">
+            <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch Name</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Address</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch Name</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Address</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                     No branches found
                   </td>
                 </tr>
               ) : (
                 branches.map((branch) => (
-                  <tr key={branch.id} className="hover:bg-[#F9F7F2]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{branch.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{branch.address || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{branch.phone || '-'}</td>
+                  <tr key={branch.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{branch.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.address || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.phone || '-'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         branch.isActive !== false 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-100 text-gray-500'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                       }`}>
                         {branch.isActive !== false ? 'Active' : 'Inactive'}
                       </span>
@@ -135,16 +135,16 @@ export default function BranchesPage() {
                             onClick={() => handleToggleStatus(branch)}
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
                               branch.isActive !== false 
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
                             }`}
                           >
                             {branch.isActive !== false ? 'Active' : 'Inactive'}
                           </button>
-                          <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
+                          <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(branch.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <button onClick={() => handleDelete(branch.id)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
