@@ -35,10 +35,10 @@ const authenticate = async (req, res, next) => {
       where: { id: req.user.userId }
     });
 
-    if (user.isBlocked) {
+    if (user.isBlocked || user.deletedAt) {
       return res.status(403).json({
         success: false,
-        message: 'Your account has been blocked. Contact your manager.',
+        message: user.deletedAt ? 'Your account has been deactivated. Contact your manager.' : 'Your account has been blocked. Contact your manager.',
         errors: []
       });
     }
