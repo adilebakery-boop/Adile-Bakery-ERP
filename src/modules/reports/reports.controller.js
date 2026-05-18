@@ -60,6 +60,18 @@ const getMonthly = asyncHandler(async (req, res) => {
   res.json({ success: true, data: report });
 });
 
+const getYearly = asyncHandler(async (req, res) => {
+  const { branchId, operationalDate, category, productId } = req.query;
+  const date = operationalDate || new Date().toISOString().split('T')[0];
+  const [year] = date.split('-');
+  const report = await reportService.getYearlyReport(
+    resolveBranchId(branchId),
+    parseInt(year),
+    category || undefined,
+    productId || undefined
+  );
+  res.json({ success: true, data: report });
+});
 const exportReport = asyncHandler(async (req, res) => {
   const { type, branchId, operationalDate, category, productId } = req.query;
   const resolvedBranchId = resolveBranchId(branchId);
@@ -129,6 +141,22 @@ const exportReport = asyncHandler(async (req, res) => {
     const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const monthEndDate = `${year}-${month}-${lastDay}`;
     filename = exportService.generateFilename('monthly', reportData.branchName, filters, null, monthName, year, null, null, monthStartDate, monthEndDate);
+  } else if (type === 'yearly') {
+    const [yearStr] = dateStr.split('-');
+    reportData = await reportService.getYearlyReport(
+      resolvedBranchId,
+      parseInt(yearStr),
+      category || undefined,
+      productId || undefined
+    );
+    const yearlyExportMode = (branchId === 'comparison') ? 'COMPARISON' : exportMode;
+    excelBuffer = await exportService.exportYearlyReport(reportData, {
+      generatedBy,
+      category,
+      productName: filters.product,
+      exportMode: yearlyExportMode,
+    });
+    filename = exportService.generateFilename('yearly', reportData.branchName, filters, null, null, yearStr, null, null, null, null);
   } else {
     return res.status(400).json({ success: false, message: 'Invalid export type' });
   }
@@ -143,5 +171,6 @@ module.exports = {
   getDaily,
   getWeekly,
   getMonthly,
+getYearly,
   exportReport,
 };

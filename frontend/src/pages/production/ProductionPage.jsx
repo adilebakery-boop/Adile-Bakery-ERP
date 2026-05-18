@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Package, Loader2, RefreshCw, Edit2 } from 'lucide-react';
+import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, getUserId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import productionService from '../../services/productionService';
@@ -35,6 +36,9 @@ export default function ProductionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [editFormData, setEditFormData] = useState({ quantity: '', shift: '' });
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
@@ -142,20 +146,108 @@ export default function ProductionPage() {
     return CATEGORY_LABELS[category] || category;
   };
 
+  const handleEditClick = (entry) => {
+    setEditingEntry(entry);
+    setEditFormData({
+      quantity: entry.quantity.toString(),
+      shift: entry.shift,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    console.log('Updating production:', editingEntry.id, { quantity: editFormData.quantity, shift: editFormData.shift });
+    try {
+      const result = await productionService.updateProduction(editingEntry.id, {
+        quantity: parseFloat(editFormData.quantity),
+        shift: editFormData.shift,
+      });
+      console.log('Update result:', result);
+
+      setIsSubmitting(false);
+
+      if (result.success) {
+        setSuccess('Production updated successfully!');
+        loadProductions();
+        setIsEditModalOpen(false);
+        setEditingEntry(null);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(result.message || 'Failed to update production');
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      setIsSubmitting(false);
+      setError('Error updating production: ' + err.message);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F]">Production</h1>
           <p className="text-sm text-gray-400 mt-1">Operational Date: {formatOperationalDate(operationalDate)}</p>
-        </div>
+</div>
       </div>
 
-      {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-600">
-          {success}
-        </div>
-      )}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Production">
+        <form onSubmit={handleEditSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Product</label>
+            <input 
+              type="text" 
+              value={editingEntry?.product?.name || ''} 
+              disabled 
+              className="w-full px-4 py-3.5 bg-gray-100 border-0 rounded-xl text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Shift</label>
+            <select 
+              value={editFormData.shift} 
+              onChange={(e) => setEditFormData({ ...editFormData, shift: e.target.value })}
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              required
+            >
+              <option value="">Select shift</option>
+              {SHIFTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Quantity</label>
+            <input 
+              type="number" 
+              value={editFormData.quantity} 
+              onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              required
+              step="0.01"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button 
+              type="button" 
+              onClick={() => setIsEditModalOpen(false)}
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
+            >
+              {isSubmitting ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
           {error}
@@ -312,6 +404,14 @@ export default function ProductionPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {entry.creator?.name || entry.creator?.username || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => handleEditClick(entry)} 
+                          className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </>
                   )}

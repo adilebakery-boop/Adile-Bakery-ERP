@@ -18,20 +18,8 @@ export const reportService = {
     return safeCall(api.get('/reports/monthly', { params }));
   },
 
-  getProductionReport: async (params = {}) => {
-    return safeCall(api.get('/productions', { params }));
-  },
-
-  getRemainingReport: async (params = {}) => {
-    return safeCall(api.get('/remainings', { params }));
-  },
-
-  getProductionByDate: async (operationalDate) => {
-    return safeCall(api.get(`/productions/by-date/${operationalDate}`));
-  },
-
-  getRemainingByDate: async (operationalDate) => {
-    return safeCall(api.get(`/remainings/by-date/${operationalDate}`));
+getYearlyReport: async (params = {}) => {
+    return safeCall(api.get('/reports/yearly', { params }));
   },
 
   exportToCSV: async (params = {}) => {

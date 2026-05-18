@@ -297,6 +297,436 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   };
 }
 
+const MONTH_NAMES_FULL = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+async function getYearlyReport(branchId, year, category, productId) {
+  const yearNum = parseInt(year);
+  const pidFilter = productId ? parseInt(productId) : null;
+
+  const branches = !branchId
+    ? await prisma.branch.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } })
+    : [{ id: parseInt(branchId), name: '' }];
+
+  const monthTotalsMap = {};
+  for (let m = 1; m <= 12; m++) {
+    monthTotalsMap[m] = {
+      totalOpeningStock: 0,
+      totalDayProduction: 0,
+      totalNightProduction: 0,
+      totalNightProductionPreparedFor: 0,
+      totalSellableStock: 0,
+      totalRemainingStock: 0,
+      totalWasteQuantity: 0,
+      totalEstimatedSold: 0,
+      totalEstimatedRevenue: 0,
+    };
+  }
+
+  const productYearlyTotals = {};
+  const branchYearlyTotals = {};
+  const branchProductsMap = {};
+  const monthProductsMap = {};
+  for (let m = 1; m <= 12; m++) {
+    monthProductsMap[m] = {};
+  }
+  for (const branch of branches) {
+    branchYearlyTotals[branch.id] = {};
+    branchProductsMap[branch.id] = {};
+    for (let m = 1; m <= 12; m++) {
+      branchYearlyTotals[branch.id][m] = {
+        totalDayProduction: 0,
+        totalNightProduction: 0,
+        totalSellableStock: 0,
+        totalRemainingStock: 0,
+        totalWasteQuantity: 0,
+        totalEstimatedSold: 0,
+        totalEstimatedRevenue: 0,
+      };
+    }
+
+    const yearStart = new Date(yearNum, 0, 1);
+    const yearEnd = new Date(yearNum, 11, 31);
+
+    const closures = await prisma.dailyClosure.findMany({
+      where: {
+        branchId: branch.id,
+        operationalDate: { gte: yearStart, lte: yearEnd },
+        isClosed: true,
+      },
+    });
+    const closedDates = new Set(closures.map(c => c.operationalDate.toISOString().split('T')[0]));
+
+    const snapshots = await prisma.dailySnapshot.findMany({
+      where: {
+        branchId: branch.id,
+        operationalDate: { gte: yearStart, lte: yearEnd },
+        isInvalidated: false,
+      },
+      include: {
+        items: {
+          include: { product: { select: { id: true, name: true, category: true, price: true } } }
+        },
+      },
+    });
+
+    for (const snapshot of snapshots) {
+      const snapshotDate = snapshot.operationalDate.toISOString().split('T')[0];
+      const m = snapshot.operationalDate.getMonth() + 1;
+
+      for (const item of snapshot.items) {
+        if (category && item.product.category !== category) continue;
+        if (pidFilter && item.productId !== pidFilter) continue;
+
+        const key = `${item.productId}`;
+        const opening = Number(item.openingStock) || 0;
+        const dayProd = Number(item.dayProduction) || 0;
+        const nightProd = Number(item.nightProduction) || 0;
+        const sellable = Number(item.sellableStock) || 0;
+        const remaining = Number(item.remainingStock) || 0;
+        const waste = Number(item.wasteQuantity) || 0;
+        const sold = Number(item.estimatedSold) || 0;
+        const revenue = Number(item.estimatedRevenue) || 0;
+
+        monthTotalsMap[m].totalOpeningStock += opening;
+        monthTotalsMap[m].totalDayProduction += dayProd;
+        monthTotalsMap[m].totalNightProduction += nightProd;
+        monthTotalsMap[m].totalSellableStock += sellable;
+        monthTotalsMap[m].totalRemainingStock += remaining;
+        monthTotalsMap[m].totalWasteQuantity += waste;
+        monthTotalsMap[m].totalEstimatedSold += sold;
+        monthTotalsMap[m].totalEstimatedRevenue += revenue;
+
+        branchYearlyTotals[branch.id][m].totalDayProduction += dayProd;
+        branchYearlyTotals[branch.id][m].totalNightProduction += nightProd;
+        branchYearlyTotals[branch.id][m].totalSellableStock += sellable;
+        branchYearlyTotals[branch.id][m].totalRemainingStock += remaining;
+        branchYearlyTotals[branch.id][m].totalWasteQuantity += waste;
+        branchYearlyTotals[branch.id][m].totalEstimatedSold += sold;
+        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += revenue;
+
+        if (!monthProductsMap[m][key]) {
+          monthProductsMap[m][key] = {
+            productId: item.productId,
+            productName: item.product.name,
+            category: item.product.category,
+            price: Number(item.product.price) || 0,
+            totalOpeningStock: 0,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        monthProductsMap[m][key].totalOpeningStock += opening;
+        monthProductsMap[m][key].totalDayProduction += dayProd;
+        monthProductsMap[m][key].totalNightProduction += nightProd;
+        monthProductsMap[m][key].totalSellableStock += sellable;
+        monthProductsMap[m][key].totalRemainingStock += remaining;
+        monthProductsMap[m][key].totalWasteQuantity += waste;
+        monthProductsMap[m][key].totalEstimatedSold += sold;
+        monthProductsMap[m][key].totalEstimatedRevenue += revenue;
+
+        if (!branchProductsMap[branch.id][m]) {
+          branchProductsMap[branch.id][m] = {};
+        }
+        if (!branchProductsMap[branch.id][m][key]) {
+          branchProductsMap[branch.id][m][key] = {
+            productId: item.productId,
+            productName: item.product.name,
+            category: item.product.category,
+            price: Number(item.product.price) || 0,
+            totalOpeningStock: 0,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        branchProductsMap[branch.id][m][key].totalOpeningStock += opening;
+        branchProductsMap[branch.id][m][key].totalDayProduction += dayProd;
+        branchProductsMap[branch.id][m][key].totalNightProduction += nightProd;
+        branchProductsMap[branch.id][m][key].totalSellableStock += sellable;
+        branchProductsMap[branch.id][m][key].totalRemainingStock += remaining;
+        branchProductsMap[branch.id][m][key].totalWasteQuantity += waste;
+        branchProductsMap[branch.id][m][key].totalEstimatedSold += sold;
+        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += revenue;
+
+        if (!productYearlyTotals[key]) {
+          productYearlyTotals[key] = {
+            productId: item.productId,
+            productName: item.product.name,
+            category: item.product.category,
+            price: Number(item.product.price) || 0,
+            totalOpeningStock: 0,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        productYearlyTotals[key].totalOpeningStock += opening;
+        productYearlyTotals[key].totalDayProduction += dayProd;
+        productYearlyTotals[key].totalNightProduction += nightProd;
+        productYearlyTotals[key].totalSellableStock += sellable;
+        productYearlyTotals[key].totalRemainingStock += remaining;
+        productYearlyTotals[key].totalWasteQuantity += waste;
+        productYearlyTotals[key].totalEstimatedSold += sold;
+        productYearlyTotals[key].totalEstimatedRevenue += revenue;
+      }
+    }
+
+    for (let m = 1; m <= 12; m++) {
+      const monthStart = new Date(yearNum, m - 1, 1);
+      const monthEnd = new Date(yearNum, m, 0);
+
+      const prodRecords = await prisma.productionRecord.groupBy({
+        by: ['productId', 'shift'],
+        where: {
+          branchId: branch.id,
+          operationalDate: { gte: monthStart, lte: monthEnd },
+          ...(pidFilter ? { productId: pidFilter } : {}),
+        },
+        _sum: { quantity: true },
+      });
+
+      const remainingRecords = await prisma.remainingRecord.groupBy({
+        by: ['productId'],
+        where: {
+          branchId: branch.id,
+          operationalDate: { gte: monthStart, lte: monthEnd },
+          status: 'FINAL',
+          ...(pidFilter ? { productId: pidFilter } : {}),
+        },
+        _sum: { quantity: true },
+      });
+
+      const wasteRecords = await prisma.wasteRecord.groupBy({
+        by: ['productId'],
+        where: {
+          branchId: branch.id,
+          operationalDate: { gte: monthStart, lte: monthEnd },
+          ...(pidFilter ? { productId: pidFilter } : {}),
+        },
+        _sum: { quantity: true },
+      });
+
+      const dayProdMap = {};
+      const nightProdMap = {};
+      for (const r of prodRecords) {
+        if (r.shift === 'DAY') {
+          dayProdMap[r.productId] = Number(r._sum.quantity) || 0;
+        } else if (r.shift === 'NIGHT') {
+          nightProdMap[r.productId] = Number(r._sum.quantity) || 0;
+        }
+      }
+
+      const remainingMap = {};
+      for (const r of remainingRecords) {
+        remainingMap[r.productId] = Number(r._sum.quantity) || 0;
+      }
+
+      const wasteMap = {};
+      for (const r of wasteRecords) {
+        wasteMap[r.productId] = Number(r._sum.quantity) || 0;
+      }
+
+      const products = await prisma.product.findMany({
+        where: { isActive: true, ...(category ? { category } : {}), ...(pidFilter ? { id: pidFilter } : {}) },
+        select: { id: true, name: true, category: true, price: true },
+      });
+
+      for (const product of products) {
+        const pid = product.id;
+        const dayProd = dayProdMap[pid] || 0;
+        const nightProd = nightProdMap[pid] || 0;
+        const remaining = remainingMap[pid] || 0;
+        const waste = wasteMap[pid] || 0;
+
+        const sellable = dayProd + nightProd;
+        const estimatedSold = Math.max(0, sellable - remaining - waste);
+        const estimatedRevenue = estimatedSold * (Number(product.price) || 0);
+        const price = Number(product.price) || 0;
+
+        const key = `${pid}`;
+
+        if (!monthProductsMap[m][key]) {
+          monthProductsMap[m][key] = {
+            productId: pid,
+            productName: product.name,
+            category: product.category,
+            price: price,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        monthProductsMap[m][key].totalDayProduction += dayProd;
+        monthProductsMap[m][key].totalNightProduction += nightProd;
+        monthProductsMap[m][key].totalSellableStock += sellable;
+        monthProductsMap[m][key].totalRemainingStock += remaining;
+        monthProductsMap[m][key].totalWasteQuantity += waste;
+        monthProductsMap[m][key].totalEstimatedSold += estimatedSold;
+        monthProductsMap[m][key].totalEstimatedRevenue += estimatedRevenue;
+
+        if (!branchProductsMap[branch.id][m]) {
+          branchProductsMap[branch.id][m] = {};
+        }
+        if (!branchProductsMap[branch.id][m][key]) {
+          branchProductsMap[branch.id][m][key] = {
+            productId: pid,
+            productName: product.name,
+            category: product.category,
+            price: price,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        branchProductsMap[branch.id][m][key].totalDayProduction += dayProd;
+        branchProductsMap[branch.id][m][key].totalNightProduction += nightProd;
+        branchProductsMap[branch.id][m][key].totalSellableStock += sellable;
+        branchProductsMap[branch.id][m][key].totalRemainingStock += remaining;
+        branchProductsMap[branch.id][m][key].totalWasteQuantity += waste;
+        branchProductsMap[branch.id][m][key].totalEstimatedSold += estimatedSold;
+        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += estimatedRevenue;
+
+        monthTotalsMap[m].totalDayProduction += dayProd;
+        monthTotalsMap[m].totalNightProduction += nightProd;
+        monthTotalsMap[m].totalSellableStock += sellable;
+        monthTotalsMap[m].totalRemainingStock += remaining;
+        monthTotalsMap[m].totalWasteQuantity += waste;
+        monthTotalsMap[m].totalEstimatedSold += estimatedSold;
+        monthTotalsMap[m].totalEstimatedRevenue += estimatedRevenue;
+
+        branchYearlyTotals[branch.id][m].totalDayProduction += dayProd;
+        branchYearlyTotals[branch.id][m].totalNightProduction += nightProd;
+        branchYearlyTotals[branch.id][m].totalSellableStock += sellable;
+        branchYearlyTotals[branch.id][m].totalRemainingStock += remaining;
+        branchYearlyTotals[branch.id][m].totalWasteQuantity += waste;
+        branchYearlyTotals[branch.id][m].totalEstimatedSold += estimatedSold;
+        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += estimatedRevenue;
+
+        if (!productYearlyTotals[key]) {
+          productYearlyTotals[key] = {
+            productId: pid,
+            productName: product.name,
+            category: product.category,
+            totalOpeningStock: 0,
+            totalDayProduction: 0,
+            totalNightProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        productYearlyTotals[key].totalDayProduction += dayProd;
+        productYearlyTotals[key].totalNightProduction += nightProd;
+        productYearlyTotals[key].totalSellableStock += sellable;
+        productYearlyTotals[key].totalRemainingStock += remaining;
+        productYearlyTotals[key].totalWasteQuantity += waste;
+        productYearlyTotals[key].totalEstimatedSold += estimatedSold;
+        productYearlyTotals[key].totalEstimatedRevenue += estimatedRevenue;
+      }
+    }
+  }
+
+  const months = [];
+  for (let m = 1; m <= 12; m++) {
+    const monthProducts = Object.values(monthProductsMap[m]);
+
+    months.push({
+      month: m,
+      monthName: MONTH_NAMES_FULL[m - 1],
+      totals: monthTotalsMap[m],
+      products: monthProducts,
+      branchesData: !branchId ? branches.map(b => ({
+        branchId: b.id,
+        branchName: b.name,
+        totals: branchYearlyTotals[b.id]?.[m] || {
+          totalDayProduction: 0,
+          totalNightProduction: 0,
+          totalSellableStock: 0,
+          totalRemainingStock: 0,
+          totalWasteQuantity: 0,
+          totalEstimatedSold: 0,
+          totalEstimatedRevenue: 0,
+        },
+        products: Object.values(branchProductsMap[b.id]?.[m] || {}),
+      })) : null,
+    });
+  }
+
+  const aggregatedTotals = Object.values(monthTotalsMap).reduce(
+    (acc, mTotals) => ({
+      totalOpeningStock: acc.totalOpeningStock + (mTotals.totalOpeningStock || 0),
+      totalDayProduction: acc.totalDayProduction + (mTotals.totalDayProduction || 0),
+      totalNightProduction: acc.totalNightProduction + (mTotals.totalNightProduction || 0),
+      totalNightProductionPreparedFor: acc.totalNightProductionPreparedFor + (mTotals.totalNightProductionPreparedFor || 0),
+      totalSellableStock: acc.totalSellableStock + (mTotals.totalSellableStock || 0),
+      totalRemainingStock: acc.totalRemainingStock + (mTotals.totalRemainingStock || 0),
+      totalWasteQuantity: acc.totalWasteQuantity + (mTotals.totalWasteQuantity || 0),
+      totalEstimatedSold: acc.totalEstimatedSold + (mTotals.totalEstimatedSold || 0),
+      totalEstimatedRevenue: acc.totalEstimatedRevenue + (mTotals.totalEstimatedRevenue || 0),
+    }),
+    {
+      totalOpeningStock: 0,
+      totalDayProduction: 0,
+      totalNightProduction: 0,
+      totalNightProductionPreparedFor: 0,
+      totalSellableStock: 0,
+      totalRemainingStock: 0,
+      totalWasteQuantity: 0,
+      totalEstimatedSold: 0,
+      totalEstimatedRevenue: 0,
+    }
+  );
+
+  let branchName = 'All Branches';
+  if (branchId) {
+    const branch = await prisma.branch.findUnique({ where: { id: parseInt(branchId) } });
+    branchName = branch ? branch.name : '';
+  }
+
+  const products = Object.values(productYearlyTotals).sort((a, b) =>
+    (b.totalEstimatedRevenue || 0) - (a.totalEstimatedRevenue || 0)
+  );
+
+  return {
+    branchId: branchId ? parseInt(branchId) : null,
+    branchName,
+    year: yearNum,
+    reportType: 'YEARLY',
+    months,
+    products,
+    totals: aggregatedTotals,
+    filters: {
+      category: category || null,
+    },
+};
+}
+
 function exportToCSV(reportData) {
   const headers = [
     'Product',
@@ -354,5 +784,6 @@ module.exports = {
   getDailyReport,
   getWeeklyReport,
   getMonthlyReport,
+  getYearlyReport,
   exportToCSV,
 };
