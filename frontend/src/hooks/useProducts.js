@@ -51,6 +51,14 @@ export default function useProducts() {
     return result;
   }, [fetchProducts]);
 
+  const restoreProduct = useCallback(async (id) => {
+    const result = await productService.restoreProduct(id);
+    if (result.success) {
+      await fetchProducts();
+    }
+    return result;
+  }, [fetchProducts]);
+
   return {
     products,
     categories,
@@ -61,5 +69,6 @@ export default function useProducts() {
     addProduct,
     editProduct,
     removeProduct,
+    restoreProduct,
   };
 }
