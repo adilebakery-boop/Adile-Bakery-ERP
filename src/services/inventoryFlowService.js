@@ -93,12 +93,24 @@ async function getDayProduction(branchId, operationalDate, productId) {
 }
 
 async function getNightProduction(branchId, operationalDate, productId) {
+  // Night production for today comes from previous day's Night shift (since Night counts as next day)
+  // Also include Night production from today (for reports on the day itself)
   const prevDay = getPreviousDay(new Date(operationalDate));
-  const result = await prisma.productionRecord.aggregate({
-    where: { branchId: parseInt(branchId), operationalDate: prevDay, shift: 'NIGHT', productId: parseInt(productId) },
-    _sum: { quantity: true },
-  });
-  return result._sum.quantity ? toDecimal(result._sum.quantity) : ZERO;
+  const [prevNightResult, todayNightResult] = await Promise.all([
+    prisma.productionRecord.aggregate({
+      where: { branchId: parseInt(branchId), operationalDate: prevDay, shift: 'NIGHT', productId: parseInt(productId) },
+      _sum: { quantity: true },
+    }),
+    prisma.productionRecord.aggregate({
+      where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), shift: 'NIGHT', productId: parseInt(productId) },
+      _sum: { quantity: true },
+    }),
+  ]);
+  
+  const prevNight = prevNightResult._sum.quantity ? Number(prevNightResult._sum.quantity) : 0;
+  const todayNight = todayNightResult._sum.quantity ? Number(todayNightResult._sum.quantity) : 0;
+  
+  return toDecimal(prevNight + todayNight);
 }
 
 async function getNightProductionPreparedFor(branchId, operationalDate, productId) {

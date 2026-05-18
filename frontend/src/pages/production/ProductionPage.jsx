@@ -227,6 +227,7 @@ export default function ProductionPage() {
               className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
               required
               step="0.01"
+              min="0"
             />
           </div>
           <div className="flex gap-3 pt-2">
@@ -325,6 +326,8 @@ export default function ProductionPage() {
               placeholder="0"
               required
               disabled={isSubmitting}
+              min="0"
+              step="0.01"
             />
           </div>
 

@@ -7,9 +7,11 @@ export const dashboardService = {
   },
 
   getOverview: async (branchId, operationalDate) => {
-    return safeCall(api.get('/dashboard/overview', {
-      params: { branchId, operationalDate },
-    }));
+    const params = { operationalDate };
+    if (branchId !== undefined && branchId !== null) {
+      params.branchId = branchId;
+    }
+    return safeCall(api.get('/dashboard/overview', { params }));
   },
 
   getBranchesStatus: async (operationalDate) => {
@@ -18,10 +20,15 @@ export const dashboardService = {
     }));
   },
 
-  getRecentActivity: async (branchId, limit = 10) => {
-    return safeCall(api.get('/dashboard/recent-activity', {
-      params: { branchId, limit },
-    }));
+  getRecentActivity: async (branchId, operationalDate, limit = 10) => {
+    const params = { limit };
+    if (operationalDate) {
+      params.operationalDate = operationalDate;
+    }
+    if (branchId !== undefined && branchId !== null) {
+      params.branchId = branchId;
+    }
+    return safeCall(api.get('/dashboard/recent-activity', { params }));
   },
 };
 

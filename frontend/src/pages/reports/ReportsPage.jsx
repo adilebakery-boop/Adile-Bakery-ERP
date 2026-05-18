@@ -22,6 +22,10 @@ export default function ReportsPage() {
   const canManageAll = isManagerOrAdmin();
 
   useEffect(() => {
+    setDate(getOperationalDate());
+  }, []);
+
+  useEffect(() => {
     if (canManageAll) loadBranches();
     loadCategories();
   }, [canManageAll]);
