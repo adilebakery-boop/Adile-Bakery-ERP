@@ -1,6 +1,7 @@
 const { verifyToken } = require('../utils/jwt');
+const prisma = require('../config/prisma');
 
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -30,10 +31,14 @@ const authenticate = (req, res, next) => {
       isBlocked: decoded.isBlocked || false
     };
 
-    if (req.user.isBlocked) {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
+    });
+
+    if (user.isBlocked) {
       return res.status(403).json({
         success: false,
-        message: 'Account is blocked. Contact administrator.',
+        message: 'Your account has been blocked. Contact your manager.',
         errors: []
       });
     }

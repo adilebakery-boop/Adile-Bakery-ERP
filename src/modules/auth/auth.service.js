@@ -23,6 +23,14 @@ const login = async (username, password) => {
     throw new Error('Invalid credentials');
   }
 
+  if (user.isBlocked) {
+    throw new Error('Your account has been blocked. Contact your manager.');
+  }
+
+  if (user.branchId && user.branch && !user.branch.isActive) {
+    throw new Error('Your branch is currently inactive. Contact your manager.');
+  }
+
   const token = generateToken({
     userId: user.id,
     role: user.role.name,

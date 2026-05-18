@@ -1,22 +1,35 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
 import userService from '../../services/userService';
+import branchService from '../../services/branchService';
+
+const ROLES = [
+  { value: 'CASHIER', label: 'Cashier', id: 7 },
+  { value: 'FETIR_CHEF', label: 'Fetir Chef', id: 6 },
+  { value: 'COOKIE_BAKER', label: 'Cookie Baker', id: 5 },
+  { value: 'CAKE_CHEF', label: 'Cake Chef', id: 4 },
+  { value: 'BAKER', label: 'Baker', id: 3 },
+  { value: 'MANAGER', label: 'Manager', id: 2 },
+  { value: 'ADMIN', label: 'Admin', id: 1 },
+];
 
 export default function UsersPage() {
   const canManage = isManagerOrAdmin();
   const [users, setUsers] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', username: '', password: '', roleId: '', branchId: '' });
+  const [formData, setFormData] = useState({ name: '', username: '', password: '', role: '', branchId: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadUsers();
+    loadBranches();
   }, []);
 
   const loadUsers = async () => {
@@ -31,14 +44,31 @@ export default function UsersPage() {
     setLoading(false);
   };
 
+  const loadBranches = async () => {
+    const res = await branchService.getActiveBranches();
+    if (res.success) {
+      setBranches(res.data || []);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const res = await userService.createUser(formData);
+    
+    const roleObj = ROLES.find(r => r.value === formData.role);
+    const submitData = {
+      name: formData.name,
+      username: formData.username,
+      password: formData.password,
+      roleId: roleObj?.id,
+      branchId: parseInt(formData.branchId),
+    };
+    
+    const res = await userService.createUser(submitData);
     setSubmitting(false);
     if (res.success) {
       setIsModalOpen(false);
-      setFormData({ name: '', username: '', password: '', roleId: '', branchId: '' });
+      setFormData({ name: '', username: '', password: '', role: '', branchId: '' });
       await loadUsers();
     } else {
       setError(res.message);
@@ -47,21 +77,38 @@ export default function UsersPage() {
 
   const handleEditClick = (user) => {
     setEditingUser(user);
-    setFormData({ name: user.name, username: user.username, password: '', roleId: user.roleId || '', branchId: user.branchId || '' });
+    setFormData({ 
+      name: user.name, 
+      username: user.username, 
+      password: '', 
+      role: user.role?.name || '', 
+      branchId: user.branchId ? String(user.branchId) : '' 
+    });
     setIsEditModalOpen(true);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const data = { ...formData };
-    if (!data.password) delete data.password;
-    const res = await userService.updateUser(editingUser.id, data);
+    
+    const roleObj = ROLES.find(r => r.value === formData.role);
+    const submitData = {
+      name: formData.name,
+      username: formData.username,
+      roleId: roleObj?.id,
+      branchId: parseInt(formData.branchId),
+    };
+    
+    if (formData.password) {
+      submitData.password = formData.password;
+    }
+    
+    const res = await userService.updateUser(editingUser.id, submitData);
     setSubmitting(false);
     if (res.success) {
       setIsEditModalOpen(false);
       setEditingUser(null);
-      setFormData({ name: '', username: '', password: '', roleId: '', branchId: '' });
+      setFormData({ name: '', username: '', password: '', role: '', branchId: '' });
       await loadUsers();
     } else {
       setError(res.message);
@@ -77,6 +124,24 @@ export default function UsersPage() {
         setError(res.message);
       }
     }
+  };
+
+  const handleToggleBlock = async (user) => {
+    try {
+      const newStatus = !user.isBlocked;
+      const res = await userService.updateUser(user.id, { isBlocked: newStatus });
+      if (res.success) {
+        await loadUsers();
+      } else {
+        setError(res.message);
+      }
+    } catch (err) {
+      setError('Failed to update user status');
+    }
+  };
+
+  const isAdminOrManagerRole = (roleName) => {
+    return roleName === 'ADMIN' || roleName === 'MANAGER';
   };
 
   return (
@@ -138,12 +203,25 @@ export default function UsersPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {user.role?.name !== 'ADMIN' && user.role?.name !== 'MANAGER' && (
+                            <button 
+                              onClick={() => handleToggleBlock(user)} 
+                              className={`p-2 rounded-lg transition-colors ${user.isBlocked ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+                              title={user.isBlocked ? 'Unblock' : 'Block'}
+                            >
+                              {user.isBlocked ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+                            </button>
+                          )}
+                          {user.role?.name !== 'ADMIN' && (
+                            <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {user.role?.name !== 'ADMIN' && (
+                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -169,6 +247,20 @@ export default function UsersPage() {
             <label className="block text-sm font-medium text-gray-600 mb-2">Password</label>
             <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter password" required />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
+            <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
+              <option value="">Select role</option>
+              {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Branch</label>
+            <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
+              <option value="">Select branch</option>
+              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+            </select>
+          </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">Cancel</button>
             <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? 'Saving...' : 'Save'}</button>
@@ -185,6 +277,20 @@ export default function UsersPage() {
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Username</label>
             <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
+            <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
+              <option value="">Select role</option>
+              {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Branch</label>
+            <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
+              <option value="">Select branch</option>
+              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">New Password (leave blank to keep current)</label>
