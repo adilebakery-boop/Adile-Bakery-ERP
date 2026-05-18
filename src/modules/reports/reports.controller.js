@@ -72,7 +72,6 @@ const getYearly = asyncHandler(async (req, res) => {
   );
   res.json({ success: true, data: report });
 });
-
 const exportReport = asyncHandler(async (req, res) => {
   const { type, branchId, operationalDate, category, productId } = req.query;
   const resolvedBranchId = resolveBranchId(branchId);
@@ -147,7 +146,8 @@ const exportReport = asyncHandler(async (req, res) => {
     reportData = await reportService.getYearlyReport(
       resolvedBranchId,
       parseInt(yearStr),
-      category || undefined
+      category || undefined,
+      productId || undefined
     );
     const yearlyExportMode = (branchId === 'comparison') ? 'COMPARISON' : exportMode;
     excelBuffer = await exportService.exportYearlyReport(reportData, {
@@ -171,6 +171,6 @@ module.exports = {
   getDaily,
   getWeekly,
   getMonthly,
-  getYearly,
+getYearly,
   exportReport,
 };

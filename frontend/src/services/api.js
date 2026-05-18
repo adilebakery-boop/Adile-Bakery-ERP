@@ -28,6 +28,16 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    if (error.response?.status === 403) {
+      const message = error.response?.data?.message || '';
+      if (message.toLowerCase().includes('blocked')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('user');
+        alert('Your account has been blocked. Contact your manager.');
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );

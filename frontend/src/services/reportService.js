@@ -18,7 +18,7 @@ export const reportService = {
     return safeCall(api.get('/reports/monthly', { params }));
   },
 
-  getYearlyReport: async (params = {}) => {
+getYearlyReport: async (params = {}) => {
     return safeCall(api.get('/reports/yearly', { params }));
   },
 
