@@ -13,3 +13,168 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Initial dark mode check */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0f0f1a;
+  color: #e5e5e5;
+}
+
+/* Dark mode global styles */
+html.dark .bg-white {
+  background-color: #1a1a2e !important;
+}
+
+html.dark .bg-\\[\\#F9F7F2\\] {
+  background-color: #0f0f1a !important;
+}
+
+html.dark .text-\\[\\#001F3F\\] {
+  color: #ffffff !important;
+}
+
+html.dark .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+html.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+html.dark .border-\\[\\#E5E1D8\\] {
+  border-color: #2d2d4a !important;
+}
+
+html.dark .border-t {
+  border-color: #2d2d4a !important;
+}
+
+html.dark .divide-y > :not([style*="display: none"]) {
+  border-color: #2d2d4a !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1a1a2e !important;
+  color: #e5e5e5 !important;
+  border-color: #2d2d4a !important;
+}
+
+html.dark input::placeholder {
+  color: #6b7280 !important;
+}
+
+html.dark .shadow-\\[0_4px_20px_-2px_rgba\\(0\\,31\\,63\\,0\\.05\\)\\] {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode page content */
+html.dark .page-content {
+  background-color: #0f0f1a !important;
+}
+
+html.dark .page-content h1,
+html.dark .page-content h2,
+html.dark .page-content h3 {
+  color: #ffffff !important;
+}
+
+html.dark .page-content p {
+  color: #d1d5db !important;
+}
+
+html.dark .page-content span {
+  color: #d1d5db !important;
+}
+
+/* Dark mode tables */
+html.dark table {
+  background-color: transparent !important;
+}
+
+html.dark thead {
+  background-color: #1a1a2e !important;
+}
+
+html.dark th {
+  color: #9ca3af !important;
+  border-color: #2d2d4a !important;
+}
+
+html.dark td {
+  color: #e5e5e5 !important;
+  border-color: #2d2d4a !important;
+}
+
+html.dark tr:hover {
+  background-color: #1a1a2e !important;
+}
+
+/* Dark mode cards */
+html.dark .card {
+  background-color: #1a1a2e !important;
+  border-color: #2d2d4a !important;
+}
+
+/* Dark mode buttons */
+html.dark .btn-primary {
+  background-color: #D2B48C !important;
+  color: #0f0f1a !important;
+}
+
+/* Dark mode modals */
+html.dark .modal-content {
+  background-color: #1a1a2e !important;
+  border-color: #2d2d4a !important;
+}
+
+/* Dark mode dropdowns */
+html.dark .dropdown-menu {
+  background-color: #1a1a2e !important;
+  border-color: #2d2d4a !important;
+}
+
+html.dark .dropdown-item {
+  color: #e5e5e5 !important;
+}
+
+html.dark .dropdown-item:hover {
+  background-color: #2d2d4a !important;
+}
+
+/* Dark mode form labels */
+html.dark label {
+  color: #d1d5db !important;
+}
+
+/* Dark mode select options */
+html.dark select option {
+  background-color: #1a1a2e !important;
+  color: #e5e5e5 !important;
+}
+
+/* Dark mode placeholder text */
+html.dark ::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Dark mode focus ring on inputs */
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  --tw-ring-color: #001F3F !important;
+}
+
+/* Dark mode icon colors */
+html.dark .lucide-icon {
+  color: inherit;
+}

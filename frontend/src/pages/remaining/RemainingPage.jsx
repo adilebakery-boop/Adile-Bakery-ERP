@@ -183,8 +183,8 @@ export default function RemainingPage() {
     <div className="pb-28">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F]">Remaining Stock</h1>
-          <p className="text-sm text-gray-400 mt-1">{formatOperationalDate(operationalDate)}</p>
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Remaining Stock</h1>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           {unsaved && (
@@ -198,7 +198,7 @@ export default function RemainingPage() {
             className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors"
             title="Refresh"
           >
-            <RefreshCw className="w-5 h-5 text-gray-400" />
+            <RefreshCw className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </button>
         </div>
       </div>
@@ -222,15 +222,15 @@ export default function RemainingPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 bg-[#F9F7F2] rounded-full flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8 text-gray-400" />
+          <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-gray-400 text-sm">No products available for your role</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">No products available for your role</p>
         </div>
       ) : (
         Object.entries(grouped).map(([category, prods]) => (
           <div key={category} className="mb-8">
-            <h2 className="text-xl font-bold text-[#001F3F] mb-4">
+            <h2 className="text-xl font-bold text-[#001F3F] dark:text-white mb-4">
               {CATEGORY_LABELS[category] || category}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -239,29 +239,29 @@ export default function RemainingPage() {
                 return (
                   <div
                     key={p.id}
-                    className={`relative bg-white p-5 rounded-[24px] border transition-all ${
+                    className={`relative bg-white dark:bg-[#1a1a2e] p-5 rounded-[24px] border transition-all ${
                       status === 'FINAL'
-                        ? 'border-green-300 bg-green-50/30'
+                        ? 'border-green-300 dark:border-green-800 bg-green-50/30 dark:bg-green-900/10'
                         : status === 'DRAFT'
-                        ? 'border-amber-200 bg-amber-50/20'
-                        : 'border-[#E5E1D8]'
+                        ? 'border-amber-200 dark:border-amber-700 bg-amber-50/20 dark:bg-amber-900/10'
+                        : 'border-[#E5E1D8] dark:border-[#2d2d4a]'
                     }`}
                     style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}
                   >
                     {status && (
                       <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                        status === 'FINAL' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'
+                        status === 'FINAL' ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400' : 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400'
                       }`}>
                         {status === 'FINAL' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                         {status}
                       </div>
                     )}
-                    <p className="text-sm text-gray-500 mb-3 font-medium">{p.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{p.name}</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
                       onChange={(e) => handleQuantityChange(p.id, e.target.value)}
-                      className="w-full px-4 py-4 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F]"
+                      className="w-full px-4 py-4 bg-[#F9F7F2] dark:bg-[#0f0f1a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F] dark:text-white"
                       placeholder="0"
                       min="0"
                       step="0.01"
@@ -274,7 +274,7 @@ export default function RemainingPage() {
         ))
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5E1D8] p-4 lg:left-72 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a2e] border-t border-[#E5E1D8] dark:border-[#2d2d4a] p-4 lg:left-72 z-10">
         <div className="max-w-7xl mx-auto flex justify-end gap-3">
           {!hasFinal && hasAnyRemainings && (
             <button

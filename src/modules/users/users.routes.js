@@ -15,7 +15,7 @@ router.get(
   async (req, res) => {
     try {
       const users = await prisma.user.findMany({
-        where: { deletedAt: null },
+        where: { isActive: true },
         include: { role: true, branch: true },
         orderBy: { createdAt: 'desc' }
       });
@@ -193,13 +193,13 @@ router.delete(
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found', errors: [] });
       }
-      if (user.deletedAt) {
+      if (!user.isActive) {
         return res.status(404).json({ success: false, message: 'User already deactivated', errors: [] });
       }
 
       await prisma.user.update({
         where: { id: userId },
-        data: { deletedAt: new Date() }
+        data: { isActive: false }
       });
 
       res.json({ success: true, message: 'User deactivated successfully', data: {} });

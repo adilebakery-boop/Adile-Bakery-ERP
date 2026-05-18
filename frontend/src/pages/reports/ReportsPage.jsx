@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package } from 'lucide-react';
+import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import reportService from '../../services/reportService';
 import branchService from '../../services/branchService';
@@ -18,6 +18,8 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const canManageAll = isManagerOrAdmin();
 
@@ -150,6 +152,21 @@ export default function ReportsPage() {
   const months = reportData?.months || [];
   const hasData = activeTab === 'daily' ? products.length > 0 : activeTab === 'weekly' ? days.length > 0 : activeTab === 'monthly' ? weeks.length > 0 : months.length > 0;
 
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, date, branchId, category, productId]);
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
   const totals = useMemo(() => {
     if (activeTab === 'daily') {
       return products.reduce((acc, p) => ({
@@ -193,8 +210,8 @@ export default function ReportsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F]">Reports</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Reports</h1>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - {formatOperationalDate(date)}
             {branchId ? ` — ${branches.find(b => b.id.toString() === branchId)?.name || ''}` : ''}
           </p>
@@ -215,16 +232,16 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-[24px] overflow-hidden border border-[#E5E1D8]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="p-6 border-b border-[#E5E1D8]">
+<div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="p-6 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-<div className="flex bg-[#F9F7F2] rounded-[50px] p-1 w-fit">
+            <div className="flex bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-[50px] p-1 w-fit">
                 {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all ${
-                      activeTab === tab ? 'bg-white text-[#001F3F] shadow-sm' : 'text-gray-500'
+                      activeTab === tab ? 'bg-white dark:bg-[#1a1a2e] text-[#001F3F] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                     }`}
                   >
                     {tab}
@@ -233,13 +250,13 @@ export default function ReportsPage() {
               </div>
 
             <div className="flex gap-3 flex-wrap">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+<div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm w-40"
+                  className="pl-10 pr-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm w-40 dark:text-white"
                 />
               </div>
 
@@ -248,17 +265,17 @@ export default function ReportsPage() {
                   <select
                     value={branchId}
                     onChange={(e) => setBranchId(e.target.value)}
-                    className="px-4 py-2.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px]"
+                    className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
                   >
                     <option value="">All Branches</option>
-{(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
+                    {(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
                       <option value="comparison">Comparison Mode</option>
                     )}
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
                 </div>
               )}
 
@@ -266,7 +283,7 @@ export default function ReportsPage() {
                 <select
                   value={category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="px-4 py-2.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px]"
+                  className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
                 >
                   <option value="">All Categories</option>
                   {categories.map((cat) => (
@@ -328,21 +345,21 @@ export default function ReportsPage() {
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Revenue</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5E1D8]">
-                      {products.map((p, idx) => (
-                        <tr key={idx} className="hover:bg-[#F9F7F2]">
-                          <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{p.productName}</td>
-                          <td className="px-6 py-4 text-sm text-gray-400">{p.category}</td>
-                          {canManageAll && <td className="px-6 py-4 text-sm text-gray-400">
+                    <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+                      {paginatedProducts.map((p, idx) => (
+                        <tr key={idx} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+                          <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{p.productName}</td>
+                          <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{p.category}</td>
+                          {canManageAll && <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">
                             {p.branchName || '-'}
                           </td>}
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.openingStock || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.dayProduction || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.nightProduction || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.sellableStock || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.remainingStock || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600">{p.wasteQuantity || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F]">{p.estimatedSold || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.dayProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.sellableStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.remainingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.wasteQuantity || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right font-medium text-[#001F3F] dark:text-white">{p.estimatedSold || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-[#D2B48C]">
                             {p.estimatedRevenue ? `${parseFloat(p.estimatedRevenue).toLocaleString()} ETB` : '-'}
                           </td>
@@ -351,6 +368,33 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, products.length)} of {products.length} products
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-[#D2B48C] p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -27,7 +27,7 @@ const login = async (username, password) => {
     throw new Error('Your account has been blocked. Contact your manager.');
   }
 
-  if (user.deletedAt) {
+  if (!user.isActive) {
     throw new Error('Your account has been deactivated. Contact your manager.');
   }
 
