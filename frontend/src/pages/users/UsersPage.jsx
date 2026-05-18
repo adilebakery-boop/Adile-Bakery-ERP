@@ -5,7 +5,7 @@ import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
 import userService from '../../services/userService';
 import branchService from '../../services/branchService';
 
-const ROLES = [
+const ALL_ROLES = [
   { value: 'CASHIER', label: 'Cashier', id: 7 },
   { value: 'FETIR_CHEF', label: 'Fetir Chef', id: 6 },
   { value: 'COOKIE_BAKER', label: 'Cookie Baker', id: 5 },
@@ -15,8 +15,38 @@ const ROLES = [
   { value: 'ADMIN', label: 'Admin', id: 1 },
 ];
 
+const OPERATIONAL_ROLES = ['BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'];
+
 export default function UsersPage() {
   const canManage = isManagerOrAdmin();
+  const currentUser = getUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isManager = currentUser?.role === 'MANAGER';
+
+  const getAllowedRoles = () => {
+    if (isAdmin) return ALL_ROLES;
+    if (isManager) return ALL_ROLES.filter(r => OPERATIONAL_ROLES.includes(r.value));
+    return [];
+  };
+
+  const canUserEditTarget = (targetRole) => {
+    if (isAdmin) return true;
+    if (isManager && targetRole !== 'ADMIN' && targetRole !== 'MANAGER') return true;
+    return false;
+  };
+
+  const canUserDeleteTarget = (targetRole) => {
+    if (isAdmin) return true;
+    if (isManager && targetRole !== 'ADMIN' && targetRole !== 'MANAGER') return true;
+    return false;
+  };
+
+  const canUserBlockTarget = (targetRole) => {
+    if (isAdmin) return true;
+    if (isManager && targetRole !== 'ADMIN' && targetRole !== 'MANAGER') return true;
+    return false;
+  };
+
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,14 +85,19 @@ export default function UsersPage() {
     e.preventDefault();
     setSubmitting(true);
     
-    const roleObj = ROLES.find(r => r.value === formData.role);
+    const roleObj = getAllowedRoles().find(r => r.value === formData.role);
     const submitData = {
       name: formData.name,
       username: formData.username,
       password: formData.password,
       roleId: roleObj?.id,
-      branchId: parseInt(formData.branchId),
     };
+
+    if (formData.role === 'MANAGER' && isAdmin) {
+      submitData.branchId = null;
+    } else if (formData.branchId) {
+      submitData.branchId = parseInt(formData.branchId);
+    }
     
     const res = await userService.createUser(submitData);
     setSubmitting(false);
@@ -91,13 +126,18 @@ export default function UsersPage() {
     e.preventDefault();
     setSubmitting(true);
     
-    const roleObj = ROLES.find(r => r.value === formData.role);
+    const roleObj = getAllowedRoles().find(r => r.value === formData.role);
     const submitData = {
       name: formData.name,
       username: formData.username,
       roleId: roleObj?.id,
-      branchId: parseInt(formData.branchId),
     };
+
+    if (formData.role === 'MANAGER' && isAdmin) {
+      submitData.branchId = null;
+    } else if (formData.branchId) {
+      submitData.branchId = parseInt(formData.branchId);
+    }
     
     if (formData.password) {
       submitData.password = formData.password;
@@ -116,7 +156,7 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Are you sure you want to deactivate this user? The user\'s historical data will be preserved but they will no longer be able to log in.')) {
       const res = await userService.deleteUser(id);
       if (res.success) {
         await loadUsers();
@@ -203,7 +243,7 @@ export default function UsersPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {user.role?.name !== 'ADMIN' && user.role?.name !== 'MANAGER' && (
+                          {canUserBlockTarget(user.role?.name) && (
                             <button 
                               onClick={() => handleToggleBlock(user)} 
                               className={`p-2 rounded-lg transition-colors ${user.isBlocked ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
@@ -212,12 +252,12 @@ export default function UsersPage() {
                               {user.isBlocked ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
                             </button>
                           )}
-                          {user.role?.name !== 'ADMIN' && (
+                          {canUserEditTarget(user.role?.name) && (
                             <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
                               <Edit2 className="w-4 h-4" />
                             </button>
                           )}
-                          {user.role?.name !== 'ADMIN' && (
+                          {canUserDeleteTarget(user.role?.name) && (
                             <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -249,15 +289,23 @@ export default function UsersPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
-            <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
+            <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value, branchId: '' })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
               <option value="">Select role</option>
-              {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Branch</label>
-            <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select branch</option>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Branch {formData.role === 'MANAGER' && isAdmin ? '(All Branches)' : ''}
+            </label>
+            <select 
+              value={formData.branchId} 
+              onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} 
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              required={!(formData.role === 'MANAGER' && isAdmin)}
+              disabled={formData.role === 'MANAGER' && isAdmin}
+            >
+              <option value="">{formData.role === 'MANAGER' && isAdmin ? 'All Branches' : 'Select branch'}</option>
               {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
             </select>
           </div>
@@ -282,13 +330,21 @@ export default function UsersPage() {
             <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
             <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
               <option value="">Select role</option>
-              {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Branch</label>
-            <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select branch</option>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Branch {formData.role === 'MANAGER' ? '(All Branches)' : ''}
+            </label>
+            <select 
+              value={formData.branchId} 
+              onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} 
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              required={formData.role !== 'MANAGER'}
+              disabled={formData.role === 'MANAGER'}
+            >
+              <option value="">{formData.role === 'MANAGER' ? 'All Branches' : 'Select branch'}</option>
               {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
             </select>
           </div>

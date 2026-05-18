@@ -37,7 +37,7 @@ const productService = {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const where = {};
+    const where = { isActive: true };
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }
@@ -147,6 +147,31 @@ const productService = {
       { value: 'FETIRE_AND_SNACKS', label: 'Fetir & Snacks' },
       { value: 'COOKIES', label: 'Cookies' },
     ];
+  },
+
+  async getDeleted(options = {}) {
+    const { page = 1, limit = 10, search } = options;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+    const where = { isActive: false };
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return {
+      data: products,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   },
 };
 
