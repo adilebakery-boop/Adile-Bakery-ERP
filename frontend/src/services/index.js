@@ -6,3 +6,5 @@ export { default as productionService } from './productionService';
 export { default as remainingService } from './remainingService';
 export { default as reportService } from './reportService';
 export { default as userService } from './userService';
+export { default as closureService } from './closureService';
+export { default as dashboardService } from './dashboardService';

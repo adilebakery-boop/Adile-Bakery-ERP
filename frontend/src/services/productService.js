@@ -1,58 +1,29 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const productService = {
   getProducts: async (params = {}) => {
-    try {
-      const response = await api.get('/products', { params });
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/products', { params }));
   },
 
   getProduct: async (id) => {
-    try {
-      const response = await api.get(`/products/${id}`);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get(`/products/${id}`));
   },
 
   createProduct: async (data) => {
-    try {
-      const response = await api.post('/products', data);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.post('/products', data));
   },
 
   updateProduct: async (id, data) => {
-    try {
-      const response = await api.put(`/products/${id}`, data);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.put(`/products/${id}`, data));
   },
 
   deleteProduct: async (id) => {
-    try {
-      const response = await api.delete(`/products/${id}`);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.delete(`/products/${id}`));
   },
 
   getCategories: async () => {
-    try {
-      const response = await api.get('/products/categories');
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/products/categories'));
   },
 };
 

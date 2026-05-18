@@ -1,80 +1,51 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const reportService = {
+  getInventoryFlowReport: async (params = {}) => {
+    return safeCall(api.get('/reports/inventory-flow', { params }));
+  },
+
   getDailyReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/daily', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/reports/daily', { params }));
   },
 
   getWeeklyReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/weekly', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/reports/weekly', { params }));
   },
 
   getMonthlyReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/monthly', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/reports/monthly', { params }));
   },
 
-  getReportByDateRange: async (startDate, endDate, params = {}) => {
-    try {
-      const response = await api.get('/reports/range', {
-        params: { startDate, endDate, ...params },
-      });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  getProductionReport: async (params = {}) => {
+    return safeCall(api.get('/productions', { params }));
   },
 
-  getBranchReport: async (branchId, params = {}) => {
-    try {
-      const response = await api.get(`/reports/branch/${branchId}`, { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  getRemainingReport: async (params = {}) => {
+    return safeCall(api.get('/remainings', { params }));
   },
 
-  exportReport: async (type, params = {}) => {
+  getProductionByDate: async (operationalDate) => {
+    return safeCall(api.get(`/productions/by-date/${operationalDate}`));
+  },
+
+  getRemainingByDate: async (operationalDate) => {
+    return safeCall(api.get(`/remainings/by-date/${operationalDate}`));
+  },
+
+  exportToCSV: async (params = {}) => {
     try {
-      const response = await api.get(`/reports/export/${type}`, {
+      const response = await api.get('/reports/export', {
         params,
         responseType: 'blob',
       });
       return { success: true, data: response.data };
     } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getSalesReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/sales', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  getProductionReport: async (params = {}) => {
-    try {
-      const response = await api.get('/reports/production', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
+      if (error.response) {
+        return { success: false, message: error.response.data?.message || 'Export failed', status: error.response.status };
+      }
+      return { success: false, message: error.message || 'Export failed' };
     }
   },
 };
