@@ -12,7 +12,7 @@ export default function useProducts() {
     setError(null);
     const result = await productService.getProducts(params);
     if (result.success) {
-      setProducts(result.data);
+      setProducts(result.data?.data || result.data || []);
     } else {
       setError(result.message);
     }
@@ -24,6 +24,7 @@ export default function useProducts() {
     if (result.success) {
       setCategories(result.data);
     }
+    return result;
   }, []);
 
   const addProduct = useCallback(async (data) => {

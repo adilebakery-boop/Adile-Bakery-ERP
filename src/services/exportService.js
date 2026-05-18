@@ -134,6 +134,7 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
   const headers = [
     'Product',
     'Category',
+    'Price',
     'Opening',
     'Day Prod.',
     includeNightProduction ? 'Night Prod.' : null,
@@ -170,14 +171,14 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
 
   for (const p of products) {
     const numericCols = [
-      toNumber(p.openingStock),
-      toNumber(p.dayProduction),
-      includeNightProduction ? toNumber(p.nightProduction || 0) : 0,
-      toNumber(p.sellableStock),
-      toNumber(p.remainingStock),
-      toNumber(p.wasteQuantity),
-      toNumber(p.estimatedSold),
-      toNumber(p.estimatedRevenue),
+      toNumber(p.totalOpeningStock || p.openingStock),
+      toNumber(p.totalDayProduction || p.dayProduction),
+      includeNightProduction ? toNumber(p.totalNightProduction || p.nightProduction || 0) : 0,
+      toNumber(p.totalSellableStock || p.sellableStock),
+      toNumber(p.totalRemainingStock || p.remainingStock),
+      toNumber(p.totalWasteQuantity || p.wasteQuantity),
+      toNumber(p.totalEstimatedSold || p.estimatedSold),
+      toNumber(p.totalEstimatedRevenue || p.estimatedRevenue),
     ];
 
     worksheet.getCell(row, 1).value = p.productName;
@@ -188,7 +189,12 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     worksheet.getCell(row, 2).alignment = { horizontal: 'left' };
     worksheet.getCell(row, 2).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
-    let col = 3;
+    worksheet.getCell(row, 3).value = toNumber(p.price || 0);
+    worksheet.getCell(row, 3).numFmt = '#,##0.00';
+    worksheet.getCell(row, 3).alignment = { horizontal: 'right' };
+    worksheet.getCell(row, 3).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
+
+    let col = 4;
     for (let i = 0; i < numericCols.length; i++) {
       const cell = worksheet.getCell(row, col);
       cell.value = numericCols[i];
@@ -201,14 +207,14 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
   }
 
   const totalValues = [
-    products.reduce((sum, p) => sum + (p.openingStock || 0), 0),
-    products.reduce((sum, p) => sum + (p.dayProduction || 0), 0),
-    includeNightProduction ? products.reduce((sum, p) => sum + (p.nightProduction || 0), 0) : 0,
-    products.reduce((sum, p) => sum + (p.sellableStock || 0), 0),
-    products.reduce((sum, p) => sum + (p.remainingStock || 0), 0),
-    products.reduce((sum, p) => sum + (p.wasteQuantity || 0), 0),
-    products.reduce((sum, p) => sum + (p.estimatedSold || 0), 0),
-    products.reduce((sum, p) => sum + (p.estimatedRevenue || 0), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalOpeningStock || p.openingStock), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalDayProduction || p.dayProduction), 0),
+    includeNightProduction ? products.reduce((sum, p) => sum + toNumber(p.totalNightProduction || p.nightProduction || 0), 0) : 0,
+    products.reduce((sum, p) => sum + toNumber(p.totalSellableStock || p.sellableStock), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalRemainingStock || p.remainingStock), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalWasteQuantity || p.wasteQuantity), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalEstimatedSold || p.estimatedSold), 0),
+    products.reduce((sum, p) => sum + toNumber(p.totalEstimatedRevenue || p.estimatedRevenue), 0),
   ];
 
   worksheet.getCell(row, 1).value = 'TOTAL';
@@ -221,7 +227,11 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
   worksheet.getCell(row, 2).font = { bold: true };
   worksheet.getCell(row, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
 
-  col = 3;
+  worksheet.getCell(row, 3).value = '';
+  worksheet.getCell(row, 3).font = { bold: true };
+  worksheet.getCell(row, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+
+  col = 4;
   for (let i = 0; i < totalValues.length; i++) {
     const cell = worksheet.getCell(row, col);
     cell.value = totalValues[i];
@@ -243,7 +253,8 @@ function autoSizeColumns(worksheet, count) {
     worksheet.getColumn(i).width = 15;
   }
   worksheet.getColumn(1).width = 25;
-  worksheet.getColumn(2).width = 20;
+worksheet.getColumn(2).width = 22;
+  worksheet.getColumn(3).width = 12;
 }
 
 function getTopCategory(categoryTotals) {
@@ -521,7 +532,7 @@ async function exportDailyReport(reportData, options = {}) {
     worksheet.getCell(currentRow, 7).font = { bold: true };
     worksheet.getCell(currentRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
 
-    autoSizeColumns(worksheet, 7);
+    autoSizeColumns(worksheet, 8);
   } else {
     const worksheet = workbook.addWorksheet('Daily Report');
     let currentRow = addMetadataSection(worksheet, metadata);
@@ -544,7 +555,7 @@ async function exportDailyReport(reportData, options = {}) {
     currentRow = addKPISection(worksheet, kpis, currentRow);
     addDataTable(worksheet, reportData.products, currentRow, true);
 
-    autoSizeColumns(worksheet, 10);
+    autoSizeColumns(worksheet, 11);
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -643,7 +654,7 @@ async function exportWeeklyReport(reportData, options = {}) {
       addDataTable(worksheet, day.products || [], currentRow, true);
     }
 
-    autoSizeColumns(worksheet, 10);
+    autoSizeColumns(worksheet, 11);
   }
 
   const summarySheet = workbook.addWorksheet('Weekly Summary');
@@ -959,7 +970,7 @@ async function exportMonthlyReport(reportData, options = {}) {
 
     currentRow = addKPISection(worksheet, weekKpis, currentRow);
 
-    autoSizeColumns(worksheet, 10);
+    autoSizeColumns(worksheet, 11);
   }
 
   const summarySheet = workbook.addWorksheet('Monthly Summary');
@@ -1197,6 +1208,8 @@ function generateFilename(reportType, branchName, filters, dateOrMonth, monthNam
     filename = `weekly-report-${weekStartDate}.xlsx`;
   } else if (reportType === 'monthly') {
     filename = `${monthName.toLowerCase()}-monthly-report-${year}-${monthStartDate}-to-${monthEndDate}.xlsx`;
+  } else if (reportType === 'yearly') {
+    filename = `yearly-report-${year}.xlsx`;
   } else {
     filename = `${dateOrMonth}-${reportType}-report-${branchSlug}.xlsx`;
   }
@@ -1761,6 +1774,723 @@ async function exportMonthlyReportComparison(reportData, options = {}) {
   return Buffer.from(buffer);
 }
 
+async function exportYearlyReport(reportData, options = {}) {
+  if (options.exportMode === 'COMPARISON') {
+    return exportYearlyReportComparison(reportData, options);
+  }
+
+  const workbook = new ExcelJS.Workbook();
+
+  const yearStartDate = `${reportData.year}-01-01`;
+  const yearEndDate = `${reportData.year}-12-31`;
+
+  const metadata = {
+    branchName: reportData.branchName,
+    reportType: 'Yearly',
+    generatedBy: options.generatedBy || 'System',
+    generatedAt: new Date().toLocaleString(),
+    dateRange: `${yearStartDate} to ${yearEndDate}`,
+    category: options.category,
+    productName: options.productName,
+  };
+
+  const summarySheet = workbook.addWorksheet('Yearly Summary');
+  let summaryRow = addMetadataSection(summarySheet, metadata);
+
+  const yearKpis = {
+    totalEstimatedRevenue: reportData.totals.totalEstimatedRevenue,
+    totalEstimatedSold: reportData.totals.totalEstimatedSold,
+    totalWasteQuantity: reportData.totals.totalWasteQuantity,
+    totalDayProduction: reportData.totals.totalDayProduction,
+    totalNightProduction: reportData.totals.totalNightProduction || 0,
+    totalRemainingStock: reportData.totals.totalRemainingStock,
+    totalSellableStock: reportData.totals.totalSellableStock,
+    topProduct: null,
+    topCategory: null,
+  };
+
+  summaryRow = addKPISection(summarySheet, yearKpis, summaryRow);
+
+  const hasBranchData = reportData.months[0]?.branchesData && reportData.months[0].branchesData.length > 0;
+
+  const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let m = 0; m < reportData.months.length; m++) {
+    const month = reportData.months[m];
+    const sheetName = monthShortNames[m] || `Month${m + 1}`;
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    const monthStartDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-01`;
+    const lastDay = new Date(reportData.year, month.month, 0).getDate();
+    const monthEndDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-${lastDay}`;
+
+    let currentRow = addMetadataSection(worksheet, {
+      ...metadata,
+      reportType: `${month.monthName} ${reportData.year}`,
+      dateRange: `${monthStartDate} to ${monthEndDate}`,
+    });
+
+    const monthKpis = {
+      totalEstimatedRevenue: month.totals?.totalEstimatedRevenue || 0,
+      totalEstimatedSold: month.totals?.totalEstimatedSold || 0,
+      totalWasteQuantity: month.totals?.totalWasteQuantity || 0,
+      totalDayProduction: month.totals?.totalDayProduction || 0,
+      totalNightProduction: month.totals?.totalNightProduction || 0,
+      totalRemainingStock: month.totals?.totalRemainingStock || 0,
+      totalSellableStock: month.totals?.totalSellableStock || 0,
+      topProduct: null,
+      topCategory: null,
+    };
+    currentRow = addKPISection(worksheet, monthKpis, currentRow);
+
+    if (hasBranchData && month.branchesData && month.branchesData.length > 0) {
+      for (const branch of month.branchesData) {
+        worksheet.mergeCells(currentRow, 1, currentRow, 8);
+        worksheet.getCell(currentRow, 1).value = `Branch: ${branch.branchName}`;
+        worksheet.getCell(currentRow, 1).font = { bold: true, size: 11 };
+        worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9F7F2' } };
+        worksheet.getCell(currentRow, 1).alignment = { horizontal: 'center' };
+        currentRow++;
+
+        const branchKpis = {
+          totalEstimatedRevenue: branch.totals?.totalEstimatedRevenue || 0,
+          totalEstimatedSold: branch.totals?.totalEstimatedSold || 0,
+          totalWasteQuantity: branch.totals?.totalWasteQuantity || 0,
+          totalDayProduction: branch.totals?.totalDayProduction || 0,
+          totalNightProduction: branch.totals?.totalNightProduction || 0,
+          totalRemainingStock: branch.totals?.totalRemainingStock || 0,
+          totalSellableStock: branch.totals?.totalSellableStock || 0,
+          topProduct: null,
+          topCategory: null,
+        };
+        currentRow = addKPISection(worksheet, branchKpis, currentRow);
+        currentRow = addDataTable(worksheet, branch.products || [], currentRow, true);
+        currentRow++;
+      }
+
+      worksheet.mergeCells(currentRow, 1, currentRow, 5);
+      worksheet.getCell(currentRow, 1).value = `${month.monthName} All Branches Total`;
+      worksheet.getCell(currentRow, 1).font = { bold: true, size: 12 };
+      worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      currentRow++;
+
+      const branchSummaryHeaders = ['Branch', 'Production', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
+      for (let i = 0; i < branchSummaryHeaders.length; i++) {
+        const cell = worksheet.getCell(currentRow, i + 1);
+        cell.value = branchSummaryHeaders[i];
+        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+      }
+      currentRow++;
+
+      const branchTotals = {};
+      for (const branch of month.branchesData) {
+        if (!branchTotals[branch.branchName]) {
+          branchTotals[branch.branchName] = {
+            totalDayProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        branchTotals[branch.branchName].totalDayProduction += branch.totals?.totalDayProduction || 0;
+        branchTotals[branch.branchName].totalSellableStock += branch.totals?.totalSellableStock || 0;
+        branchTotals[branch.branchName].totalRemainingStock += branch.totals?.totalRemainingStock || 0;
+        branchTotals[branch.branchName].totalWasteQuantity += branch.totals?.totalWasteQuantity || 0;
+        branchTotals[branch.branchName].totalEstimatedSold += branch.totals?.totalEstimatedSold || 0;
+        branchTotals[branch.branchName].totalEstimatedRevenue += branch.totals?.totalEstimatedRevenue || 0;
+      }
+
+      for (const [branchName, totals] of Object.entries(branchTotals)) {
+        worksheet.getCell(currentRow, 1).value = branchName;
+        worksheet.getCell(currentRow, 1).font = { bold: true };
+        worksheet.getCell(currentRow, 2).value = toNumber(totals.totalDayProduction);
+        worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 3).value = toNumber(totals.totalSellableStock);
+        worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 4).value = toNumber(totals.totalRemainingStock);
+        worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 5).value = toNumber(totals.totalWasteQuantity);
+        worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 6).value = toNumber(totals.totalEstimatedSold);
+        worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 7).value = toNumber(totals.totalEstimatedRevenue);
+        worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+        currentRow++;
+      }
+
+      worksheet.getCell(currentRow, 1).value = 'Month Total';
+      worksheet.getCell(currentRow, 1).font = { bold: true };
+      worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 2).value = toNumber(month.totals?.totalDayProduction || 0);
+      worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 2).font = { bold: true };
+      worksheet.getCell(currentRow, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 3).value = toNumber(month.totals?.totalSellableStock || 0);
+      worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 3).font = { bold: true };
+      worksheet.getCell(currentRow, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 4).value = toNumber(month.totals?.totalRemainingStock || 0);
+      worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 4).font = { bold: true };
+      worksheet.getCell(currentRow, 4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 5).value = toNumber(month.totals?.totalWasteQuantity || 0);
+      worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 5).font = { bold: true };
+      worksheet.getCell(currentRow, 5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 6).value = toNumber(month.totals?.totalEstimatedSold || 0);
+      worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 6).font = { bold: true };
+      worksheet.getCell(currentRow, 6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 7).value = toNumber(month.totals?.totalEstimatedRevenue || 0);
+      worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+      worksheet.getCell(currentRow, 7).font = { bold: true };
+      worksheet.getCell(currentRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      currentRow++;
+      currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+      autoSizeColumns(worksheet, 11);
+} else {
+    currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+    autoSizeColumns(worksheet, 11);
+  }
+}
+
+if (hasBranchData) {
+    summarySheet.mergeCells(summaryRow, 1, summaryRow, 5);
+    summarySheet.getCell(summaryRow, 1).value = 'Monthly Performance Summary';
+    summarySheet.getCell(summaryRow, 1).font = { bold: true, size: 12 };
+    summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summaryRow++;
+
+    const monthlyHeaders = ['Month', 'Production', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
+    for (let i = 0; i < monthlyHeaders.length; i++) {
+      const cell = summarySheet.getCell(summaryRow, i + 1);
+      cell.value = monthlyHeaders[i];
+      cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    }
+    summaryRow++;
+
+    for (const month of reportData.months) {
+      const prod = (month.totals.totalDayProduction || 0) + (month.totals.totalNightProduction || 0);
+      summarySheet.getCell(summaryRow, 1).value = month.monthName;
+      summarySheet.getCell(summaryRow, 1).font = { bold: true };
+      summarySheet.getCell(summaryRow, 2).value = toNumber(prod);
+      summarySheet.getCell(summaryRow, 2).numFmt = '#,##0';
+      summarySheet.getCell(summaryRow, 3).value = toNumber(month.totals.totalSellableStock || 0);
+      summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
+      summarySheet.getCell(summaryRow, 4).value = toNumber(month.totals.totalRemainingStock || 0);
+      summarySheet.getCell(summaryRow, 4).numFmt = '#,##0';
+      summarySheet.getCell(summaryRow, 5).value = toNumber(month.totals.totalWasteQuantity || 0);
+      summarySheet.getCell(summaryRow, 5).numFmt = '#,##0';
+      summarySheet.getCell(summaryRow, 6).value = toNumber(month.totals.totalEstimatedSold || 0);
+      summarySheet.getCell(summaryRow, 6).numFmt = '#,##0';
+      summarySheet.getCell(summaryRow, 7).value = toNumber(month.totals.totalEstimatedRevenue || 0);
+      summarySheet.getCell(summaryRow, 7).numFmt = '#,##0.00';
+      summaryRow++;
+    }
+
+    const yearProd = (reportData.totals.totalDayProduction || 0) + (reportData.totals.totalNightProduction || 0);
+    summarySheet.getCell(summaryRow, 1).value = 'YEAR TOTAL';
+    summarySheet.getCell(summaryRow, 1).font = { bold: true };
+    summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 2).value = toNumber(yearProd);
+    summarySheet.getCell(summaryRow, 2).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 2).font = { bold: true };
+    summarySheet.getCell(summaryRow, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 3).value = toNumber(reportData.totals.totalSellableStock || 0);
+    summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 3).font = { bold: true };
+    summarySheet.getCell(summaryRow, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 4).value = toNumber(reportData.totals.totalRemainingStock || 0);
+    summarySheet.getCell(summaryRow, 4).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 4).font = { bold: true };
+    summarySheet.getCell(summaryRow, 4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 5).value = toNumber(reportData.totals.totalWasteQuantity || 0);
+    summarySheet.getCell(summaryRow, 5).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 5).font = { bold: true };
+    summarySheet.getCell(summaryRow, 5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 6).value = toNumber(reportData.totals.totalEstimatedSold || 0);
+    summarySheet.getCell(summaryRow, 6).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 6).font = { bold: true };
+    summarySheet.getCell(summaryRow, 6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summarySheet.getCell(summaryRow, 7).value = toNumber(reportData.totals.totalEstimatedRevenue || 0);
+    summarySheet.getCell(summaryRow, 7).numFmt = '#,##0.00';
+    summarySheet.getCell(summaryRow, 7).font = { bold: true };
+    summarySheet.getCell(summaryRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    summaryRow++;
+
+    if (reportData.products.length > 0) {
+      summaryRow++;
+      summarySheet.mergeCells(summaryRow, 1, summaryRow, 5);
+      summarySheet.getCell(summaryRow, 1).value = 'Top Products by Revenue';
+      summarySheet.getCell(summaryRow, 1).font = { bold: true, size: 12 };
+      summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      summaryRow++;
+
+      const topProducts = getTopProducts(reportData.products, 10);
+      const topHeaders = ['Product', 'Category', 'Total Production', 'Est. Sold', 'Revenue'];
+      for (let i = 0; i < topHeaders.length; i++) {
+        const cell = summarySheet.getCell(summaryRow, i + 1);
+        cell.value = topHeaders[i];
+        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+      }
+      summaryRow++;
+
+      for (const p of topProducts) {
+        const productData = reportData.products.find(pr => pr.productName === p.name);
+        summarySheet.getCell(summaryRow, 1).value = p.name;
+        summarySheet.getCell(summaryRow, 2).value = productData?.category || '';
+        summarySheet.getCell(summaryRow, 3).value = toNumber(productData?.totalDayProduction || 0);
+        summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
+        summarySheet.getCell(summaryRow, 4).value = toNumber(p.sold);
+        summarySheet.getCell(summaryRow, 4).numFmt = '#,##0';
+        summarySheet.getCell(summaryRow, 5).value = toNumber(p.revenue);
+        summarySheet.getCell(summaryRow, 5).numFmt = '#,##0.00';
+        summaryRow++;
+      }
+    }
+
+    autoSizeColumns(summarySheet, 7);
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
+async function exportYearlyReportComparison(reportData, options = {}) {
+  const workbook = new ExcelJS.Workbook();
+
+  const yearStartDate = `${reportData.year}-01-01`;
+  const yearEndDate = `${reportData.year}-12-31`;
+
+  const metadata = {
+    branchName: 'Comparison Mode',
+    reportType: 'Yearly Comparison',
+    generatedBy: options.generatedBy || 'System',
+    generatedAt: new Date().toLocaleString(),
+    dateRange: `${yearStartDate} to ${yearEndDate}`,
+    category: options.category,
+    productName: options.productName,
+  };
+
+  const summarySheet = workbook.addWorksheet('Yearly Comparison');
+  let summaryRow = addMetadataSection(summarySheet, metadata);
+
+  const yearKpis = {
+    totalEstimatedRevenue: reportData.totals.totalEstimatedRevenue,
+    totalEstimatedSold: reportData.totals.totalEstimatedSold,
+    totalWasteQuantity: reportData.totals.totalWasteQuantity,
+    totalDayProduction: reportData.totals.totalDayProduction,
+    totalNightProduction: reportData.totals.totalNightProduction || 0,
+    totalRemainingStock: reportData.totals.totalRemainingStock,
+    totalSellableStock: reportData.totals.totalSellableStock,
+    topProduct: null,
+    topCategory: null,
+  };
+
+  summaryRow = addKPISection(summarySheet, yearKpis, summaryRow);
+
+  const branches = reportData.months[0]?.branchesData?.map(b => b.branchName) || [];
+
+  const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let m = 0; m < reportData.months.length; m++) {
+    const month = reportData.months[m];
+    const sheetName = monthShortNames[m] || `Month${m + 1}`;
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    const monthStartDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-01`;
+    const lastDay = new Date(reportData.year, month.month, 0).getDate();
+    const monthEndDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-${lastDay}`;
+
+    let currentRow = addMetadataSection(worksheet, {
+      ...metadata,
+      reportType: `${month.monthName} ${reportData.year} Comparison`,
+      dateRange: `${monthStartDate} to ${monthEndDate}`,
+    });
+
+    const monthKpis = {
+      totalEstimatedRevenue: month.totals?.totalEstimatedRevenue || 0,
+      totalEstimatedSold: month.totals?.totalEstimatedSold || 0,
+      totalWasteQuantity: month.totals?.totalWasteQuantity || 0,
+      totalDayProduction: month.totals?.totalDayProduction || 0,
+      totalNightProduction: month.totals?.totalNightProduction || 0,
+      totalRemainingStock: month.totals?.totalRemainingStock || 0,
+      totalSellableStock: month.totals?.totalSellableStock || 0,
+      topProduct: null,
+      topCategory: null,
+    };
+    currentRow = addKPISection(worksheet, monthKpis, currentRow);
+
+    worksheet.mergeCells(currentRow, 1, currentRow, 5);
+    worksheet.getCell(currentRow, 1).value = `${month.monthName} Branch Comparison`;
+    worksheet.getCell(currentRow, 1).font = { bold: true, size: 12 };
+    worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    currentRow++;
+
+    const headers = ['Branch', 'Production', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
+    for (let i = 0; i < headers.length; i++) {
+      const cell = worksheet.getCell(currentRow, i + 1);
+      cell.value = headers[i];
+      cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    }
+    currentRow++;
+
+    for (const branchName of branches) {
+      const branch = month.branchesData?.find(b => b.branchName === branchName);
+      worksheet.getCell(currentRow, 1).value = branchName;
+      worksheet.getCell(currentRow, 1).font = { bold: true };
+      worksheet.getCell(currentRow, 2).value = toNumber(branch?.totals?.totalDayProduction || 0);
+      worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 3).value = toNumber(branch?.totals?.totalSellableStock || 0);
+      worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 4).value = toNumber(branch?.totals?.totalRemainingStock || 0);
+      worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 5).value = toNumber(branch?.totals?.totalWasteQuantity || 0);
+      worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 6).value = toNumber(branch?.totals?.totalEstimatedSold || 0);
+      worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 7).value = toNumber(branch?.totals?.totalEstimatedRevenue || 0);
+      worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+      currentRow++;
+    }
+
+    worksheet.getCell(currentRow, 1).value = 'Month Total';
+    worksheet.getCell(currentRow, 1).font = { bold: true };
+    worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 2).value = toNumber(month.totals?.totalDayProduction || 0);
+    worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+    worksheet.getCell(currentRow, 2).font = { bold: true };
+    worksheet.getCell(currentRow, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 3).value = toNumber(month.totals?.totalSellableStock || 0);
+    worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+    worksheet.getCell(currentRow, 3).font = { bold: true };
+    worksheet.getCell(currentRow, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 4).value = toNumber(month.totals?.totalRemainingStock || 0);
+    worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+    worksheet.getCell(currentRow, 4).font = { bold: true };
+    worksheet.getCell(currentRow, 4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 5).value = toNumber(month.totals?.totalWasteQuantity || 0);
+    worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+    worksheet.getCell(currentRow, 5).font = { bold: true };
+    worksheet.getCell(currentRow, 5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 6).value = toNumber(month.totals?.totalEstimatedSold || 0);
+    worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+    worksheet.getCell(currentRow, 6).font = { bold: true };
+    worksheet.getCell(currentRow, 6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    worksheet.getCell(currentRow, 7).value = toNumber(month.totals?.totalEstimatedRevenue || 0);
+    worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+    worksheet.getCell(currentRow, 7).font = { bold: true };
+    worksheet.getCell(currentRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+
+    currentRow++;
+    currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+    autoSizeColumns(worksheet, 11);
+  }
+
+  summaryRow++;
+  summarySheet.mergeCells(summaryRow, 1, summaryRow, 6);
+  summarySheet.getCell(summaryRow, 1).value = 'Monthly Comparison by Branch';
+  summarySheet.getCell(summaryRow, 1).font = { bold: true, size: 12, color: { argb: 'FFFFFF' } };
+  summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+  summarySheet.getCell(summaryRow, 1).alignment = { horizontal: 'center' };
+  summaryRow++;
+
+  const monthHeaders = ['Month', ...branches.map(b => `${b} Production`), ...branches.map(b => `${b} Revenue`)];
+  for (let i = 0; i < monthHeaders.length; i++) {
+    const cell = summarySheet.getCell(summaryRow, i + 1);
+    cell.value = monthHeaders[i];
+    cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+    cell.alignment = { horizontal: 'center' };
+  }
+  summaryRow++;
+
+  for (const month of reportData.months) {
+    summarySheet.getCell(summaryRow, 1).value = month.monthName;
+    summarySheet.getCell(summaryRow, 1).font = { bold: true };
+
+    let col = 2;
+    for (const branchName of branches) {
+      const branch = month.branchesData?.find(b => b.branchName === branchName);
+      summarySheet.getCell(summaryRow, col).value = toNumber(branch?.totals?.totalDayProduction || 0);
+      summarySheet.getCell(summaryRow, col).numFmt = '#,##0';
+      col++;
+    }
+    for (const branchName of branches) {
+      const branch = month.branchesData?.find(b => b.branchName === branchName);
+      summarySheet.getCell(summaryRow, col).value = toNumber(branch?.totals?.totalEstimatedRevenue || 0);
+      summarySheet.getCell(summaryRow, col).numFmt = '#,##0.00';
+      col++;
+    }
+    summaryRow++;
+  }
+
+  summaryRow++;
+  summarySheet.mergeCells(summaryRow, 1, summaryRow, 5);
+  summarySheet.getCell(summaryRow, 1).value = 'Yearly Branch Summary';
+  summarySheet.getCell(summaryRow, 1).font = { bold: true, size: 12, color: { argb: 'FFFFFF' } };
+  summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+  summarySheet.getCell(summaryRow, 1).alignment = { horizontal: 'center' };
+  summaryRow++;
+
+  const branchSummaryHeaders = ['Branch', 'Total Production', 'Total Waste', 'Total Revenue', 'Avg Monthly'];
+  for (let i = 0; i < branchSummaryHeaders.length; i++) {
+    const cell = summarySheet.getCell(summaryRow, i + 1);
+    cell.value = branchSummaryHeaders[i];
+    cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+  }
+  summaryRow++;
+
+  for (const branchName of branches) {
+    let totalProduction = 0;
+    let totalWaste = 0;
+    let totalRevenue = 0;
+    let monthsWithData = 0;
+
+    for (const month of reportData.months) {
+      const branch = month.branchesData?.find(b => b.branchName === branchName);
+      if (branch) {
+        totalProduction += branch.totals?.totalDayProduction || 0;
+        totalWaste += branch.totals?.totalWasteQuantity || 0;
+        totalRevenue += branch.totals?.totalEstimatedRevenue || 0;
+        if ((branch.totals?.totalDayProduction || 0) > 0) monthsWithData++;
+      }
+    }
+
+    const avgMonthly = monthsWithData > 0 ? totalRevenue / monthsWithData : 0;
+
+    summarySheet.getCell(summaryRow, 1).value = branchName;
+    summarySheet.getCell(summaryRow, 1).font = { bold: true };
+    summarySheet.getCell(summaryRow, 2).value = toNumber(totalProduction);
+    summarySheet.getCell(summaryRow, 2).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 3).value = toNumber(totalWaste);
+    summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
+    summarySheet.getCell(summaryRow, 4).value = toNumber(totalRevenue);
+    summarySheet.getCell(summaryRow, 4).numFmt = '#,##0.00';
+    summarySheet.getCell(summaryRow, 5).value = toNumber(avgMonthly);
+    summarySheet.getCell(summaryRow, 5).numFmt = '#,##0.00';
+    summaryRow++;
+  }
+
+  summarySheet.getCell(summaryRow, 1).value = 'TOTAL';
+  summarySheet.getCell(summaryRow, 1).font = { bold: true };
+  summarySheet.getCell(summaryRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+  summarySheet.getCell(summaryRow, 2).value = toNumber(reportData.totals.totalDayProduction);
+  summarySheet.getCell(summaryRow, 2).numFmt = '#,##0';
+  summarySheet.getCell(summaryRow, 2).font = { bold: true };
+  summarySheet.getCell(summaryRow, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+  summarySheet.getCell(summaryRow, 3).value = toNumber(reportData.totals.totalWasteQuantity);
+  summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
+  summarySheet.getCell(summaryRow, 3).font = { bold: true };
+  summarySheet.getCell(summaryRow, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+  summarySheet.getCell(summaryRow, 4).value = toNumber(reportData.totals.totalEstimatedRevenue);
+  summarySheet.getCell(summaryRow, 4).numFmt = '#,##0.00';
+  summarySheet.getCell(summaryRow, 4).font = { bold: true };
+  summarySheet.getCell(summaryRow, 4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+  summarySheet.getCell(summaryRow, 5).value = '-';
+  summarySheet.getCell(summaryRow, 5).font = { bold: true };
+  summarySheet.getCell(summaryRow, 5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+  summaryRow++;
+
+  autoSizeColumns(summarySheet, 5);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+async function exportYearlyReport(reportData, options = {}) {
+  if (options.exportMode === 'COMPARISON') {
+    return exportYearlyReportComparison(reportData, options);
+  }
+
+  const workbook = new ExcelJS.Workbook();
+
+  const yearStartDate = `${reportData.year}-01-01`;
+  const yearEndDate = `${reportData.year}-12-31`;
+
+  const metadata = {
+    branchName: reportData.branchName,
+    reportType: 'Yearly',
+    generatedBy: options.generatedBy || 'System',
+    generatedAt: new Date().toLocaleString(),
+    dateRange: `${yearStartDate} to ${yearEndDate}`,
+    category: options.category,
+    productName: options.productName,
+  };
+
+  const summarySheet = workbook.addWorksheet('Yearly Summary');
+  let summaryRow = addMetadataSection(summarySheet, metadata);
+
+  const yearKpis = {
+    totalEstimatedRevenue: reportData.totals.totalEstimatedRevenue,
+    totalEstimatedSold: reportData.totals.totalEstimatedSold,
+    totalWasteQuantity: reportData.totals.totalWasteQuantity,
+    totalDayProduction: reportData.totals.totalDayProduction,
+    totalNightProduction: reportData.totals.totalNightProduction || 0,
+    totalRemainingStock: reportData.totals.totalRemainingStock,
+    totalSellableStock: reportData.totals.totalSellableStock,
+    topProduct: null,
+    topCategory: null,
+  };
+
+  summaryRow = addKPISection(summarySheet, yearKpis, summaryRow);
+
+  const hasBranchData = reportData.months[0]?.branchesData && reportData.months[0].branchesData.length > 0;
+
+  const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let m = 0; m < reportData.months.length; m++) {
+    const month = reportData.months[m];
+    const sheetName = monthShortNames[m] || `Month${m + 1}`;
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    const monthStartDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-01`;
+    const lastDay = new Date(reportData.year, month.month, 0).getDate();
+    const monthEndDate = `${reportData.year}-${String(month.month).padStart(2, '0')}-${lastDay}`;
+
+    let currentRow = addMetadataSection(worksheet, {
+      ...metadata,
+      reportType: `${month.monthName} ${reportData.year}`,
+      dateRange: `${monthStartDate} to ${monthEndDate}`,
+    });
+
+    const monthKpis = {
+      totalEstimatedRevenue: month.totals?.totalEstimatedRevenue || 0,
+      totalEstimatedSold: month.totals?.totalEstimatedSold || 0,
+      totalWasteQuantity: month.totals?.totalWasteQuantity || 0,
+      totalDayProduction: month.totals?.totalDayProduction || 0,
+      totalNightProduction: month.totals?.totalNightProduction || 0,
+      totalRemainingStock: month.totals?.totalRemainingStock || 0,
+      totalSellableStock: month.totals?.totalSellableStock || 0,
+      topProduct: null,
+      topCategory: null,
+    };
+    currentRow = addKPISection(worksheet, monthKpis, currentRow);
+
+    if (hasBranchData && month.branchesData && month.branchesData.length > 0) {
+      for (const branch of month.branchesData) {
+        worksheet.mergeCells(currentRow, 1, currentRow, 8);
+        worksheet.getCell(currentRow, 1).value = `Branch: ${branch.branchName}`;
+        worksheet.getCell(currentRow, 1).font = { bold: true, size: 11 };
+        worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9F7F2' } };
+        worksheet.getCell(currentRow, 1).alignment = { horizontal: 'center' };
+        currentRow++;
+
+        const branchKpis = {
+          totalEstimatedRevenue: branch.totals?.totalEstimatedRevenue || 0,
+          totalEstimatedSold: branch.totals?.totalEstimatedSold || 0,
+          totalWasteQuantity: branch.totals?.totalWasteQuantity || 0,
+          totalDayProduction: branch.totals?.totalDayProduction || 0,
+          totalNightProduction: branch.totals?.totalNightProduction || 0,
+          totalRemainingStock: branch.totals?.totalRemainingStock || 0,
+          totalSellableStock: branch.totals?.totalSellableStock || 0,
+          topProduct: null,
+          topCategory: null,
+        };
+        currentRow = addKPISection(worksheet, branchKpis, currentRow);
+        currentRow = addDataTable(worksheet, branch.products || [], currentRow, true);
+        currentRow++;
+      }
+
+      worksheet.mergeCells(currentRow, 1, currentRow, 5);
+      worksheet.getCell(currentRow, 1).value = `${month.monthName} All Branches Total`;
+      worksheet.getCell(currentRow, 1).font = { bold: true, size: 12 };
+      worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      currentRow++;
+
+      const branchSummaryHeaders = ['Branch', 'Production', 'Sellable', 'Remaining', 'Waste', 'Est. Sold', 'Revenue'];
+      for (let i = 0; i < branchSummaryHeaders.length; i++) {
+        const cell = worksheet.getCell(currentRow, i + 1);
+        cell.value = branchSummaryHeaders[i];
+        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_COLOR } };
+      }
+      currentRow++;
+
+      const branchTotals = {};
+      for (const branch of month.branchesData) {
+        if (!branchTotals[branch.branchName]) {
+          branchTotals[branch.branchName] = {
+            totalDayProduction: 0,
+            totalSellableStock: 0,
+            totalRemainingStock: 0,
+            totalWasteQuantity: 0,
+            totalEstimatedSold: 0,
+            totalEstimatedRevenue: 0,
+          };
+        }
+        branchTotals[branch.branchName].totalDayProduction += branch.totals?.totalDayProduction || 0;
+        branchTotals[branch.branchName].totalSellableStock += branch.totals?.totalSellableStock || 0;
+        branchTotals[branch.branchName].totalRemainingStock += branch.totals?.totalRemainingStock || 0;
+        branchTotals[branch.branchName].totalWasteQuantity += branch.totals?.totalWasteQuantity || 0;
+        branchTotals[branch.branchName].totalEstimatedSold += branch.totals?.totalEstimatedSold || 0;
+        branchTotals[branch.branchName].totalEstimatedRevenue += branch.totals?.totalEstimatedRevenue || 0;
+      }
+
+      for (const [branchName, totals] of Object.entries(branchTotals)) {
+        worksheet.getCell(currentRow, 1).value = branchName;
+        worksheet.getCell(currentRow, 1).font = { bold: true };
+        worksheet.getCell(currentRow, 2).value = toNumber(totals.totalDayProduction);
+        worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 3).value = toNumber(totals.totalSellableStock);
+        worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 4).value = toNumber(totals.totalRemainingStock);
+        worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 5).value = toNumber(totals.totalWasteQuantity);
+        worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 6).value = toNumber(totals.totalEstimatedSold);
+        worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+        worksheet.getCell(currentRow, 7).value = toNumber(totals.totalEstimatedRevenue);
+        worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+        currentRow++;
+      }
+
+      worksheet.getCell(currentRow, 1).value = 'Month Total';
+      worksheet.getCell(currentRow, 1).font = { bold: true };
+      worksheet.getCell(currentRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 2).value = toNumber(month.totals?.totalDayProduction || 0);
+      worksheet.getCell(currentRow, 2).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 2).font = { bold: true };
+      worksheet.getCell(currentRow, 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 3).value = toNumber(month.totals?.totalSellableStock || 0);
+      worksheet.getCell(currentRow, 3).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 3).font = { bold: true };
+      worksheet.getCell(currentRow, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 4).value = toNumber(month.totals?.totalRemainingStock || 0);
+      worksheet.getCell(currentRow, 4).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 4).font = { bold: true };
+      worksheet.getCell(currentRow, 4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 5).value = toNumber(month.totals?.totalWasteQuantity || 0);
+      worksheet.getCell(currentRow, 5).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 5).font = { bold: true };
+      worksheet.getCell(currentRow, 5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 6).value = toNumber(month.totals?.totalEstimatedSold || 0);
+      worksheet.getCell(currentRow, 6).numFmt = '#,##0';
+      worksheet.getCell(currentRow, 6).font = { bold: true };
+      worksheet.getCell(currentRow, 6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      worksheet.getCell(currentRow, 7).value = toNumber(month.totals?.totalEstimatedRevenue || 0);
+      worksheet.getCell(currentRow, 7).numFmt = '#,##0.00';
+      worksheet.getCell(currentRow, 7).font = { bold: true };
+      worksheet.getCell(currentRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+      currentRow++;
+      currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+      autoSizeColumns(worksheet, 11);
+    } else {
+      currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+      autoSizeColumns(worksheet, 11);
+    }
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
 module.exports = {
   exportDailyReport,
   exportWeeklyReport,
@@ -1768,5 +2498,7 @@ module.exports = {
   exportDailyReportComparison,
   exportWeeklyReportComparison,
   exportMonthlyReportComparison,
+  exportYearlyReport,
+  exportYearlyReportComparison,
   generateFilename,
 };

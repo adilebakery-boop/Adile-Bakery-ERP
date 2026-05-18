@@ -34,6 +34,13 @@ router.get(
 );
 
 router.get(
+  '/yearly',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  reportsController.getYearly
+);
+
+router.get(
   '/export',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
