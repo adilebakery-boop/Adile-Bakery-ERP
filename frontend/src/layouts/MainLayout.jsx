@@ -64,7 +64,7 @@ export default function MainLayout() {
           <span className="text-lg font-bold text-[#001F3F]">Adile Bakery</span>
         </div>
       </div>
-      <nav className="p-4 space-y-1 shrink-0">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -85,7 +85,7 @@ export default function MainLayout() {
       </nav>
       
       {/* Language Toggle - pushed to bottom with mt-auto */}
-      <div className="mt-auto mb-5 px-4">
+      <div className="mt-auto mb-5 px-4 shrink-0">
         <div className="relative">
           <button
             onClick={() => setLangMenuOpen(!langMenuOpen)}
@@ -152,13 +152,13 @@ export default function MainLayout() {
         )}
       </div>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:static lg:block w-72 bg-white border-r border-[#E5E1D8]">
+      {/* Desktop Sidebar - Fixed/Sticky */}
+      <aside className="hidden lg:block w-72 bg-white border-r border-[#E5E1D8] sticky top-0 h-screen overflow-hidden">
         <SidebarContent />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-[#E5E1D8] flex items-center justify-between px-6 lg:px-8">
+        <header className="h-16 bg-white border-b border-[#E5E1D8] flex items-center justify-between px-6 lg:px-8 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg"
@@ -176,7 +176,7 @@ export default function MainLayout() {
           </button>
         </header>
 
-        <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

@@ -72,6 +72,7 @@ model User {
   branchId     Int?
   isBlocked    Boolean  @default(false)
   isActive     Boolean  @default(true)
+  deletedAt    DateTime?
   role         Role     @relation(fields: [roleId], references: [id])
   branch       Branch?  @relation(fields: [branchId], references: [id])
   createdAt    DateTime @default(now())
@@ -89,6 +90,7 @@ model User {
   @@index([roleId])
   @@index([branchId])
   @@index([isActive])
+  @@index([deletedAt])
 }
 
 model Product {
