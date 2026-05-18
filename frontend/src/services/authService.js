@@ -1,53 +1,29 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 import { setAuth, clearAuth } from '../utils/authUtils';
 
 export const authService = {
   login: async (credentials) => {
-    try {
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data.data;
-      
+    const response = await safeCall(api.post('/auth/login', credentials));
+    if (response.success && response.data) {
+      const { token, user } = response.data;
       setAuth(token, user, user.role);
-      
-      return { 
-        success: true, 
-        data: { 
-          token, 
-          user 
-        } 
-      };
-    } catch (error) {
-      return handleApiError(error);
     }
+    return response;
   },
 
   logout: async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (error) {
-      // Continue with cleanup even if API fails
-    } finally {
-      clearAuth();
-    }
+    await safeCall(api.post('/auth/logout'));
+    clearAuth();
     return { success: true };
   },
 
   getCurrentUser: async () => {
-    try {
-      const response = await api.get('/auth/me');
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/auth/me'));
   },
 
   changePassword: async (data) => {
-    try {
-      const response = await api.put('/auth/change-password', data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.put('/auth/change-password', data));
   },
 };
 

@@ -1,58 +1,41 @@
-import api, { handleApiError } from './api';
+import api from './api';
+import { safeCall } from '../utils/normalizeApiResponse';
 
 export const remainingService = {
   getRemainings: async (params = {}) => {
-    try {
-      const response = await api.get('/remainings', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.get('/remainings', { params }));
   },
 
-  getTodayRemainings: async (params = {}) => {
-    try {
-      const response = await api.get('/remainings/today', { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  getByOperationalDate: async (operationalDate, params = {}) => {
+    return safeCall(api.get(`/remainings/by-date/${operationalDate}`, { params }));
   },
 
-  saveRemainings: async (data) => {
-    try {
-      const response = await api.post('/remainings', data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  getDrafts: async (params = {}) => {
+    return safeCall(api.get('/remainings/drafts', { params }));
+  },
+
+  getPending: async (params = {}) => {
+    return safeCall(api.get('/remainings/pending', { params }));
+  },
+
+  saveRemaining: async (data) => {
+    return safeCall(api.post('/remainings', data));
+  },
+
+  saveBulk: async (data) => {
+    return safeCall(api.post('/remainings/bulk', data));
   },
 
   updateRemaining: async (id, data) => {
-    try {
-      const response = await api.put(`/remainings/${id}`, data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+    return safeCall(api.put(`/remainings/${id}`, data));
   },
 
-  getRemainingsByDate: async (date, params = {}) => {
-    try {
-      const response = await api.get(`/remainings/date/${date}`, { params });
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  markFinal: async (id) => {
+    return safeCall(api.put(`/remainings/${id}`, { status: 'FINAL' }));
   },
 
-  getPendingRemainings: async () => {
-    try {
-      const response = await api.get('/remainings/pending');
-      return { success: true, data: response.data };
-    } catch (error) {
-      return handleApiError(error);
-    }
+  deleteRemaining: async (id) => {
+    return safeCall(api.delete(`/remainings/${id}`));
   },
 };
 
