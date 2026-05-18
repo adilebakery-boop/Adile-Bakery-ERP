@@ -263,6 +263,8 @@ export default function RemainingPage() {
                       onChange={(e) => handleQuantityChange(p.id, e.target.value)}
                       className="w-full px-4 py-4 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F]"
                       placeholder="0"
+                      min="0"
+                      step="0.01"
                     />
                   </div>
                 );

@@ -165,12 +165,15 @@ export default function MainLayout() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-3 ml-auto">
+          <button
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-3 ml-auto hover:bg-[#F9F7F2] px-3 py-2 rounded-lg transition-colors"
+          >
             <span className="text-sm text-gray-600">{getUserDisplayName()}</span>
             <div className="w-8 h-8 bg-[#001F3F] rounded-lg flex items-center justify-center">
               <span className="text-white text-sm font-medium">{getUserInitial()}</span>
             </div>
-          </div>
+          </button>
         </header>
 
         <main className="flex-1 p-6 lg:p-8 overflow-auto">

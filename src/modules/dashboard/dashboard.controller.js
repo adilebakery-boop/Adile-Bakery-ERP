@@ -24,10 +24,14 @@ const getAllBranchesStatus = asyncHandler(async (req, res) => {
 });
 
 const getRecentActivity = asyncHandler(async (req, res) => {
-  const { branchId, limit } = req.query;
+  const { branchId, limit, operationalDate } = req.query;
+  const date = operationalDate || new Date().toISOString().split('T')[0];
   const activities = await dashboardService.getRecentActivity(
     branchId || req.user.branchId,
-    limit || 10
+    date,
+    parseInt(limit) || 10,
+    req.user.userId,
+    req.user.role
   );
   res.json({
     success: true,
@@ -41,7 +45,9 @@ const getOverview = asyncHandler(async (req, res) => {
   const date = operationalDate || new Date().toISOString().split('T')[0];
   const overview = await dashboardService.getDashboardOverview(
     branchId || req.user.branchId,
-    date
+    date,
+    req.user.userId,
+    req.user.role
   );
   res.json({
     success: true,

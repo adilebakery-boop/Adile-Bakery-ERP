@@ -22,36 +22,67 @@ export default function DashboardPage() {
   const [kpis, setKpis] = useState({ production: 0, sales: 0, remaining: 0, pendingDrafts: 0, pendingDraftsBranches: [] });
   const [closureStatus, setClosureStatus] = useState({ isClosed: false, operationalDate: '' });
   const [recentActivity, setRecentActivity] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [closureLoading, setClosureLoading] = useState(false);
   const [closureError, setClosureError] = useState('');
   const [closureSuccess, setClosureSuccess] = useState('');
 
-  const userRole = getUserRole();
+const userRole = getUserRole();
   const userBranchId = getUserBranchId();
-  const branchId = userBranchId;
+  const isManager = isManagerOrAdmin();
+  
+  let targetBranchId;
+  if (isManager) {
+    targetBranchId = 'all';
+  } else {
+    targetBranchId = userBranchId ? Number(userBranchId) : 'all';
+  }
+  
   const operationalDate = getOperationalDate();
-  const canClose = isManagerOrAdmin();
+  const canClose = isManager;
 
   useEffect(() => {
     loadDashboard();
-  }, [branchId]);
+    const interval = setInterval(() => {
+      loadDashboard();
+    }, 10000);
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadDashboard();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [targetBranchId]);
 
   const loadDashboard = async () => {
-    setLoading(true);
+    const branchIdForApi = isManager ? 'all' : (userBranchId ? Number(userBranchId) : undefined);
+    console.log('Fetching - targetBranchId:', targetBranchId, 'branchIdForApi:', branchIdForApi, 'isManager:', isManager);
+    
     try {
       const [overviewRes, statusRes, activityRes] = await Promise.all([
-        dashboardService.getOverview(branchId, operationalDate),
-        closureService.getStatus(operationalDate),
-        dashboardService.getRecentActivity(branchId, 10),
+        dashboardService.getOverview(branchIdForApi, operationalDate),
+        isManager ? Promise.resolve({ success: true, data: { isClosed: false } }) : closureService.getStatus(operationalDate),
+        dashboardService.getRecentActivity(isManager ? 'all' : userBranchId, operationalDate, 10),
       ]);
+      
+      console.log('Overview response:', overviewRes.data);
 
       if (overviewRes.success) {
+        const data = overviewRes.data;
         setKpis({
-          production: overviewRes.data.totalProduction || 0,
-          sales: overviewRes.data.totalEstimatedSold || 0,
-          remaining: overviewRes.data.totalRemaining || 0,
-          pendingDrafts: overviewRes.data.pendingDrafts || 0,
-          pendingDraftsBranches: overviewRes.data.pendingDraftsBranches || [],
+          production: data.totalProduction || 0,
+          sales: data.totalEstimatedSold || 0,
+          remaining: data.totalRemaining || 0,
+          pendingDrafts: data.pendingDrafts || 0,
+          isAllBranches: data.isAllBranches || false,
+          branches: data.branches || [],
+          allFinalized: data.allFinalized !== undefined ? data.allFinalized : (data.pendingDrafts === 0),
         });
       }
 
@@ -69,6 +100,7 @@ export default function DashboardPage() {
       console.error('Dashboard load error:', err);
     }
     setLoading(false);
+    setLastUpdated(new Date());
   };
 
   const handleCloseDay = async () => {
@@ -97,7 +129,7 @@ export default function DashboardPage() {
   };
 
   const getActivityIcon = (type) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case 'production': return <Package className="w-4 h-4" />;
       case 'remaining': return <CheckCircle className="w-4 h-4" />;
       default: return <Package className="w-4 h-4" />;
@@ -105,12 +137,13 @@ export default function DashboardPage() {
   };
 
   const getActivityLabel = (activity) => {
-    const productName = activity.productName || activity.product?.name || 'Item';
-    switch (activity.type) {
+    const productName = activity.product || activity.productName || activity.product?.name || 'Item';
+    const branchName = activity.branchName ? ` (${activity.branchName})` : '';
+    switch (activity.type?.toLowerCase()) {
       case 'production':
-        return `Recorded production: ${productName} x${activity.quantity}`;
+        return `Recorded production: ${productName} x${activity.quantity}${branchName}`;
       case 'remaining':
-        return `Saved remaining: ${productName} = ${activity.remainingQuantity}`;
+        return `Saved remaining: ${productName} = ${activity.quantity}${branchName}`;
       case 'closure':
         return `Day closed for ${activity.operationalDate}`;
       default:
@@ -132,9 +165,14 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F]">Dashboard</h1>
           <p className="text-sm text-gray-400 mt-1">{formatOperationalDate(operationalDate)}</p>
+          {lastUpdated && (
+            <p className="text-xs text-gray-400 mt-1">
+              Updated {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          {canClose && (
+          {canClose && !kpis.isAllBranches && (
             <>
               {closureStatus.isClosed ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 rounded-xl text-sm">
@@ -172,7 +210,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {kpis.pendingDrafts > 0 && !closureStatus.isClosed && (
+      {kpis.pendingDrafts > 0 && !closureStatus.isClosed && !kpis.isAllBranches && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-amber-500" />
           <div>
@@ -228,8 +266,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-4xl font-bold text-[#001F3F]">{kpis.pendingDrafts}</p>
-          <p className={`text-sm mt-1 ${kpis.pendingDrafts > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-            {kpis.pendingDrafts > 0 ? 'Needs attention' : 'All finalized'}
+          <p className={`text-sm mt-1 ${kpis.allFinalized ? 'text-gray-400' : 'text-red-500'}`}>
+            {kpis.allFinalized ? 'All finalized' : 'Needs attention'}
           </p>
         </div>
       </div>
@@ -241,8 +279,8 @@ export default function DashboardPage() {
             {recentActivity.slice(0, 8).map((activity, idx) => (
               <div key={idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F9F7F2] transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  activity.type === 'production' ? 'bg-[#D2B48C]/10 text-[#D2B48C]' :
-                  activity.type === 'remaining' ? 'bg-green-50 text-green-500' :
+                  activity.type?.toLowerCase() === 'production' ? 'bg-[#D2B48C]/10 text-[#D2B48C]' :
+                  activity.type?.toLowerCase() === 'remaining' ? 'bg-green-50 text-green-500' :
                   'bg-gray-100 text-gray-400'
                 }`}>
                   {getActivityIcon(activity.type)}
@@ -250,7 +288,7 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-[#001F3F]">{getActivityLabel(activity)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(activity.createdAt || activity.timestamp).toLocaleString('en-US', {
+                    {new Date(activity.time || activity.createdAt || activity.timestamp).toLocaleString('en-US', {
                       timeZone: 'Africa/Addis_Ababa',
                       hour: '2-digit',
                       minute: '2-digit',

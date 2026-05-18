@@ -52,12 +52,25 @@ const productionService = {
     await this.validateProductAccess(user.role, data.productId);
     await this.validateBranch(data.branchId);
 
+    // Validate quantity is positive
+    if (!data.quantity || Number(data.quantity) <= 0) {
+      throw new Error('Quantity must be a positive number');
+    }
+
+    // Night shift production counts as tomorrow's production
+    let opDate = new Date(data.operationalDate || new Date());
+    if (data.shift === 'NIGHT') {
+      opDate.setDate(opDate.getDate() + 1);
+    }
+
     const production = await prisma.productionRecord.create({
       data: {
         productId: data.productId,
         branchId: data.branchId,
         shift: data.shift,
         quantity: data.quantity,
+        operationalDate: opDate,
+        productionDate: opDate,
         userId: user.userId,
       },
       include: {
