@@ -18,6 +18,10 @@ export const reportService = {
     return safeCall(api.get('/reports/monthly', { params }));
   },
 
+  getYearlyReport: async (params = {}) => {
+    return safeCall(api.get('/reports/yearly', { params }));
+  },
+
   exportToCSV: async (params = {}) => {
     try {
       const response = await api.get('/reports/export', {
