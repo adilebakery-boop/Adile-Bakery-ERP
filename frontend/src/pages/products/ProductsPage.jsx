@@ -67,7 +67,17 @@ export default function ProductsPage() {
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      await removeProduct(id);
+      console.log('Deleting product with id:', id);
+      try {
+        const result = await removeProduct(id);
+        console.log('Delete result:', result);
+        if (!result.success) {
+          setError(result.message || 'Failed to delete product');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        setError('Error deleting product: ' + err.message);
+      }
     }
   };
 

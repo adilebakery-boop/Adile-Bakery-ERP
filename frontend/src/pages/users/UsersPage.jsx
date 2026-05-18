@@ -203,7 +203,7 @@ export default function UsersPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {!isAdminOrManagerRole(user.role?.name) && (
+                          {user.role?.name !== 'ADMIN' && user.role?.name !== 'MANAGER' && (
                             <button 
                               onClick={() => handleToggleBlock(user)} 
                               className={`p-2 rounded-lg transition-colors ${user.isBlocked ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
@@ -212,12 +212,16 @@ export default function UsersPage() {
                               {user.isBlocked ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
                             </button>
                           )}
-                          <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {user.role?.name !== 'ADMIN' && (
+                            <button onClick={() => handleEditClick(user)} className="p-2 text-gray-400 hover:text-[#001F3F] hover:bg-[#F9F7F2] rounded-lg transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {user.role?.name !== 'ADMIN' && (
+                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
