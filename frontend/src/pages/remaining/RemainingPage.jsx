@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import remainingService from '../../services/remainingService';
 import productService from '../../services/productService';
+import branchService from '../../services/branchService';
 
 const CATEGORY_LABELS = {
   [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
@@ -24,16 +25,43 @@ export default function RemainingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [unsaved, setUnsaved] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(null);
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
   const operationalDate = getOperationalDate();
+  const canManageAll = isManagerOrAdmin();
+
+  const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
 
   useEffect(() => {
     loadProducts();
     loadRemainings();
-  }, [userRole, userBranchId, operationalDate]);
+    if (canManageAll) {
+      loadBranches();
+    }
+  }, [userRole, userBranchId, operationalDate, canManageAll, selectedBranchId]);
+
+  const loadBranches = async () => {
+    try {
+      const result = await branchService.getActiveBranches();
+      if (result.success && result.data) {
+        setBranches(result.data);
+        if (!selectedBranchId && result.data.length > 0) {
+          setSelectedBranchId(result.data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading branches:', err);
+    }
+  };
+
+  const handleBranchChange = (e) => {
+    const branchId = parseInt(e.target.value);
+    setSelectedBranchId(branchId);
+  };
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -50,9 +78,13 @@ export default function RemainingPage() {
   };
 
   const loadRemainings = async () => {
+    if (!effectiveBranchId) {
+      setLoadingRemainings(false);
+      return;
+    }
     setLoadingRemainings(true);
     try {
-      const res = await remainingService.getByOperationalDate(operationalDate, { branchId: userBranchId });
+      const res = await remainingService.getByOperationalDate(operationalDate, { branchId: effectiveBranchId });
       if (res.success) {
         const map = {};
         (res.data || []).forEach(r => {
@@ -114,8 +146,14 @@ export default function RemainingPage() {
       return;
     }
 
+    if (!effectiveBranchId) {
+      setError('Please select a branch');
+      setSaving(false);
+      return;
+    }
+
     const result = await remainingService.saveBulk({
-      branchId: userBranchId,
+      branchId: effectiveBranchId,
       operationalDate,
       items,
     });
@@ -151,8 +189,14 @@ export default function RemainingPage() {
       return;
     }
 
+    if (!effectiveBranchId) {
+      setError('Please select a branch');
+      setSaving(false);
+      return;
+    }
+
     const result = await remainingService.saveBulk({
-      branchId: userBranchId,
+      branchId: effectiveBranchId,
       operationalDate,
       items,
     });
@@ -187,6 +231,29 @@ export default function RemainingPage() {
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
         </div>
         <div className="flex items-center gap-3">
+          {canManageAll && (
+            <div className="flex items-center gap-2 bg-[#F9F7F2] dark:bg-[#0f0f1a] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <select
+                value={selectedBranchId || ''}
+                onChange={handleBranchChange}
+                className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+              >
+                <option value="">Select Branch</option>
+                {branches.map(branch => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {!canManageAll && (
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <Building2 className="w-4 h-4" />
+              Branch: {userBranchId || 'N/A'}
+            </span>
+          )}
           {unsaved && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
