@@ -6,6 +6,7 @@ export default function useProducts() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
 
   const fetchProducts = useCallback(async (params = {}) => {
     setLoading(true);
@@ -13,6 +14,14 @@ export default function useProducts() {
     const result = await productService.getProducts(params);
     if (result.success) {
       setProducts(result.data?.data || result.data || []);
+      if (result.pagination) {
+        setPagination({
+          page: parseInt(result.pagination.page) || 1,
+          limit: parseInt(result.pagination.limit) || 10,
+          total: parseInt(result.pagination.total) || 0,
+          totalPages: parseInt(result.pagination.totalPages) || 0,
+        });
+      }
     } else {
       setError(result.message);
     }
@@ -64,6 +73,7 @@ export default function useProducts() {
     categories,
     loading,
     error,
+    pagination,
     fetchProducts,
     fetchCategories,
     addProduct,
