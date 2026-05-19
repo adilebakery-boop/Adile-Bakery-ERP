@@ -4,6 +4,7 @@ export function normalizeResponse(response) {
     data: response.data?.data,
     message: response.data?.message,
     count: response.data?.count,
+    pagination: response.data?.pagination,
     status: response.status,
   };
 }
