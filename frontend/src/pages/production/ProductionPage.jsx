@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Loader2, RefreshCw, Edit2 } from 'lucide-react';
+import { Plus, Package, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, getUserId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
@@ -39,6 +39,8 @@ export default function ProductionPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editFormData, setEditFormData] = useState({ quantity: '', shift: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
@@ -96,6 +98,21 @@ export default function ProductionPage() {
       console.error('Error loading productions:', err);
     }
     setIsLoadingEntries(false);
+  };
+
+  const totalPages = Math.ceil(entries.length / itemsPerPage);
+  const paginatedEntries = entries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [entries.length, branch]);
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   useEffect(() => {
@@ -385,8 +402,8 @@ export default function ProductionPage() {
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-{entries.map((entry) => (
+<tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+              {paginatedEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
@@ -428,6 +445,33 @@ export default function ProductionPage() {
               <Package className="w-8 h-8 text-gray-400" />
             </div>
             <p className="text-gray-400 text-sm">No entries yet</p>
+          </div>
+        )}
+
+        {!isLoadingEntries && entries.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, entries.length)} of {entries.length} production records
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
