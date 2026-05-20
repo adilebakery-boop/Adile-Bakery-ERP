@@ -1,21 +1,28 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import remainingService from '../../services/remainingService';
 import productService from '../../services/productService';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 
 const CATEGORY_LABELS = {
-  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
-  [CATEGORIES.CREAM_CAKES]: 'Cream Cakes',
-  [CATEGORIES.SOFT_CAKES]: 'Soft Cakes',
-  [CATEGORIES.DRY_CAKES]: 'Dry Cakes',
-  [CATEGORIES.COOKIES]: 'Cookies',
-  [CATEGORIES.FETIRE_AND_SNACKS]: 'Fetire & Snacks',
-  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'Drinks & Retail',
+  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
+  [CATEGORIES.CREAM_CAKES]: 'productCategories.CREAM_CAKES',
+  [CATEGORIES.SOFT_CAKES]: 'productCategories.SOFT_CAKES',
+  [CATEGORIES.DRY_CAKES]: 'productCategories.DRY_CAKES',
+  [CATEGORIES.COOKIES]: 'productCategories.COOKIES',
+  [CATEGORIES.FETIRE_AND_SNACKS]: 'productCategories.FETIRE_AND_SNACKS',
+  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'productCategories.DRINKS_AND_RETAIL_ITEMS',
 };
 
 export default function RemainingPage() {
+  const { t, i18n } = useTranslation();
+  const getProductName = (product) => {
+    const lang = i18n.language || localStorage.getItem('language') || 'en';
+    return getLocalizedName(product, lang);
+  };
   const [products, setProducts] = useState([]);
   const [existingRemainings, setExistingRemainings] = useState({});
   const [saving, setSaving] = useState(false);
@@ -109,7 +116,7 @@ export default function RemainingPage() {
       }));
 
     if (items.length === 0) {
-      setError('Please enter at least one remaining value');
+      setError(t('remaining.enterAtLeastOne'));
       setSaving(false);
       return;
     }
@@ -123,12 +130,12 @@ export default function RemainingPage() {
     setSaving(false);
 
     if (result.success) {
-      setSuccess('Remaining saved successfully!');
+      setSuccess(t('remaining.remainingSaved'));
       setUnsaved(false);
       loadRemainings();
       setTimeout(() => setSuccess(''), 3000);
     } else {
-      setError(result.message || 'Failed to save remaining');
+      setError(result.message || t('common.saveFailed'));
     }
   };
 
@@ -146,7 +153,7 @@ export default function RemainingPage() {
       }));
 
     if (items.length === 0) {
-      setError('Please enter at least one remaining value before finalizing');
+      setError(t('remaining.enterAtLeastOneBeforeFinalize'));
       setSaving(false);
       return;
     }
@@ -160,12 +167,12 @@ export default function RemainingPage() {
     setSaving(false);
 
     if (result.success) {
-      setSuccess('All remainings finalized!');
+      setSuccess(t('remaining.allFinalized'));
       setUnsaved(false);
       loadRemainings();
       setTimeout(() => setSuccess(''), 3000);
     } else {
-      setError(result.message || 'Failed to finalize remaining');
+      setError(result.message || t('common.saveFailed'));
     }
   };
 
@@ -183,20 +190,20 @@ export default function RemainingPage() {
     <div className="pb-28">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Remaining Stock</h1>
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           {unsaved && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
-              Unsaved changes
+              {t('remaining.unsavedChanges')}
             </span>
           )}
           <button
             onClick={loadRemainings}
             className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors"
-            title="Refresh"
+            title={t('common.refresh')}
           >
             <RefreshCw className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </button>
@@ -225,13 +232,13 @@ export default function RemainingPage() {
           <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-gray-400 dark:text-gray-500 text-sm">No products available for your role</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">{t('remaining.noProductsAvailable')}</p>
         </div>
       ) : (
         Object.entries(grouped).map(([category, prods]) => (
           <div key={category} className="mb-8">
             <h2 className="text-xl font-bold text-[#001F3F] dark:text-white mb-4">
-              {CATEGORY_LABELS[category] || category}
+              {t(CATEGORY_LABELS[category] || category)}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {prods.map((p) => {
@@ -256,7 +263,7 @@ export default function RemainingPage() {
                         {status}
                       </div>
                     )}
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{p.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
@@ -283,7 +290,7 @@ export default function RemainingPage() {
               className="px-8 py-3.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors text-sm flex items-center gap-2 disabled:opacity-70"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              Finalize All
+              {t('remaining.finalizeAll')}
             </button>
           )}
           <button
@@ -292,7 +299,7 @@ export default function RemainingPage() {
             className="px-8 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Remaining
+            {t('remaining.saveRemaining')}
           </button>
         </div>
       </div>

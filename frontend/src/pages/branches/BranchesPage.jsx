@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import useBranches from '../../hooks/useBranches';
 import { getUser } from '../../utils/authUtils';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 
 export default function BranchesPage() {
+  const { t, i18n } = useTranslation();
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
@@ -13,7 +16,7 @@ export default function BranchesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
-  const [formData, setFormData] = useState({ name: '', address: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function BranchesPage() {
     setSubmitting(false);
     if (result.success) {
       setIsModalOpen(false);
-      setFormData({ name: '', address: '', phone: '' });
+      setFormData({ name: '', name_am: '', address: '', phone: '' });
     }
   };
 
@@ -35,6 +38,7 @@ export default function BranchesPage() {
     setEditingBranch(branch);
     setFormData({
       name: branch.name,
+      name_am: branch.name_am || '',
       address: branch.address || '',
       phone: branch.phone || '',
     });
@@ -49,7 +53,7 @@ export default function BranchesPage() {
     if (result.success) {
       setIsEditModalOpen(false);
       setEditingBranch(null);
-      setFormData({ name: '', address: '', phone: '' });
+      setFormData({ name: '', name_am: '', address: '', phone: '' });
     }
   };
 
@@ -70,14 +74,14 @@ export default function BranchesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Branches</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('branches.title')}</h1>
         {canManage && (
           <button 
             onClick={() => setIsModalOpen(true)}
             className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add Branch
+            {t('branches.addBranch')}
           </button>
         )}
       </div>
@@ -93,11 +97,11 @@ export default function BranchesPage() {
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch Name</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Address</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.branchName')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.address')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.phone')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
@@ -110,22 +114,22 @@ export default function BranchesPage() {
               ) : branches.length === 0 ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    No branches found
+                    {t('branches.noBranchesFound')}
                   </td>
                 </tr>
               ) : (
                 branches.map((branch) => (
                   <tr key={branch.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{branch.name}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{getLocalizedName(branch, i18n.language)}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.address || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.phone || '-'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        branch.isActive !== false 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                      }`}>
-                        {branch.isActive !== false ? 'Active' : 'Inactive'}
+<span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          branch.isActive !== false 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                        {branch.isActive !== false ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     {canManage && (
@@ -170,6 +174,16 @@ export default function BranchesPage() {
               className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
               placeholder="Enter branch name"
               required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Amharic Name (Optional)</label>
+            <input
+              type="text"
+              value={formData.name_am || ''}
+              onChange={(e) => setFormData({ ...formData, name_am: e.target.value })}
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              placeholder="የአማርኛ ስም (አማራጭ)"
             />
           </div>
           <div>
@@ -221,7 +235,16 @@ export default function BranchesPage() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
-              required
+required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Amharic Name (Optional)</label>
+            <input
+              type="text"
+              value={formData.name_am || ''}
+              onChange={(e) => setFormData({ ...formData, name_am: e.target.value })}
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
             />
           </div>
           <div>
@@ -231,6 +254,7 @@ export default function BranchesPage() {
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              placeholder="Enter full address"
             />
           </div>
           <div>

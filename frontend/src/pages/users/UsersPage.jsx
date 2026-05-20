@@ -1,23 +1,39 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
 import userService from '../../services/userService';
 import branchService from '../../services/branchService';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 
 const ALL_ROLES = [
-  { value: 'CASHIER', label: 'Cashier', id: 7 },
-  { value: 'FETIR_CHEF', label: 'Fetir Chef', id: 6 },
-  { value: 'COOKIE_BAKER', label: 'Cookie Baker', id: 5 },
-  { value: 'CAKE_CHEF', label: 'Cake Chef', id: 4 },
-  { value: 'BAKER', label: 'Baker', id: 3 },
-  { value: 'MANAGER', label: 'Manager', id: 2 },
-  { value: 'ADMIN', label: 'Admin', id: 1 },
+  { value: 'CASHIER', labelKey: 'cashier', id: 7 },
+  { value: 'FETIR_CHEF', labelKey: 'fetirChef', id: 6 },
+  { value: 'COOKIE_BAKER', labelKey: 'cookieBaker', id: 5 },
+  { value: 'CAKE_CHEF', labelKey: 'cakeChef', id: 4 },
+  { value: 'BAKER', labelKey: 'baker', id: 3 },
+  { value: 'MANAGER', labelKey: 'manager', id: 2 },
+  { value: 'ADMIN', labelKey: 'admin', id: 1 },
 ];
 
 const OPERATIONAL_ROLES = ['BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'];
 
+const getRoleKey = (roleName) => {
+  const roleMap = {
+    'ADMIN': 'admin',
+    'MANAGER': 'manager',
+    'BAKER': 'baker',
+    'CAKE_CHEF': 'cakeChef',
+    'COOKIE_BAKER': 'cookieBaker',
+    'FETIR_CHEF': 'fetirChef',
+    'CASHIER': 'cashier',
+  };
+  return roleMap[roleName] || roleName.toLowerCase();
+};
+
 export default function UsersPage() {
+  const { t, i18n } = useTranslation();
   const canManage = isManagerOrAdmin();
   const currentUser = getUser();
   const isAdmin = currentUser?.role === 'ADMIN';
@@ -187,11 +203,11 @@ export default function UsersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Users</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('users.title')}</h1>
         {canManage && (
           <button onClick={() => setIsModalOpen(true)} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Add User
+            {t('users.addUser')}
           </button>
         )}
       </div>
@@ -205,12 +221,12 @@ export default function UsersPage() {
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.fullName')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.username')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.role')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.branch')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
@@ -222,7 +238,7 @@ export default function UsersPage() {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No users found</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">{t('users.noUsersFound')}</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -231,13 +247,13 @@ export default function UsersPage() {
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role?.name === 'ADMIN' || user.role?.name === 'MANAGER' ? 'bg-[#001F3F] text-white dark:bg-[#001F3F]/80' : 'bg-[#F9F7F2] text-gray-700 dark:bg-[#2d2d4a] dark:text-gray-300'}`}>
-                        {user.role?.name || '-'}
+                        {user.role?.name ? t(`roles.${getRoleKey(user.role.name)}`) : '-'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.branch?.name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.branch ? getLocalizedName(user.branch, i18n.language) : '-'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.isBlocked ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
-                        {user.isBlocked ? 'Blocked' : 'Active'}
+                        {user.isBlocked ? t('common.blocked') : t('common.active')}
                       </span>
                     </td>
                     {canManage && (
@@ -290,8 +306,8 @@ export default function UsersPage() {
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
             <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value, branchId: '' })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select role</option>
-              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              <option value="">{t('users.selectRole')}</option>
+              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{t(`roles.${role.labelKey}`)}</option>)}
             </select>
           </div>
           <div>
@@ -329,8 +345,8 @@ export default function UsersPage() {
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
             <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select role</option>
-              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              <option value="">{t('users.selectRole')}</option>
+              {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{t(`roles.${role.labelKey}`)}</option>)}
             </select>
           </div>
           <div>
