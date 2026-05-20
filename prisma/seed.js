@@ -15,6 +15,7 @@ async function main() {
     { name: 'CAKE_CHEF' },
     { name: 'COOKIE_BAKER' },
     { name: 'FETIR_CHEF' },
+    
     { name: 'CASHIER' },
   ];
 
