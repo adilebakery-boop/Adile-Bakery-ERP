@@ -1,4 +1,5 @@
 const z = require('zod');
+const { validateQuantityForUnitType } = require('../../utils/unitTypeValidation');
 
 const createRemainingSchema = z.object({
   productId: z.number().int().positive('Product ID must be a positive integer'),
@@ -14,6 +15,15 @@ const updateRemainingSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format').optional()
 });
 
+function validateRemainingQuantity(quantity, unitType) {
+  const validation = validateQuantityForUnitType(quantity, unitType);
+  if (!validation.valid) {
+    const error = new Error(validation.message);
+    error.name = 'ValidationError';
+    throw error;
+  }
+}
+
 const remainingIdSchema = z.object({
   id: z.coerce.number().int().positive('ID must be a positive integer')
 });
@@ -23,7 +33,7 @@ const remainingQuerySchema = z.object({
   productId: z.coerce.number().int().positive().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format').optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD format').optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD format').optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format').optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20)
 });
@@ -32,5 +42,6 @@ module.exports = {
   createRemainingSchema,
   updateRemainingSchema,
   remainingIdSchema,
-  remainingQuerySchema
+  remainingQuerySchema,
+  validateRemainingQuantity,
 };
