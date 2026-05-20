@@ -26,6 +26,7 @@ const CATEGORY_LABELS = {
 
 export default function ProductionPage() {
   const [product, setProduct] = useState('');
+  const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [branch, setBranch] = useState('');
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -139,6 +140,14 @@ export default function ProductionPage() {
       return;
     }
 
+    if (selectedProductUnitType === 'piece') {
+      const qty = parseFloat(quantity);
+      if (!Number.isInteger(qty)) {
+        setError('Quantity for piece products must be a whole number (no decimals)');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     const result = await productionService.createProduction({
@@ -183,6 +192,15 @@ export default function ProductionPage() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+
+    if (editingEntry?.product?.unitType === 'piece') {
+      const qty = parseFloat(editFormData.quantity);
+      if (!Number.isInteger(qty)) {
+        setError('Quantity for piece products must be a whole number (no decimals)');
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     console.log('Updating production:', editingEntry.id, { quantity: editFormData.quantity, shift: editFormData.shift });
     try {
@@ -250,7 +268,7 @@ export default function ProductionPage() {
               onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
-              step="0.01"
+              step={editingEntry?.product?.unitType === 'piece' ? '1' : '0.01'}
               min="0"
             />
           </div>
@@ -291,7 +309,12 @@ export default function ProductionPage() {
             ) : (
               <select
                 value={product}
-                onChange={(e) => setProduct(e.target.value)}
+                onChange={(e) => {
+                  setProduct(e.target.value);
+                  const selected = availableProducts.find(p => p.id === parseInt(e.target.value));
+                  setSelectedProductUnitType(selected?.unitType || null);
+                  setQuantity('');
+                }}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 disabled={isSubmitting}
@@ -299,7 +322,7 @@ export default function ProductionPage() {
                 <option value="">Select product ({availableProducts.length})</option>
                 {availableProducts.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({getCategoryLabel(p.category)})
+                    {p.name} ({getCategoryLabel(p.category)}) [{p.unitType}]
                   </option>
                 ))}
               </select>
@@ -351,7 +374,7 @@ export default function ProductionPage() {
               required
               disabled={isSubmitting}
               min="0"
-              step="0.01"
+              step={selectedProductUnitType === 'piece' ? '1' : '0.01'}
             />
           </div>
 

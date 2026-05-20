@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString } = require('../utils/dateUtils');
+const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -105,6 +106,13 @@ async function create(data, user) {
     throw error;
   }
 
+  const unitValidation = validateQuantityForUnitType(quantity, product.unitType);
+  if (!unitValidation.valid) {
+    const error = new Error(unitValidation.message);
+    error.status = 400;
+    throw error;
+  }
+
   const opDate = operationalDate ? new Date(operationalDate) : new Date();
 
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
@@ -177,6 +185,11 @@ async function createBulk(data, user) {
 
       if (!product) {
         throw new Error(`Product ${item.productId} not found`);
+      }
+
+      const bulkUnitValidation = validateQuantityForUnitType(item.remainingQuantity, product.unitType);
+      if (!bulkUnitValidation.valid) {
+        throw new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
       }
 
       const existing = await tx.remainingRecord.findFirst({
@@ -259,6 +272,12 @@ async function update(id, data, user) {
   };
 
   if (data.quantity !== undefined) {
+    const updateUnitValidation = validateQuantityForUnitType(data.quantity, existing.product.unitType);
+    if (!updateUnitValidation.valid) {
+      const error = new Error(updateUnitValidation.message);
+      error.status = 400;
+      throw error;
+    }
     updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 
