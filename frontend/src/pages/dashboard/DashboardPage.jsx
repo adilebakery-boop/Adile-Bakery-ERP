@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, DollarSign, AlertCircle, Loader2, Lock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
@@ -21,6 +22,7 @@ const CATEGORY_LABELS = {
 };
 
 export default function DashboardPage() {
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [kpis, setKpis] = useState({ production: 0, sales: 0, remaining: 0, pendingDrafts: 0, pendingDraftsBranches: [] });
@@ -117,7 +119,7 @@ const loadDashboard = async () => {
 
     const validateRes = await closureService.validate(operationalDate);
     if (!validateRes.success) {
-      setClosureError(validateRes.message || 'Validation failed');
+      setClosureError(validateRes.message || t('common.errorLoading'));
       setClosureLoading(false);
       return;
     }
@@ -126,12 +128,12 @@ const loadDashboard = async () => {
     setClosureLoading(false);
 
     if (result.success) {
-      setClosureSuccess('Day closed successfully!');
+      setClosureSuccess(t('dashboard.closeDaySuccess'));
       setClosureStatus(prev => ({ ...prev, isClosed: true }));
       loadDashboard();
       setTimeout(() => setClosureSuccess(''), 3000);
     } else {
-      setClosureError(result.message || 'Failed to close day');
+      setClosureError(result.message || t('dashboard.closeDayFailed'));
     }
   };
 
@@ -190,12 +192,12 @@ const loadDashboard = async () => {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Dashboard</h1>
+<div>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('dashboard.title')}</h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
           {lastUpdated && (
             <p className="text-xs text-gray-400 mt-1">
-              Updated {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              {t('dashboard.updated')} {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
@@ -205,7 +207,7 @@ const loadDashboard = async () => {
               {closureStatus.isClosed ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 rounded-xl text-sm">
                   <Lock className="w-4 h-4" />
-                  Day Closed
+                  {t('dashboard.dayClosed')}
                 </div>
               ) : (
                 <button
@@ -214,7 +216,7 @@ const loadDashboard = async () => {
                   className="px-4 py-2.5 bg-[#001F3F] text-white rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#001a35] transition-colors disabled:opacity-70"
                 >
                   {closureLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                  Close Day
+                  {t('dashboard.closeDay')}
                 </button>
               )}
             </>
@@ -243,10 +245,10 @@ const loadDashboard = async () => {
           <AlertCircle className="w-5 h-5 text-amber-500" />
           <div>
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              {kpis.pendingDrafts} product(s) still in DRAFT status
+              {t('dashboard.draftWarning', { count: kpis.pendingDrafts })}
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-              Finalize all remainings before closing the day
+              {t('dashboard.draftWarningSubtitle')}
             </p>
           </div>
         </div>
@@ -255,53 +257,53 @@ const loadDashboard = async () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Today's Production</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.todayProduction')}</span>
             <div className="w-10 h-10 bg-[#D2B48C]/20 rounded-xl flex items-center justify-center">
               <Package className="w-5 h-5 text-[#D2B48C]" />
             </div>
           </div>
           <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.production}</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">items produced today</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsProducedToday')}</p>
         </div>
 
         <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Estimated Sales</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.estimatedSales')}</span>
             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-green-500" />
             </div>
           </div>
           <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.sales}</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">items sold today</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsSoldToday')}</p>
         </div>
 
         <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Remaining</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.remaining')}</span>
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
               <Package className="w-5 h-5 text-blue-500" />
             </div>
           </div>
           <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.remaining}</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">items in stock</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsInStock')}</p>
         </div>
 
         <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Pending Drafts</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.pendingDrafts')}</span>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpis.pendingDrafts > 0 ? 'bg-red-50' : 'bg-gray-100 dark:bg-gray-800'}`}>
               <AlertCircle className={`w-5 h-5 ${kpis.pendingDrafts > 0 ? 'text-red-500' : 'text-gray-400'}`} />
             </div>
           </div>
           <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.pendingDrafts}</p>
           <p className={`text-sm mt-1 ${kpis.allFinalized ? 'text-gray-400 dark:text-gray-500' : 'text-red-500'}`}>
-            {kpis.allFinalized ? 'All finalized' : 'Needs attention'}
+            {kpis.allFinalized ? t('dashboard.allFinalized') : t('dashboard.needsAttention')}
           </p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white mb-6">Recent Activity</h2>
+        <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white mb-6">{t('dashboard.recentActivity')}</h2>
         {recentActivity.length > 0 ? (
           <div className="space-y-3">
             {recentActivity.slice(0, 8).map((activity, idx) => (
@@ -331,7 +333,7 @@ const loadDashboard = async () => {
             <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
               <Package className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">No recent activity</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">{t('dashboard.noRecentActivity')}</p>
           </div>
         )}
       </div>

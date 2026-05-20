@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import { getUserRole, getUser } from '../utils/authUtils';
 import { getPagesForRole, PAGES } from '../utils/permissions';
 
 export default function MainLayout() {
+  const { t, i18n } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -42,14 +44,14 @@ export default function MainLayout() {
   const allowedPages = getPagesForRole(userRole);
 
   const allNavItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, page: PAGES.DASHBOARD },
-    { path: '/production', label: 'Production', icon: Factory, page: PAGES.PRODUCTION },
-    { path: '/remaining', label: 'Remaining', icon: Package, page: PAGES.REMAINING },
-    { path: '/reports', label: 'Reports', icon: FileText, page: PAGES.REPORTS },
-    { path: '/products', label: 'Products', icon: ShoppingBag, page: PAGES.PRODUCTS },
-    { path: '/branches', label: 'Branches', icon: Store, page: PAGES.BRANCHES },
-    { path: '/users', label: 'Users', icon: Users, page: PAGES.USERS },
-    { path: '/profile', label: 'Profile', icon: User, page: PAGES.PROFILE },
+    { path: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, page: PAGES.DASHBOARD },
+    { path: '/production', labelKey: 'nav.production', icon: Factory, page: PAGES.PRODUCTION },
+    { path: '/remaining', labelKey: 'nav.remaining', icon: Package, page: PAGES.REMAINING },
+    { path: '/reports', labelKey: 'nav.reports', icon: FileText, page: PAGES.REPORTS },
+    { path: '/products', labelKey: 'nav.products', icon: ShoppingBag, page: PAGES.PRODUCTS },
+    { path: '/branches', labelKey: 'nav.branches', icon: Store, page: PAGES.BRANCHES },
+    { path: '/users', labelKey: 'nav.users', icon: Users, page: PAGES.USERS },
+    { path: '/profile', labelKey: 'nav.profile', icon: User, page: PAGES.PROFILE },
   ];
 
   const navItems = allNavItems.filter(item => allowedPages.includes(item.page));
@@ -105,7 +107,7 @@ export default function MainLayout() {
             }
           >
             <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
+            <span className="font-medium">{t(item.labelKey)}</span>
           </NavLink>
         ))}
       </nav>
@@ -127,6 +129,8 @@ export default function MainLayout() {
                   key={lang.code}
                   onClick={() => {
                     setLanguage(lang.code);
+                    localStorage.setItem('language', lang.code);
+                    i18n.changeLanguage(lang.code);
                     setLangMenuOpen(false);
                   }}
                   className={`w-full px-3 py-2 text-left text-sm hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors ${
@@ -148,7 +152,7 @@ export default function MainLayout() {
           className="w-full px-4 py-2 text-[#001F3F]/70 dark:text-gray-400 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-xl transition-colors flex items-center gap-3"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
+          <span className="font-medium">{t('logout')}</span>
         </button>
       </div>
     </div>

@@ -51,6 +51,7 @@ model Role {
 model Branch {
   id       Int     @id @default(autoincrement())
   name     String  @unique
+  name_am  String?
   address  String?
   phone    String?
   isActive Boolean @default(true)
@@ -96,6 +97,7 @@ model User {
 model Product {
   id            Int             @id @default(autoincrement())
   name          String          @unique
+  name_am       String?
   category      ProductCategory
   price         Decimal         @db.Decimal(12, 2)
   unitType      UnitType
