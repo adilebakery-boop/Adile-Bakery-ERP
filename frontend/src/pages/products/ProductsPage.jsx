@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, Loader2, Search, RotateCcw, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Search, RotateCcw, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import useProducts from '../../hooks/useProducts';
 import { getUser } from '../../utils/authUtils';
 import productService from '../../services/productService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 const CATEGORIES = [
   { value: '', labelKey: 'products.allCategories' },
@@ -26,7 +28,7 @@ export default function ProductsPage() {
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
-  const { products, loading, error, fetchProducts, addProduct, editProduct, removeProduct, restoreProduct } = useProducts();
+  const { products, loading, error, pagination, fetchProducts, addProduct, editProduct, removeProduct, restoreProduct } = useProducts();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -38,17 +40,33 @@ export default function ProductsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const isInitialLoad = useRef(true);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      fetchProducts({ search: searchTerm, category: selectedCategory });
-    }, 300);
-    return () => clearTimeout(delaySearch);
+  const loadProducts = useCallback((page = 1) => {
+    fetchProducts({
+      search: searchTerm || undefined,
+      category: selectedCategory || undefined,
+      page: page,
+    });
   }, [searchTerm, selectedCategory, fetchProducts]);
+
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      loadProducts(1);
+    }
+  }, [loadProducts]);
+
+  useEffect(() => {
+    if (!isInitialLoad.current) {
+      const delaySearch = setTimeout(() => {
+        setCurrentPage(1);
+        loadProducts(1);
+      }, 300);
+      return () => clearTimeout(delaySearch);
+    }
+  }, [searchTerm, selectedCategory, loadProducts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,6 +132,22 @@ export default function ProductsPage() {
     const result = await restoreProduct(id);
     if (result.success) {
       await loadDeletedProducts();
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      loadProducts(newPage);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < pagination.totalPages) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      loadProducts(newPage);
     }
   };
 
@@ -191,14 +225,20 @@ export default function ProductsPage() {
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
+                  <td colSpan={canManage ? 5 : 4}>
+                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={canManage ? 5 : 4}>
+                    <ApiErrorState error={error} onRetry={() => loadProducts(1)} />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    {t('products.noProductsFound')}
+<td colSpan={canManage ? 5 : 4}>
+                    <EmptyState type="products" message={t('products.noProductsFound')} />
                   </td>
                 </tr>
               ) : (
@@ -228,6 +268,33 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+
+        {!loading && products.length > 0 && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} products
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                Page {currentPage} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === pagination.totalPages}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('products.addProduct')}>

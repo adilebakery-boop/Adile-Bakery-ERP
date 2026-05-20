@@ -5,6 +5,8 @@ import Modal from '../../components/Modal';
 import useBranches from '../../hooks/useBranches';
 import { getUser } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 export default function BranchesPage() {
   const { t, i18n } = useTranslation();
@@ -107,14 +109,20 @@ export default function BranchesPage() {
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
+                  <td colSpan={canManage ? 5 : 4}>
+                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={canManage ? 5 : 4}>
+                    <ApiErrorState error={error} onRetry={fetchBranches} />
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    {t('branches.noBranchesFound')}
+<td colSpan={canManage ? 5 : 4}>
+                    <EmptyState type="branches" message={t('branches.noBranchesFound')} />
                   </td>
                 </tr>
               ) : (

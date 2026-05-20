@@ -4,6 +4,7 @@ const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { calculateOperationalDate } = require('../utils/dateUtils');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
+const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -101,6 +102,13 @@ async function create(data, user) {
     throw error;
   }
 
+  const unitValidation = validateQuantityForUnitType(quantity, product.unitType);
+  if (!unitValidation.valid) {
+    const error = new Error(unitValidation.message);
+    error.status = 400;
+    throw error;
+  }
+
   const allowedCategories = getAllowedCategories(user.role);
   if (!allowedCategories.includes(product.category)) {
     const error = new Error('You do not have permission to record this product category');
@@ -157,6 +165,12 @@ async function update(id, data, user) {
   };
 
   if (data.quantity !== undefined) {
+    const unitValidation = validateQuantityForUnitType(data.quantity, existing.product.unitType);
+    if (!unitValidation.valid) {
+      const error = new Error(unitValidation.message);
+      error.status = 400;
+      throw error;
+    }
     updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 

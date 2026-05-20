@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Package, Loader2, RefreshCw, Edit2 } from 'lucide-react';
+import { Plus, Package, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, getUserId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
@@ -8,6 +8,8 @@ import productionService from '../../services/productionService';
 import productService from '../../services/productService';
 import branchService from '../../services/branchService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton, FormSkeleton } from '../../components/skeletons';
 
 const SHIFTS = [
   { value: 'DAY', labelKey: 'shifts.day' },
@@ -27,6 +29,7 @@ const CATEGORY_LABELS = {
 export default function ProductionPage() {
   const { t, i18n } = useTranslation();
   const [product, setProduct] = useState('');
+  const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [branch, setBranch] = useState('');
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -36,12 +39,15 @@ export default function ProductionPage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingBranches, setIsLoadingBranches] = useState(true);
   const [isLoadingEntries, setIsLoadingEntries] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editFormData, setEditFormData] = useState({ quantity: '', shift: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
@@ -84,6 +90,7 @@ export default function ProductionPage() {
 
   const loadProductions = async () => {
     setIsLoadingEntries(true);
+    setLoadingError(null);
     try {
       const params = {};
       if (canManageAll && branch) {
@@ -94,11 +101,29 @@ export default function ProductionPage() {
       const result = await productionService.getProductions(params);
       if (result.success && result.data) {
         setEntries(result.data || []);
+      } else {
+        setLoadingError(result);
       }
     } catch (err) {
       console.error('Error loading productions:', err);
+      setLoadingError(err.response ? err.response.data : { message: 'Failed to load productions', status: 0 });
     }
     setIsLoadingEntries(false);
+  };
+
+  const totalPages = Math.ceil(entries.length / itemsPerPage);
+  const paginatedEntries = entries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [entries.length, branch]);
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   useEffect(() => {
@@ -116,6 +141,14 @@ export default function ProductionPage() {
     if (!product || !requiredBranch || !shift || !quantity) {
       setError('All fields are required');
       return;
+    }
+
+    if (selectedProductUnitType === 'piece') {
+      const qty = parseFloat(quantity);
+      if (!Number.isInteger(qty)) {
+        setError('Quantity for piece products must be a whole number (no decimals)');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -163,6 +196,15 @@ export default function ProductionPage() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+
+    if (editingEntry?.product?.unitType === 'piece') {
+      const qty = parseFloat(editFormData.quantity);
+      if (!Number.isInteger(qty)) {
+        setError('Quantity for piece products must be a whole number (no decimals)');
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     console.log('Updating production:', editingEntry.id, { quantity: editFormData.quantity, shift: editFormData.shift });
     try {
@@ -230,7 +272,7 @@ export default function ProductionPage() {
               onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
-              step="0.01"
+              step={editingEntry?.product?.unitType === 'piece' ? '1' : '0.01'}
               min="0"
             />
           </div>
@@ -271,7 +313,12 @@ export default function ProductionPage() {
             ) : (
               <select
                 value={product}
-                onChange={(e) => setProduct(e.target.value)}
+                onChange={(e) => {
+                  setProduct(e.target.value);
+                  const selected = availableProducts.find(p => p.id === parseInt(e.target.value));
+                  setSelectedProductUnitType(selected?.unitType || null);
+                  setQuantity('');
+                }}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 disabled={isSubmitting}
@@ -279,7 +326,7 @@ export default function ProductionPage() {
                 <option value="">{t('production.selectProduct')} ({availableProducts.length})</option>
                 {availableProducts.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {getLocalizedName(p, i18n.language)} ({getCategoryLabel(p.category)})
+{getLocalizedName(p, i18n.language)} ({getCategoryLabel(p.category)}) [{p.unitType}]
                   </option>
                 ))}
               </select>
@@ -331,7 +378,7 @@ export default function ProductionPage() {
               required
               disabled={isSubmitting}
               min="0"
-              step="0.01"
+              step={selectedProductUnitType === 'piece' ? '1' : '0.01'}
             />
           </div>
 
@@ -370,9 +417,9 @@ export default function ProductionPage() {
         </div>
 
         {isLoadingEntries ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-          </div>
+          <TableSkeleton rows={10} columns={canManageAll ? 6 : 4} />
+        ) : loadingError ? (
+          <ApiErrorState error={loadingError} onRetry={loadProductions} />
         ) : entries.length > 0 ? (
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
@@ -389,8 +436,8 @@ export default function ProductionPage() {
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-{entries.map((entry) => (
+<tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+              {paginatedEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
@@ -427,11 +474,33 @@ export default function ProductionPage() {
             </tbody>
           </table>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 bg-[#F9F7F2] rounded-full flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-gray-400" />
+          <EmptyState type="production" message="No production records yet" />
+        )}
+
+        {!isLoadingEntries && entries.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, entries.length)} of {entries.length} production records
             </div>
-            <p className="text-gray-400 text-sm">{t('production.noEntriesYet')}</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
 import userService from '../../services/userService';
@@ -72,6 +72,8 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ name: '', username: '', password: '', role: '', branchId: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadUsers();
@@ -196,6 +198,21 @@ export default function UsersPage() {
     }
   };
 
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const paginatedUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [users.length]);
+
   const isAdminOrManagerRole = (roleName) => {
     return roleName === 'ADMIN' || roleName === 'MANAGER';
   };
@@ -241,7 +258,7 @@ export default function UsersPage() {
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">{t('users.noUsersFound')}</td>
                 </tr>
               ) : (
-                users.map((user) => (
+                paginatedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
                     <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{user.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
@@ -287,6 +304,33 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+
+        {!loading && users.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, users.length)} of {users.length} users
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add User">

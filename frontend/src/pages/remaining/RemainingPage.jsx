@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import remainingService from '../../services/remainingService';
 import productService from '../../services/productService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
+import branchService from '../../services/branchService';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 const CATEGORY_LABELS = {
   [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
@@ -31,16 +34,43 @@ export default function RemainingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [unsaved, setUnsaved] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(null);
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
   const operationalDate = getOperationalDate();
+  const canManageAll = isManagerOrAdmin();
+
+  const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
 
   useEffect(() => {
     loadProducts();
     loadRemainings();
-  }, [userRole, userBranchId, operationalDate]);
+    if (canManageAll) {
+      loadBranches();
+    }
+  }, [userRole, userBranchId, operationalDate, canManageAll, selectedBranchId]);
+
+  const loadBranches = async () => {
+    try {
+      const result = await branchService.getActiveBranches();
+      if (result.success && result.data) {
+        setBranches(result.data);
+        if (!selectedBranchId && result.data.length > 0) {
+          setSelectedBranchId(result.data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading branches:', err);
+    }
+  };
+
+  const handleBranchChange = (e) => {
+    const branchId = parseInt(e.target.value);
+    setSelectedBranchId(branchId);
+  };
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -57,9 +87,13 @@ export default function RemainingPage() {
   };
 
   const loadRemainings = async () => {
+    if (!effectiveBranchId) {
+      setLoadingRemainings(false);
+      return;
+    }
     setLoadingRemainings(true);
     try {
-      const res = await remainingService.getByOperationalDate(operationalDate, { branchId: userBranchId });
+      const res = await remainingService.getByOperationalDate(operationalDate, { branchId: effectiveBranchId });
       if (res.success) {
         const map = {};
         (res.data || []).forEach(r => {
@@ -76,7 +110,19 @@ export default function RemainingPage() {
     setLoadingRemainings(false);
   };
 
+  const getProductUnitType = (productId) => {
+    const product = products.find(p => p.id === productId);
+    return product?.unitType || 'kg';
+  };
+
   const handleQuantityChange = (productId, value) => {
+    const unitType = getProductUnitType(productId);
+    if (unitType === 'piece' && value !== '') {
+      const qty = parseFloat(value);
+      if (!Number.isInteger(qty)) {
+        return;
+      }
+    }
     setUnsaved(true);
     const existing = existingRemainings[productId];
     setExistingRemainings(prev => ({
@@ -107,12 +153,27 @@ export default function RemainingPage() {
     setError('');
     setSuccess('');
 
+    for (const r of Object.values(existingRemainings)) {
+      if (r.remainingQuantity !== null && r.remainingQuantity !== undefined) {
+        const unitType = getProductUnitType(r.productId);
+        if (unitType === 'piece') {
+          const qty = parseFloat(r.remainingQuantity);
+          if (!Number.isInteger(qty)) {
+            const product = products.find(p => p.id === r.productId);
+            setError(`Quantity for "${product?.name}" must be a whole number (no decimals)`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+    }
+
     const items = Object.values(existingRemainings)
       .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined)
       .map(r => ({
         productId: r.productId,
         remainingQuantity: r.remainingQuantity,
-        status: r.status === 'FINAL' ? 'FINAL' : 'DRAFT',
+        status: r._dirty ? 'DRAFT' : r.status,
       }));
 
     if (items.length === 0) {
@@ -121,8 +182,14 @@ export default function RemainingPage() {
       return;
     }
 
+    if (!effectiveBranchId) {
+      setError('Please select a branch');
+      setSaving(false);
+      return;
+    }
+
     const result = await remainingService.saveBulk({
-      branchId: userBranchId,
+      branchId: effectiveBranchId,
       operationalDate,
       items,
     });
@@ -158,8 +225,14 @@ export default function RemainingPage() {
       return;
     }
 
+    if (!effectiveBranchId) {
+      setError('Please select a branch');
+      setSaving(false);
+      return;
+    }
+
     const result = await remainingService.saveBulk({
-      branchId: userBranchId,
+      branchId: effectiveBranchId,
       operationalDate,
       items,
     });
@@ -182,9 +255,7 @@ export default function RemainingPage() {
     return acc;
   }, {});
 
-  const hasAnyRemainings = Object.keys(existingRemainings).length > 0;
-  const hasFinal = Object.values(existingRemainings).some(r => r.status === 'FINAL');
-  const hasDraft = Object.values(existingRemainings).some(r => r.status === 'DRAFT');
+  const hasUnfinalizedChanges = Object.values(existingRemainings).some(r => r._dirty === true || r.status === 'DRAFT');
 
   return (
     <div className="pb-28">
@@ -194,6 +265,29 @@ export default function RemainingPage() {
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
         </div>
         <div className="flex items-center gap-3">
+          {canManageAll && (
+            <div className="flex items-center gap-2 bg-[#F9F7F2] dark:bg-[#0f0f1a] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <select
+                value={selectedBranchId || ''}
+                onChange={handleBranchChange}
+                className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+              >
+                <option value="">Select Branch</option>
+                {branches.map(branch => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {!canManageAll && (
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <Building2 className="w-4 h-4" />
+              Branch: {userBranchId || 'N/A'}
+            </span>
+          )}
           {unsaved && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
@@ -263,7 +357,7 @@ export default function RemainingPage() {
                         {status}
                       </div>
                     )}
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
+<p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
@@ -271,7 +365,7 @@ export default function RemainingPage() {
                       className="w-full px-4 py-4 bg-[#F9F7F2] dark:bg-[#0f0f1a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F] dark:text-white"
                       placeholder="0"
                       min="0"
-                      step="0.01"
+                      step={p.unitType === 'piece' ? '1' : '0.01'}
                     />
                   </div>
                 );
@@ -283,7 +377,7 @@ export default function RemainingPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a2e] border-t border-[#E5E1D8] dark:border-[#2d2d4a] p-4 lg:left-72 z-10">
         <div className="max-w-7xl mx-auto flex justify-end gap-3">
-          {!hasFinal && hasAnyRemainings && (
+          {hasUnfinalizedChanges && (
             <button
               onClick={handleFinalize}
               disabled={saving}
