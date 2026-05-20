@@ -3,6 +3,8 @@ import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import useBranches from '../../hooks/useBranches';
 import { getUser } from '../../utils/authUtils';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 export default function BranchesPage() {
   const user = getUser();
@@ -103,14 +105,20 @@ export default function BranchesPage() {
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
+                  <td colSpan={canManage ? 5 : 4}>
+                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={canManage ? 5 : 4}>
+                    <ApiErrorState error={error} onRetry={fetchBranches} />
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    No branches found
+                  <td colSpan={canManage ? 5 : 4}>
+                    <EmptyState type="branches" message="No branches found" />
                   </td>
                 </tr>
               ) : (
