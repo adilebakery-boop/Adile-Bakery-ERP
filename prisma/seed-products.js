@@ -21,6 +21,8 @@ const PRODUCTS = [
 
   { name: 'Drinks 1', category: 'DRINKS_AND_RETAIL_ITEMS', price: 200, unitType: 'piece' },
   { name: 'Drinks 2', category: 'DRINKS_AND_RETAIL_ITEMS', price: 300, unitType: 'piece' },
+  { name: 'Soft Drink - Cola', category: 'DRINKS_AND_RETAIL_ITEMS', price: 50, unitType: 'piece' },
+  { name: 'Soft Drink - Lemon', category: 'DRINKS_AND_RETAIL_ITEMS', price: 50, unitType: 'piece' },
 ];
 
 async function main() {

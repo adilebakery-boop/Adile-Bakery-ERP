@@ -1,0 +1,13 @@
+{
+  "agents": {
+    "coder": {
+      "model": "qwen/qwen3.6-plus:free",
+      "maxTokens": 6000
+    },
+    "task": {
+      "model": "deepseek/deepseek-v4-flash:free",
+      "maxTokens": 4000
+    }
+  },
+  "autoCompact": true
+}
