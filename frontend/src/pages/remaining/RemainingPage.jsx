@@ -103,7 +103,19 @@ export default function RemainingPage() {
     setLoadingRemainings(false);
   };
 
+  const getProductUnitType = (productId) => {
+    const product = products.find(p => p.id === productId);
+    return product?.unitType || 'kg';
+  };
+
   const handleQuantityChange = (productId, value) => {
+    const unitType = getProductUnitType(productId);
+    if (unitType === 'piece' && value !== '') {
+      const qty = parseFloat(value);
+      if (!Number.isInteger(qty)) {
+        return;
+      }
+    }
     setUnsaved(true);
     const existing = existingRemainings[productId];
     setExistingRemainings(prev => ({
@@ -134,12 +146,27 @@ export default function RemainingPage() {
     setError('');
     setSuccess('');
 
+    for (const r of Object.values(existingRemainings)) {
+      if (r.remainingQuantity !== null && r.remainingQuantity !== undefined) {
+        const unitType = getProductUnitType(r.productId);
+        if (unitType === 'piece') {
+          const qty = parseFloat(r.remainingQuantity);
+          if (!Number.isInteger(qty)) {
+            const product = products.find(p => p.id === r.productId);
+            setError(`Quantity for "${product?.name}" must be a whole number (no decimals)`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+    }
+
     const items = Object.values(existingRemainings)
       .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined)
       .map(r => ({
         productId: r.productId,
         remainingQuantity: r.remainingQuantity,
-        status: r.status === 'FINAL' ? 'FINAL' : 'DRAFT',
+        status: r._dirty ? 'DRAFT' : r.status,
       }));
 
     if (items.length === 0) {
@@ -221,9 +248,7 @@ export default function RemainingPage() {
     return acc;
   }, {});
 
-  const hasAnyRemainings = Object.keys(existingRemainings).length > 0;
-  const hasFinal = Object.values(existingRemainings).some(r => r.status === 'FINAL');
-  const hasDraft = Object.values(existingRemainings).some(r => r.status === 'DRAFT');
+  const hasUnfinalizedChanges = Object.values(existingRemainings).some(r => r._dirty === true || r.status === 'DRAFT');
 
   return (
     <div className="pb-28">
@@ -325,7 +350,7 @@ export default function RemainingPage() {
                         {status}
                       </div>
                     )}
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{p.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{p.name} [{p.unitType}]</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
@@ -333,7 +358,7 @@ export default function RemainingPage() {
                       className="w-full px-4 py-4 bg-[#F9F7F2] dark:bg-[#0f0f1a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F] dark:text-white"
                       placeholder="0"
                       min="0"
-                      step="0.01"
+                      step={p.unitType === 'piece' ? '1' : '0.01'}
                     />
                   </div>
                 );
@@ -345,7 +370,7 @@ export default function RemainingPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a2e] border-t border-[#E5E1D8] dark:border-[#2d2d4a] p-4 lg:left-72 z-10">
         <div className="max-w-7xl mx-auto flex justify-end gap-3">
-          {!hasFinal && hasAnyRemainings && (
+          {hasUnfinalizedChanges && (
             <button
               onClick={handleFinalize}
               disabled={saving}

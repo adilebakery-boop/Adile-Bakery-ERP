@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
+const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -74,6 +75,13 @@ async function create(data, userId) {
     throw error;
   }
 
+  const unitValidation = validateQuantityForUnitType(quantity, product.unitType);
+  if (!unitValidation.valid) {
+    const error = new Error(unitValidation.message);
+    error.status = 400;
+    throw error;
+  }
+
   const opDate = new Date(operationalDate);
 
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
@@ -107,6 +115,12 @@ async function update(id, data, userId) {
   const updateData = {};
 
   if (data.quantity !== undefined) {
+    const updateUnitValidation = validateQuantityForUnitType(data.quantity, existing.product.unitType);
+    if (!updateUnitValidation.valid) {
+      const error = new Error(updateUnitValidation.message);
+      error.status = 400;
+      throw error;
+    }
     updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 
