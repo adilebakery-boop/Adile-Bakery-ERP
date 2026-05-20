@@ -1,12 +1,41 @@
 import axios from 'axios';
 
+const DEFAULT_TIMEOUT = 30000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000;
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  timeout: 30000,
+  timeout: DEFAULT_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const retryableStatuses = [408, 429, 500, 502, 503, 504];
+
+const shouldRetry = (error) => {
+  if (!error.config) return false;
+  if (error.config.__retryCount >= MAX_RETRIES) return false;
+  if (error.response) {
+    return retryableStatuses.includes(error.response.status);
+  }
+  if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
+    return true;
+  }
+  return false;
+};
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const retryRequest = async (error) => {
+  const config = error.config;
+  config.__retryCount = config.__retryCount || 0;
+  config.__retryCount += 1;
+  
+  await delay(RETRY_DELAY * config.__retryCount);
+  return api(config);
+};
 
 api.interceptors.request.use(
   (config) => {
@@ -14,6 +43,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.__retryCount = 0;
     return config;
   },
   (error) => Promise.reject(error)
@@ -21,12 +51,21 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    if (shouldRetry(error)) {
+      try {
+        return await retryRequest(error);
+      } catch (retryError) {
+        return Promise.reject(retryError);
+      }
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
     if (error.response?.status === 403) {
       const message = error.response?.data?.message || '';
@@ -42,21 +81,47 @@ api.interceptors.response.use(
   }
 );
 
+const ERROR_MESSAGES = {
+  0: 'Network error. Please check your connection.',
+  400: 'Invalid request. Please check your input.',
+  401: 'Your session has expired. Please log in again.',
+  403: 'You do not have permission to perform this action.',
+  404: 'The requested resource was not found.',
+  422: 'Validation failed. Please check your input.',
+  429: 'Too many requests. Please wait a moment.',
+  500: 'Server error. Please try again later.',
+  502: 'Service temporarily unavailable.',
+  503: 'Service temporarily unavailable.',
+  504: 'Request timed out. Please try again.',
+};
+
 export const handleApiError = (error) => {
   if (error.response) {
+    const status = error.response.status;
     return {
       success: false,
-      message: error.response.data?.message || 'Server error occurred',
+      message: error.response.data?.message || ERROR_MESSAGES[status] || 'An error occurred',
       errors: error.response.data?.errors || [],
-      status: error.response.status,
+      status,
+      retryable: [408, 429, 500, 502, 503, 504].includes(status),
     };
   }
   if (error.request) {
+    if (error.code === 'ECONNABORTED') {
+      return {
+        success: false,
+        message: 'Request timed out. Please try again.',
+        errors: [],
+        status: 0,
+        retryable: true,
+      };
+    }
     return {
       success: false,
       message: 'Network error. Please check your connection.',
       errors: [],
       status: 0,
+      retryable: true,
     };
   }
   return {
@@ -64,7 +129,32 @@ export const handleApiError = (error) => {
     message: error.message || 'An unexpected error occurred',
     errors: [],
     status: 0,
+    retryable: false,
   };
+};
+
+export const createApiInstance = (options = {}) => {
+  return axios.create({
+    baseURL: options.baseURL || api.defaults.baseURL,
+    timeout: options.timeout || DEFAULT_TIMEOUT,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+export const isNetworkError = (error) => {
+  return !error.response && error.request;
+};
+
+export const isAuthError = (error) => {
+  return error.response?.status === 401 || error.response?.status === 403;
+};
+
+export const isRetryableError = (error) => {
+  if (!error.response) return true;
+  return [408, 429, 500, 502, 503, 504].includes(error.response.status);
 };
 
 export default api;

@@ -16,6 +16,8 @@ const MONTH_NAMES = {
   May: 'ግንቦት', June: 'ሰኔ', July: 'ሐምሌ', August: 'ነሐሴ',
   September: 'መስከረም', October: 'ጥቅምት', November: 'ኅዳር', December: 'ታኅሣሥ'
 };
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 export default function ReportsPage() {
   const { t, i18n } = useTranslation();

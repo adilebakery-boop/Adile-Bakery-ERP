@@ -1,4 +1,5 @@
 const z = require('zod');
+const { validateQuantityForUnitType } = require('../../utils/unitTypeValidation');
 
 const shifts = ['DAY', 'NIGHT'];
 
@@ -18,6 +19,15 @@ const updateProductionSchema = z.object({
     .optional(),
   shift: z.enum(shifts, { errorMap: () => ({ message: 'Invalid shift' }) }).optional(),
 });
+
+function validateProductionQuantity(quantity, unitType) {
+  const validation = validateQuantityForUnitType(quantity, unitType);
+  if (!validation.valid) {
+    const error = new Error(validation.message);
+    error.name = 'ValidationError';
+    throw error;
+  }
+}
 
 const productionIdSchema = z.object({
   id: z.coerce.number().int('Production ID must be an integer').positive('Production ID must be positive'),
@@ -42,4 +52,5 @@ module.exports = {
   productionIdSchema,
   querySchema,
   shifts,
+  validateProductionQuantity,
 };
