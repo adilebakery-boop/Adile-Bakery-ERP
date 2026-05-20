@@ -15,6 +15,7 @@ const productService = {
     return prisma.product.create({
       data: {
         name: data.name,
+        name_am: data.name_am || null,
         category: data.category,
         price: data.price,
         unitType: data.unitType,
@@ -103,6 +104,7 @@ const productService = {
       where: { id },
       data: {
         name: data.name,
+        name_am: data.name_am !== undefined ? (data.name_am || null) : undefined,
         category: data.category,
         price: data.price,
         unitType: data.unitType,
