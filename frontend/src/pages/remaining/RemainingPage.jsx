@@ -53,6 +53,28 @@ export default function RemainingPage() {
     }
   }, [userRole, userBranchId, operationalDate, canManageAll, selectedBranchId]);
 
+  useEffect(() => {
+    if (products.length > 0 && Object.keys(existingRemainings).length > 0) {
+      setExistingRemainings(prev => {
+        let changed = false;
+        const sanitized = {};
+        for (const [productId, r] of Object.entries(prev)) {
+          const product = products.find(p => p.id === Number(productId));
+          let qty = r.remainingQuantity;
+          if (product?.unitType === 'piece' && qty !== null && qty !== undefined) {
+            const numQty = Number(qty);
+            if (!Number.isInteger(numQty)) {
+              qty = Math.round(numQty);
+              changed = true;
+            }
+          }
+          sanitized[productId] = { ...r, remainingQuantity: qty };
+        }
+        return changed ? sanitized : prev;
+      });
+    }
+  }, [products]);
+
   const loadBranches = async () => {
     try {
       const result = await branchService.getActiveBranches();
@@ -97,9 +119,14 @@ export default function RemainingPage() {
       if (res.success) {
         const map = {};
         (res.data || []).forEach(r => {
+          const product = products.find(p => p.id === r.productId);
+          let qty = r.quantity;
+          if (product?.unitType === 'piece') {
+            qty = Math.round(Number(qty));
+          }
           map[r.productId] = {
             ...r,
-            remainingQuantity: r.quantity,
+            remainingQuantity: qty,
           };
         });
         setExistingRemainings(map);
@@ -210,6 +237,21 @@ export default function RemainingPage() {
     setSaving(true);
     setError('');
     setSuccess('');
+
+    for (const r of Object.values(existingRemainings)) {
+      if (r.remainingQuantity !== null && r.remainingQuantity !== undefined) {
+        const unitType = getProductUnitType(r.productId);
+        if (unitType === 'piece') {
+          const qty = parseFloat(r.remainingQuantity);
+          if (!Number.isInteger(qty)) {
+            const product = products.find(p => p.id === r.productId);
+            setError(`Quantity for "${product?.name}" must be a whole number (no decimals)`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+    }
 
     const items = Object.values(existingRemainings)
       .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined)

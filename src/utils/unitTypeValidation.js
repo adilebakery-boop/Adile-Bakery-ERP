@@ -1,5 +1,6 @@
 function isInteger(value) {
-  return Number.isInteger(Number(value));
+  const num = Number(value);
+  return Math.abs(num - Math.round(num)) < 1e-9;
 }
 
 function isDecimalAllowed(unitType) {
