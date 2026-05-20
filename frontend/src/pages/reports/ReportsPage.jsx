@@ -1,11 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import reportService from '../../services/reportService';
 import branchService from '../../services/branchService';
 import productService from '../../services/productService';
+import { getLocalizedName, PRODUCT_NAMES, BRANCH_NAMES } from '../../utils/getLocalizedName';
+
+const DAY_NAMES = {
+  Monday: 'ሰኞ', Tuesday: 'ማክሰኞ', Wednesday: 'ረቡዕ', Thursday: 'ሐሙስ',
+  Friday: 'ዓርብ', Saturday: 'ቅዳሜ', Sunday: 'እሑድ'
+};
+const MONTH_NAMES = {
+  January: 'ጥር', February: 'የካቲት', March: 'መጋቢት', April: 'ሚያዝያ',
+  May: 'ግንቦት', June: 'ሰኔ', July: 'ሐምሌ', August: 'ነሐሴ',
+  September: 'መስከረም', October: 'ጥቅምት', November: 'ኅዳር', December: 'ታኅሣሥ'
+};
 
 export default function ReportsPage() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('daily');
   const [date, setDate] = useState(getOperationalDate());
   const [branchId, setBranchId] = useState('');
@@ -22,6 +35,26 @@ export default function ReportsPage() {
   const itemsPerPage = 10;
 
   const canManageAll = isManagerOrAdmin();
+
+  const getProductNameDisplay = (product) => {
+    if (!product) return '';
+    const name = product.productName || product.name || '';
+    if (i18n.language === 'am' && name && PRODUCT_NAMES[name]) {
+      return PRODUCT_NAMES[name];
+    }
+    if (i18n.language === 'am' && (product.name_am || product.productNameAm)) {
+      return product.name_am || product.productNameAm;
+    }
+    return name;
+  };
+
+  const getBranchNameDisplay = (branchName) => {
+    if (!branchName) return '-';
+    if (i18n.language === 'am' && BRANCH_NAMES[branchName]) {
+      return BRANCH_NAMES[branchName];
+    }
+    return branchName;
+  };
 
   useEffect(() => {
     setDate(getOperationalDate());
@@ -210,10 +243,10 @@ export default function ReportsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Reports</h1>
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('reports.title')}</h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - {formatOperationalDate(date)}
-            {branchId ? ` — ${branches.find(b => b.id.toString() === branchId)?.name || ''}` : ''}
+            {branchId ? ` — ${getLocalizedName(branches.find(b => b.id.toString() === branchId), i18n.language) || ''}` : ''}
           </p>
         </div>
         <button
@@ -244,7 +277,7 @@ export default function ReportsPage() {
                       activeTab === tab ? 'bg-white dark:bg-[#1a1a2e] text-[#001F3F] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                     }`}
                   >
-                    {tab}
+                    {t(`reports.${tab}`)}
                   </button>
                 ))}
               </div>
@@ -267,12 +300,12 @@ export default function ReportsPage() {
                     onChange={(e) => setBranchId(e.target.value)}
                     className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
                   >
-                    <option value="">All Branches</option>
+                    <option value="">{t('reports.allBranches')}</option>
                     {(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
-                      <option value="comparison">Comparison Mode</option>
+                      <option value="comparison">{t('reports.comparisonMode')}</option>
                     )}
                     {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
+                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
@@ -285,9 +318,9 @@ export default function ReportsPage() {
                   onChange={(e) => handleCategoryChange(e.target.value)}
                   className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
                 >
-                  <option value="">All Categories</option>
+                  <option value="">{t('reports.allCategories')}</option>
                   {categories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    <option key={cat.value} value={cat.value}>{t(`productCategories.${cat.value}`)}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -303,7 +336,7 @@ export default function ReportsPage() {
                   >
                     <option value="">All Products</option>
                     {productList.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
+                      <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -332,27 +365,25 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead className="bg-[#F9F7F2]/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Product</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Category</th>
-                        {canManageAll && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Branch</th>}
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Opening</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Day Prod.</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Night Prod.</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Sellable</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Remaining</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Waste</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Est. Sold</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Revenue</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.product')}</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.category')}</th>
+                        {canManageAll && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.branch')}</th>}
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.opening')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.dayProd')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.nightProd')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.sellable')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.waste')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.estSold')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.revenue')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
                       {paginatedProducts.map((p, idx) => (
                         <tr key={idx} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
-                          <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{p.productName}</td>
-                          <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{p.category}</td>
-                          {canManageAll && <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">
-                            {p.branchName || '-'}
-                          </td>}
+                          <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{getProductNameDisplay(p)}</td>
+                          <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{t(`productCategories.${p.category}`)}</td>
+                          {canManageAll && <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.dayProduction || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
@@ -372,7 +403,7 @@ export default function ReportsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, products.length)} of {products.length} products
+                      {t('reports.showingProducts', { start: ((currentPage - 1) * itemsPerPage) + 1, end: Math.min(currentPage * itemsPerPage, products.length), total: products.length })}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -383,7 +414,7 @@ export default function ReportsPage() {
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
-                        Page {currentPage} of {totalPages}
+                        {t('reports.pageOf', { current: currentPage, total: totalPages })}
                       </span>
                       <button
                         onClick={goToNextPage}
@@ -398,30 +429,30 @@ export default function ReportsPage() {
 
                 <div className="bg-[#D2B48C] p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-sm font-semibold text-[#001F3F] uppercase tracking-wider">Total Summary:</span>
+                    <span className="text-sm font-semibold text-[#001F3F] uppercase tracking-wider">{t('reports.totalSummary')}</span>
                     <div className="flex flex-wrap gap-6 lg:gap-10">
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Day Production</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.dayProduction')}</p>
                         <p className="text-xl font-bold text-[#001F3F]">{totals.totalDayProduction || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Night Production</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.nightProduction')}</p>
                         <p className="text-xl font-bold text-[#001F3F]">{totals.totalNightProduction || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Remaining</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold text-[#001F3F]">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Waste</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.waste')}</p>
                         <p className="text-xl font-bold text-[#001F3F]">{totals.totalWaste || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Est. Sold</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold text-[#001F3F]">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#001F3F]/60">Revenue</p>
+                        <p className="text-xs text-[#001F3F]/60">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold text-[#001F3F]">
                           {totals.totalRevenue ? `${totals.totalRevenue.toLocaleString()} ETB` : '-'}
                         </p>
@@ -438,28 +469,28 @@ export default function ReportsPage() {
                   {days.map((day, idx) => (
                     <div key={idx} className="bg-[#F9F7F2] rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-[#001F3F]">{day.dayName || `Day ${idx + 1}`}</span>
+                        <span className="text-sm font-semibold text-[#001F3F]">{i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`}</span>
                         <span className="text-xs text-gray-400">{day.date || '-'}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Day Production</span>
+                          <span className="text-gray-500">{t('reports.dayProduction')}</span>
                           <span className="font-medium text-gray-700">{day.totals?.totalDayProduction || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Night Production</span>
+                          <span className="text-gray-500">{t('reports.nightProduction')}</span>
                           <span className="font-medium text-gray-700">{day.totals?.totalNightProduction || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Remaining</span>
+                          <span className="text-gray-500">{t('reports.remaining')}</span>
                           <span className="font-medium text-gray-700">{day.totals?.totalRemainingStock || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Est. Sold</span>
+                          <span className="text-gray-500">{t('reports.estSold')}</span>
                           <span className="font-medium text-[#001F3F]">{day.totals?.totalEstimatedSold || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Revenue</span>
+                          <span className="text-gray-500">{t('reports.revenue')}</span>
                           <span className="font-semibold text-[#D2B48C]">
                             {day.totals?.totalEstimatedRevenue ? `${day.totals.totalEstimatedRevenue.toLocaleString()}` : '0'} ETB
                           </span>
@@ -471,24 +502,24 @@ export default function ReportsPage() {
 
                 <div className="bg-[#001F3F] rounded-xl p-6 text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-sm font-semibold uppercase tracking-wider">Weekly Totals:</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.weeklyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-white/60">Production</p>
+                        <p className="text-xs text-white/60">{t('reports.production')}</p>
                         <p className="text-xl font-bold">
                           {(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Remaining</p>
+                        <p className="text-xs text-white/60">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Est. Sold</p>
+                        <p className="text-xs text-white/60">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Revenue</p>
+                        <p className="text-xs text-white/60">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">
                           {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
@@ -505,12 +536,12 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead className="bg-[#F9F7F2]/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Week</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Production</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Remaining</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Waste</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Est. Sold</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Revenue</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.week')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.production')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.waste')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.estSold')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.revenue')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E1D8]">
@@ -519,7 +550,7 @@ export default function ReportsPage() {
                         return (
                           <tr key={idx} className="hover:bg-[#F9F7F2]">
                             <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">
-                              Week {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
+                              {t('reports.week')} {idx + 1} <span className="text-gray-400 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
                             </td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">
                               {(wTotals.totalDayProduction || 0) + (wTotals.totalNightProduction || 0)}
@@ -539,24 +570,24 @@ export default function ReportsPage() {
 
                 <div className="bg-[#001F3F] rounded-xl p-6 text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-sm font-semibold uppercase tracking-wider">Monthly Totals:</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.monthlyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-white/60">Production</p>
+                        <p className="text-xs text-white/60">{t('reports.production')}</p>
                         <p className="text-xl font-bold">
                           {(totals.totalDayProduction || 0)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Remaining</p>
+                        <p className="text-xs text-white/60">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Est. Sold</p>
+                        <p className="text-xs text-white/60">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Revenue</p>
+                        <p className="text-xs text-white/60">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">
                           {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
                         </p>
@@ -573,13 +604,13 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead className="bg-[#F9F7F2]/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">Month</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Production</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Sellable</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Remaining</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Waste</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Est. Sold</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">Revenue</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.month')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.production')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.sellable')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.waste')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.estSold')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t('reports.revenue')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E1D8]">
@@ -588,7 +619,7 @@ export default function ReportsPage() {
                         const production = (mTotals.totalDayProduction || 0) + (mTotals.totalNightProduction || 0);
                         return (
                           <tr key={idx} className="hover:bg-[#F9F7F2]">
-                            <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{month.monthName}</td>
+                            <td className="px-6 py-4 text-sm font-semibold text-[#001F3F]">{i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName}</td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">{production.toLocaleString()}</td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">{(mTotals.totalSellableStock || 0).toLocaleString()}</td>
                             <td className="px-6 py-4 text-sm text-right text-gray-600">{(mTotals.totalRemainingStock || 0).toLocaleString()}</td>
@@ -606,32 +637,32 @@ export default function ReportsPage() {
 
                 <div className="bg-[#001F3F] rounded-xl p-6 text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-sm font-semibold uppercase tracking-wider">Yearly Totals:</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.yearlyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-white/60">Production</p>
+                        <p className="text-xs text-white/60">{t('reports.production')}</p>
                         <p className="text-xl font-bold">
                           {((totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)).toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Sellable</p>
+                        <p className="text-xs text-white/60">{t('reports.sellable')}</p>
                         <p className="text-xl font-bold">{(totals.totalSellableStock || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Remaining</p>
+                        <p className="text-xs text-white/60">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{(totals.totalRemainingStock || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Waste</p>
+                        <p className="text-xs text-white/60">{t('reports.waste')}</p>
                         <p className="text-xl font-bold">{(totals.totalWasteQuantity || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Est. Sold</p>
+                        <p className="text-xs text-white/60">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{(totals.totalEstimatedSold || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60">Revenue</p>
+                        <p className="text-xs text-white/60">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">
                           {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
                         </p>

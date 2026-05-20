@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Package, Loader2, RefreshCw, Edit2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, getUserId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
@@ -6,23 +7,25 @@ import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import productionService from '../../services/productionService';
 import productService from '../../services/productService';
 import branchService from '../../services/branchService';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 
 const SHIFTS = [
-  { value: 'DAY', label: 'Day 7:30-7:30' },
-  { value: 'NIGHT', label: 'Night 9:00-12:30' },
+  { value: 'DAY', labelKey: 'shifts.day' },
+  { value: 'NIGHT', labelKey: 'shifts.night' },
 ];
 
 const CATEGORY_LABELS = {
-  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
-  [CATEGORIES.CREAM_CAKES]: 'Cream Cakes',
-  [CATEGORIES.SOFT_CAKES]: 'Soft Cakes',
-  [CATEGORIES.DRY_CAKES]: 'Dry Cakes',
-  [CATEGORIES.COOKIES]: 'Cookies',
-  [CATEGORIES.FETIRE_AND_SNACKS]: 'Fetire & Snacks',
-  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'Drinks & Retail',
+  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
+  [CATEGORIES.CREAM_CAKES]: 'productCategories.CREAM_CAKES',
+  [CATEGORIES.SOFT_CAKES]: 'productCategories.SOFT_CAKES',
+  [CATEGORIES.DRY_CAKES]: 'productCategories.DRY_CAKES',
+  [CATEGORIES.COOKIES]: 'productCategories.COOKIES',
+  [CATEGORIES.FETIRE_AND_SNACKS]: 'productCategories.FETIRE_AND_SNACKS',
+  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'productCategories.DRINKS_AND_RETAIL_ITEMS',
 };
 
 export default function ProductionPage() {
+  const { t, i18n } = useTranslation();
   const [product, setProduct] = useState('');
   const [branch, setBranch] = useState('');
   const [shift, setShift] = useState('');
@@ -139,11 +142,12 @@ export default function ProductionPage() {
   };
 
   const getShiftLabel = (shiftValue) => {
-    return SHIFTS.find(s => s.value === shiftValue)?.label || shiftValue;
+    const shift = SHIFTS.find(s => s.value === shiftValue);
+    return shift ? t(shift.labelKey) : shiftValue;
   };
 
   const getCategoryLabel = (category) => {
-    return CATEGORY_LABELS[category] || category;
+    return t(`productCategories.${category}`) || category;
   };
 
   const handleEditClick = (entry) => {
@@ -190,15 +194,15 @@ export default function ProductionPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Production</h1>
-          <p className="text-sm text-gray-400 mt-1">Operational Date: {formatOperationalDate(operationalDate)}</p>
+          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('production.title')}</h1>
+          <p className="text-sm text-gray-400 mt-1">{t('production.operationalDateLabel')} {formatOperationalDate(operationalDate)}</p>
 </div>
       </div>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Production">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('production.editProduction')}>
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Product</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
             <input 
               type="text" 
               value={editingEntry?.product?.name || ''} 
@@ -207,19 +211,19 @@ export default function ProductionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Shift</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
             <select 
               value={editFormData.shift} 
               onChange={(e) => setEditFormData({ ...editFormData, shift: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
             >
-              <option value="">Select shift</option>
-              {SHIFTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              <option value="">{t('production.selectShift')}</option>
+              {SHIFTS.map((s) => <option key={s.value} value={s.value}>{t(s.labelKey)}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Quantity</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
             <input 
               type="number" 
               value={editFormData.quantity} 
@@ -236,14 +240,14 @@ export default function ProductionPage() {
               onClick={() => setIsEditModalOpen(false)}
               className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button 
               type="submit" 
               disabled={isSubmitting}
               className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
             >
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isSubmitting ? t('production.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -258,11 +262,11 @@ export default function ProductionPage() {
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Product</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
             {isLoadingProducts ? (
               <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-xl">
                 <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-500" />
-                <span className="text-sm text-gray-400 dark:text-gray-500">Loading...</span>
+                <span className="text-sm text-gray-400 dark:text-gray-500">{t('common.loading')}</span>
               </div>
             ) : (
               <select
@@ -272,10 +276,10 @@ export default function ProductionPage() {
                 required
                 disabled={isSubmitting}
               >
-                <option value="">Select product ({availableProducts.length})</option>
+                <option value="">{t('production.selectProduct')} ({availableProducts.length})</option>
                 {availableProducts.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({getCategoryLabel(p.category)})
+                    {getLocalizedName(p, i18n.language)} ({getCategoryLabel(p.category)})
                   </option>
                 ))}
               </select>
@@ -284,7 +288,7 @@ export default function ProductionPage() {
 
           {canManageAll && (
             <div className="flex-1 min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Branch</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.branch')}</label>
               <select
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
@@ -292,16 +296,16 @@ export default function ProductionPage() {
                 required
                 disabled={isSubmitting}
               >
-                <option value="">Select branch</option>
+                <option value="">{t('production.selectBranch')}</option>
                 {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                  <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
                 ))}
               </select>
             </div>
           )}
 
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Shift</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
@@ -309,15 +313,15 @@ export default function ProductionPage() {
               required
               disabled={isSubmitting}
             >
-              <option value="">Select shift</option>
+              <option value="">{t('production.selectShift')}</option>
               {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
               ))}
             </select>
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Quantity</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
             <input
               type="number"
               value={quantity}
@@ -339,12 +343,12 @@ export default function ProductionPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Recording...
+                {t('production.recording')}
               </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                Record Production
+                {t('production.recordProduction')}
               </>
             )}
           </button>
@@ -354,12 +358,12 @@ export default function ProductionPage() {
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center justify-between">
           <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
-            {canManageAll ? 'All Production Records' : "Today's Entries"}
+            {canManageAll ? t('production.allProductionRecords') : t('production.todaysEntries')}
           </h2>
           <button
             onClick={() => loadProductions()}
             className="p-2 hover:bg-[#F9F7F2] rounded-lg transition-colors"
-            title="Refresh"
+            title={t('common.refresh')}
           >
             <RefreshCw className="w-4 h-4 text-gray-400" />
           </button>
@@ -373,14 +377,14 @@ export default function ProductionPage() {
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Time</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shift</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Qty</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.time')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.product')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.shift')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.qty')}</th>
                 {canManageAll && (
                   <>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Recorded By</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.branch')}</th>
+                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.recordedBy')}</th>
                   </>
                 )}
               </tr>
@@ -392,7 +396,7 @@ export default function ProductionPage() {
                     {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">
-                    {entry.product?.name || 'N/A'}
+                    {getLocalizedName(entry.product, i18n.language) || t('common.na')}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {getShiftLabel(entry.shift)}
@@ -403,7 +407,7 @@ export default function ProductionPage() {
                   {canManageAll && (
                     <>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {entry.branch?.name || '-'}
+                        {getLocalizedName(entry.branch, i18n.language) || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                         {entry.creator?.name || entry.creator?.username || '-'}
@@ -427,7 +431,7 @@ export default function ProductionPage() {
             <div className="w-16 h-16 bg-[#F9F7F2] rounded-full flex items-center justify-center mb-4">
               <Package className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-400 text-sm">No entries yet</p>
+            <p className="text-gray-400 text-sm">{t('production.noEntriesYet')}</p>
           </div>
         )}
       </div>

@@ -1,23 +1,28 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Search, RotateCcw, Eye } from 'lucide-react';
 import Modal from '../../components/Modal';
 import useProducts from '../../hooks/useProducts';
 import { getUser } from '../../utils/authUtils';
 import productService from '../../services/productService';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 
 const CATEGORIES = [
-  { value: '', label: 'All Categories' },
-  { value: 'BREAD_AND_SWEET_BREADS', label: 'Bread & Sweet Breads' },
-  { value: 'CREAM_CAKES', label: 'Cream Cakes' },
-  { value: 'SOFT_CAKES', label: 'Soft Cakes' },
-  { value: 'DRY_CAKES', label: 'Dry Cakes' },
-  { value: 'DRINKS_AND_RETAIL_ITEMS', label: 'Drinks & Retail Items' },
-  { value: 'FETIRE_AND_SNACKS', label: 'Fetir & Snacks' },
-  { value: 'COOKIES', label: 'Cookies' },
+  { value: '', labelKey: 'products.allCategories' },
+  { value: 'BREAD_AND_SWEET_BREADS', labelKey: 'productCategories.BREAD_AND_SWEET_BREADS' },
+  { value: 'CREAM_CAKES', labelKey: 'productCategories.CREAM_CAKES' },
+  { value: 'SOFT_CAKES', labelKey: 'productCategories.SOFT_CAKES' },
+  { value: 'DRY_CAKES', labelKey: 'productCategories.DRY_CAKES' },
+  { value: 'DRINKS_AND_RETAIL_ITEMS', labelKey: 'productCategories.DRINKS_AND_RETAIL_ITEMS' },
+  { value: 'FETIRE_AND_SNACKS', labelKey: 'productCategories.FETIRE_AND_SNACKS' },
+  { value: 'COOKIES', labelKey: 'productCategories.COOKIES' },
 ];
 const UNITS = ['piece', 'kg'];
 
 export default function ProductsPage() {
+  const { t, i18n } = useTranslation();
+  const getCategoryLabel = (labelKey) => t(labelKey);
+  const getUnitLabel = (unit) => t(`units.${unit}`);
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
@@ -29,7 +34,7 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletedProducts, setDeletedProducts] = useState([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: '', category: '', price: '', unitType: '' });
+  const [formData, setFormData] = useState({ name: '', name_am: '', category: '', price: '', unitType: '' });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -52,7 +57,7 @@ export default function ProductsPage() {
     setSubmitting(false);
     if (result.success) {
       setIsModalOpen(false);
-      setFormData({ name: '', category: '', price: '', unitType: '' });
+      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
     }
   };
 
@@ -60,6 +65,7 @@ export default function ProductsPage() {
     setEditingProduct(product);
     setFormData({
       name: product.name,
+      name_am: product.name_am || '',
       category: product.category,
       price: product.price.toString(),
       unitType: product.unitType,
@@ -75,7 +81,7 @@ export default function ProductsPage() {
     if (result.success) {
       setIsEditModalOpen(false);
       setEditingProduct(null);
-      setFormData({ name: '', category: '', price: '', unitType: '' });
+      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
     }
   };
 
@@ -119,7 +125,7 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Products</h1>
+        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('products.title')}</h1>
         <div className="flex items-center gap-3">
           {canManage && (
             <button 
@@ -127,7 +133,7 @@ export default function ProductsPage() {
               className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
             >
               <Eye className="w-4 h-4" />
-              Deleted Products
+              {t('products.deletedProducts')}
             </button>
           )}
           {canManage && (
@@ -136,7 +142,7 @@ export default function ProductsPage() {
               className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Product
+              {t('products.addProduct')}
             </button>
           )}
         </div>
@@ -147,7 +153,7 @@ export default function ProductsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input 
             type="text" 
-            placeholder="Search products..." 
+            placeholder={t('products.searchProducts')} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
@@ -159,7 +165,7 @@ export default function ProductsPage() {
           className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
         >
           {CATEGORIES.map((cat) => (
-            <option key={cat.value} value={cat.value}>{cat.label}</option>
+<option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>
           ))}
         </select>
       </div>
@@ -175,11 +181,11 @@ export default function ProductsPage() {
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Price (ETB)</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Unit</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('products.product')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('products.category')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('products.priceEtb')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('products.unit')}</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
@@ -192,18 +198,18 @@ export default function ProductsPage() {
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    No products found
+                    {t('products.noProductsFound')}
                   </td>
                 </tr>
               ) : (
                 products.map((product) => (
                   <tr key={product.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{product.name}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{getLocalizedName(product, i18n.language)}</td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#D2B48C]/20 text-[#D2B48C]">{product.category}</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#D2B48C]/20 text-[#D2B48C]">{t(`productCategories.${product.category}`)}</span>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-[#D2B48C]">{product.price} ETB</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{product.unitType}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{t(`units.${product.unitType}`)}</td>
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -224,75 +230,83 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Product">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('products.addProduct')}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Product Name</label>
-            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter product name" required />
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.productName')}</label>
+            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder={t('products.enterProductName')} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Category</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Amharic Name (Optional)</label>
+            <input type="text" value={formData.name_am || ''} onChange={(e) => setFormData({ ...formData, name_am: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="የአማርኛ ስም (አማራጭ)" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.category')}</label>
             <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select category</option>
-              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+              <option value="">{t('products.selectCategory')}</option>
+              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Price</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.price')}</label>
             <div className="relative">
-              <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm pr-12" placeholder="Enter price" required />
+              <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm pr-12" placeholder={t('products.enterPrice')} required />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">ETB</span>
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Unit</label>
             <select value={formData.unitType} onChange={(e) => setFormData({ ...formData, unitType: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select unit</option>
-              {UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+              <option value="">{t('products.selectUnit')}</option>
+              {UNITS.map((unit) => <option key={unit} value={unit}>{getUnitLabel(unit)}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">Cancel</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? 'Saving...' : 'Save'}</button>
+            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? t('products.saving') : t('common.save')}</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Product">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('products.editProduct')}>
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Product Name</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.productName')}</label>
             <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Category</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Amharic Name (Optional)</label>
+            <input type="text" value={formData.name_am || ''} onChange={(e) => setFormData({ ...formData, name_am: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.category')}</label>
             <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select category</option>
-              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+              <option value="">{t('products.selectCategory')}</option>
+              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Price</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.price')}</label>
             <div className="relative">
               <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm pr-12" required />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">ETB</span>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Unit</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.unit')}</label>
             <select value={formData.unitType} onChange={(e) => setFormData({ ...formData, unitType: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
-              <option value="">Select unit</option>
-              {UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+              <option value="">{t('products.selectUnit')}</option>
+              {UNITS.map((unit) => <option key={unit} value={unit}>{getUnitLabel(unit)}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">Cancel</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? 'Saving...' : 'Save'}</button>
+            <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? t('products.saving') : t('common.save')}</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title="Deleted Products">
+      <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title={t('products.deletedProducts')}>
         {deletedLoading ? (
           <div className="py-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />

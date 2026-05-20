@@ -22,6 +22,7 @@ const branchService = {
     return prisma.branch.create({
       data: {
         name: data.name,
+        name_am: data.name_am || null,
         address: data.address || null,
         phone: data.phone || null,
         isActive: true,
@@ -91,6 +92,7 @@ const branchService = {
       where: { id },
       data: {
         name: data.name,
+        name_am: data.name_am !== undefined ? (data.name_am || null) : undefined,
         address: data.address || null,
         phone: data.phone || null,
         isActive: data.isActive,
