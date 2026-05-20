@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Package, DollarSign, AlertCircle, Loader2, Lock, Unlock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Package, DollarSign, AlertCircle, Loader2, Lock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import productionService from '../../services/productionService';
 import remainingService from '../../services/remainingService';
 import dashboardService from '../../services/dashboardService';
 import closureService from '../../services/closureService';
+import { LoadingSpinner } from '../../components/ui';
+import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skeletons';
+import { ApiErrorState } from '../../components/ui/ErrorState';
 
 const CATEGORY_LABELS = {
   [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'Bread & Sweet Breads',
@@ -19,6 +22,7 @@ const CATEGORY_LABELS = {
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [kpis, setKpis] = useState({ production: 0, sales: 0, remaining: 0, pendingDrafts: 0, pendingDraftsBranches: [] });
   const [closureStatus, setClosureStatus] = useState({ isClosed: false, operationalDate: '' });
   const [recentActivity, setRecentActivity] = useState([]);
@@ -60,9 +64,11 @@ const userRole = getUserRole();
     };
   }, [targetBranchId]);
 
-  const loadDashboard = async () => {
+const loadDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    
     const branchIdForApi = isManager ? 'all' : (userBranchId ? Number(userBranchId) : undefined);
-    console.log('Fetching - targetBranchId:', targetBranchId, 'branchIdForApi:', branchIdForApi, 'isManager:', isManager);
     
     try {
       const [overviewRes, statusRes, activityRes] = await Promise.all([
@@ -70,8 +76,6 @@ const userRole = getUserRole();
         isManager ? Promise.resolve({ success: true, data: { isClosed: false } }) : closureService.getStatus(operationalDate),
         dashboardService.getRecentActivity(isManager ? 'all' : userBranchId, operationalDate, 10),
       ]);
-      
-      console.log('Overview response:', overviewRes.data);
 
       if (overviewRes.success) {
         const data = overviewRes.data;
@@ -84,9 +88,11 @@ const userRole = getUserRole();
           branches: data.branches || [],
           allFinalized: data.allFinalized !== undefined ? data.allFinalized : (data.pendingDrafts === 0),
         });
+      } else if (!overviewRes.success && overviewRes.status !== 0) {
+        setError(overviewRes);
       }
 
-      if (statusRes.success) {
+      if (!isManager && statusRes.success) {
         setClosureStatus({
           isClosed: statusRes.data.isClosed || false,
           operationalDate: operationalDate,
@@ -98,6 +104,7 @@ const userRole = getUserRole();
       }
     } catch (err) {
       console.error('Dashboard load error:', err);
+      setError(err.response ? err.response.data : { message: 'Failed to load dashboard', status: 0 });
     }
     setLoading(false);
     setLastUpdated(new Date());
@@ -153,8 +160,29 @@ const userRole = getUserRole();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-[#D2B48C]" />
+      <div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Dashboard</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+          </div>
+        </div>
+        <DashboardCardsSkeleton count={4} />
+        <ActivitySkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Dashboard</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+          </div>
+        </div>
+        <ApiErrorState error={error} onRetry={loadDashboard} />
       </div>
     );
   }

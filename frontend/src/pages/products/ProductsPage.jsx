@@ -4,6 +4,8 @@ import Modal from '../../components/Modal';
 import useProducts from '../../hooks/useProducts';
 import { getUser } from '../../utils/authUtils';
 import productService from '../../services/productService';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -217,14 +219,20 @@ export default function ProductsPage() {
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
+                  <td colSpan={canManage ? 5 : 4}>
+                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={canManage ? 5 : 4}>
+                    <ApiErrorState error={error} onRetry={() => loadProducts(1)} />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                    No products found
+                  <td colSpan={canManage ? 5 : 4}>
+                    <EmptyState type="products" message="No products found" />
                   </td>
                 </tr>
               ) : (

@@ -6,6 +6,8 @@ import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import productionService from '../../services/productionService';
 import productService from '../../services/productService';
 import branchService from '../../services/branchService';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton, FormSkeleton } from '../../components/skeletons';
 
 const SHIFTS = [
   { value: 'DAY', label: 'Day 7:30-7:30' },
@@ -33,6 +35,7 @@ export default function ProductionPage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingBranches, setIsLoadingBranches] = useState(true);
   const [isLoadingEntries, setIsLoadingEntries] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -83,6 +86,7 @@ export default function ProductionPage() {
 
   const loadProductions = async () => {
     setIsLoadingEntries(true);
+    setLoadingError(null);
     try {
       const params = {};
       if (canManageAll && branch) {
@@ -93,9 +97,12 @@ export default function ProductionPage() {
       const result = await productionService.getProductions(params);
       if (result.success && result.data) {
         setEntries(result.data || []);
+      } else {
+        setLoadingError(result);
       }
     } catch (err) {
       console.error('Error loading productions:', err);
+      setLoadingError(err.response ? err.response.data : { message: 'Failed to load productions', status: 0 });
     }
     setIsLoadingEntries(false);
   };
@@ -383,9 +390,9 @@ export default function ProductionPage() {
         </div>
 
         {isLoadingEntries ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-          </div>
+          <TableSkeleton rows={10} columns={canManageAll ? 6 : 4} />
+        ) : loadingError ? (
+          <ApiErrorState error={loadingError} onRetry={loadProductions} />
         ) : entries.length > 0 ? (
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
@@ -440,12 +447,7 @@ export default function ProductionPage() {
             </tbody>
           </table>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 bg-[#F9F7F2] rounded-full flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-400 text-sm">No entries yet</p>
-          </div>
+          <EmptyState type="production" message="No production records yet" />
         )}
 
         {!isLoadingEntries && entries.length > 0 && totalPages > 1 && (

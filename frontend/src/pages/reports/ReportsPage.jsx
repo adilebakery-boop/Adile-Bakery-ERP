@@ -4,6 +4,8 @@ import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../
 import reportService from '../../services/reportService';
 import branchService from '../../services/branchService';
 import productService from '../../services/productService';
+import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/skeletons';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('daily');
