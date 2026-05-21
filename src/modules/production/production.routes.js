@@ -13,6 +13,13 @@ router.get(
 );
 
 router.get(
+  '/grouped',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  productionController.findAllGrouped
+);
+
+router.get(
   '/today',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),

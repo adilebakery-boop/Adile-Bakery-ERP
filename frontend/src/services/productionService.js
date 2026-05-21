@@ -6,6 +6,10 @@ export const productionService = {
     return safeCall(api.get('/productions', { params }));
   },
 
+  getProductionsGrouped: async (params = {}) => {
+    return safeCall(api.get('/productions/grouped', { params }));
+  },
+
   createProduction: async (data) => {
     return safeCall(api.post('/productions', data));
   },
