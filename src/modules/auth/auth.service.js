@@ -40,6 +40,7 @@ const login = async (username, password) => {
     role: user.role.name,
     branchId: user.branchId,
     isBlocked: user.isBlocked || false,
+    isActive: user.isActive,
   });
 
   return {
