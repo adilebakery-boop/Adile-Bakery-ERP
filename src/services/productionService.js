@@ -2,7 +2,7 @@ const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
-const { calculateOperationalDate } = require('../utils/dateUtils');
+const { calculateOperationalDate, canEditOperationalRecord, getAddisAbabaDate, startOfDay } = require('../utils/dateUtils');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 
@@ -90,7 +90,7 @@ async function findByOperationalDate(branchId, operationalDate, shift = null) {
 }
 
 async function create(data, user) {
-  const { productId, quantity, branchId, shift, productionDate, operationalDate: userOpDate } = data;
+  const { productId, quantity, branchId, shift, productionDate } = data;
 
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
@@ -126,10 +126,20 @@ async function create(data, user) {
     throw error;
   }
 
-  const prodDate = productionDate ? new Date(productionDate) : new Date();
-  const opDate = userOpDate
-    ? new Date(userOpDate)
-    : calculateOperationalDate(prodDate, shift);
+  const [y, m, d] = productionDate.split('-');
+  const prodDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
+
+  const addisNow = getAddisAbabaDate();
+  const todayUTC = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+  const minDateUTC = new Date(todayUTC);
+  minDateUTC.setUTCDate(minDateUTC.getUTCDate() - 2);
+  if (prodDate < minDateUTC || prodDate > todayUTC) {
+    const error = new Error('Production date must be within the last 2 days or today');
+    error.status = 400;
+    throw error;
+  }
+
+  const opDate = calculateOperationalDate(prodDate, shift);
 
   await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
 
@@ -158,6 +168,12 @@ async function create(data, user) {
 async function update(id, data, user) {
   const existing = await findById(id);
 
+  if (!canEditOperationalRecord(existing.operationalDate)) {
+    const error = new Error('Production records can only be edited within 3 operational days');
+    error.status = 403;
+    throw error;
+  }
+
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   const updateData = {
@@ -174,7 +190,7 @@ async function update(id, data, user) {
     updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 
-  if (data.shift !== undefined) {
+  if (data.shift !== undefined && data.shift !== existing.shift) {
     updateData.shift = data.shift;
     if (data.productionDate) {
       updateData.productionDate = new Date(data.productionDate);
@@ -251,8 +267,74 @@ async function getTodayProductions(branchId, user) {
   return productions;
 }
 
+async function findAllGrouped(filters = {}) {
+  const { branchId, operationalDate, shift, productId, startDate, endDate } = filters;
+  const where = {};
+
+  if (branchId) where.branchId = parseInt(branchId);
+  if (productId) where.productId = parseInt(productId);
+  if (shift) where.shift = shift;
+
+  if (operationalDate) {
+    where.operationalDate = new Date(operationalDate);
+  }
+
+  if (startDate && endDate) {
+    where.operationalDate = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  }
+
+  if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
+
+  const productions = await prisma.productionRecord.findMany({
+    where,
+    include: {
+      product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+      branch: { select: { id: true, name: true } },
+      creator: { select: { id: true, name: true, username: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const grouped = {};
+  
+  for (const prod of productions) {
+    const opDateStr = prod.operationalDate.toISOString().split('T')[0];
+    const key = `${prod.productId}-${prod.branchId}-${opDateStr}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        productId: prod.productId,
+        product: prod.product,
+        branchId: prod.branchId,
+        branch: prod.branch,
+        shift: prod.shift,
+        operationalDate: opDateStr,
+        entries: [],
+        totalQuantity: new Prisma.Decimal('0'),
+      };
+    }
+    
+    grouped[key].entries.push(prod);
+    grouped[key].totalQuantity = grouped[key].totalQuantity.add(toDecimal(prod.quantity));
+  }
+
+  const groupedArray = Object.values(grouped);
+
+  groupedArray.forEach(group => {
+    group.entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  });
+
+  groupedArray.sort((a, b) => a.operationalDate < b.operationalDate ? 1 : a.operationalDate > b.operationalDate ? -1 : 0);
+
+  return groupedArray;
+}
+
 module.exports = {
   findAll,
+  findAllGrouped,
   findById,
   findByOperationalDate,
   create,

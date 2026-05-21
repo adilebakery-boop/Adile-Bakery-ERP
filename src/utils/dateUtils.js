@@ -8,23 +8,37 @@ function calculateOperationalDate(productionDate, shift) {
     throw new Error('productionDate is required');
   }
 
-  const date = productionDate instanceof Date ? productionDate : new Date(productionDate);
-
-  if (shift === 'NIGHT') {
-    return addDays(startOfDay(date), 1);
+  let date;
+  if (productionDate instanceof Date) {
+    date = productionDate;
+  } else if (typeof productionDate === 'string') {
+    const [y, m, d] = productionDate.split('-');
+    date = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
+  } else {
+    date = new Date(productionDate);
   }
 
-  return startOfDay(date);
+  if (shift === 'NIGHT') {
+    const nextDay = new Date(date);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    return nextDay;
+  }
+
+  return date;
 }
 
 function addOneDay(date) {
   const d = date instanceof Date ? date : new Date(date);
-  return addDays(startOfDay(d), 1);
+  const result = new Date(d);
+  result.setUTCDate(result.getUTCDate() + 1);
+  return result;
 }
 
 function getPreviousDay(date) {
   const d = date instanceof Date ? date : new Date(date);
-  return subDays(startOfDay(d), 1);
+  const result = new Date(d);
+  result.setUTCDate(result.getUTCDate() - 1);
+  return result;
 }
 
 function getMonday(date) {
@@ -105,6 +119,31 @@ function getDateRangeForOperationalDay(operationalDate) {
   return { start, end };
 }
 
+const EDIT_WINDOW_DAYS = 3;
+
+function canEditOperationalRecord(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
+  if (!operationalDate) return false;
+  let opDate;
+  if (operationalDate instanceof Date) {
+    opDate = new Date(Date.UTC(operationalDate.getUTCFullYear(), operationalDate.getUTCMonth(), operationalDate.getUTCDate()));
+  } else if (typeof operationalDate === 'string') {
+    const [y, m, d] = operationalDate.split('-');
+    opDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
+  } else {
+    opDate = new Date(operationalDate);
+  }
+  const addisNow = getAddisAbabaDate();
+  const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+  const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays < maxDays;
+}
+
+function getEditWindowDeadline(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
+  if (!operationalDate) return null;
+  const opDate = startOfDay(operationalDate instanceof Date ? operationalDate : new Date(operationalDate));
+  return addDays(opDate, maxDays);
+}
+
 module.exports = {
   TIMEZONE,
   calculateOperationalDate,
@@ -123,4 +162,9 @@ module.exports = {
   formatDateInTimezone,
   isSameDay,
   getDateRangeForOperationalDay,
+  canEditOperationalRecord,
+  getEditWindowDeadline,
+  EDIT_WINDOW_DAYS,
+  startOfDay,
+  subDays,
 };

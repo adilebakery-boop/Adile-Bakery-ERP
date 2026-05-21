@@ -19,6 +19,23 @@ const findAll = asyncHandler(async (req, res) => {
   });
 });
 
+const findAllGrouped = asyncHandler(async (req, res) => {
+  const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
+  const { role, userId } = req.user;
+
+  const filters = { branchId, operationalDate, shift, productId, startDate, endDate };
+
+  const accessFilter = buildProductionAccessFilter({ role, userId });
+  Object.assign(filters, accessFilter);
+
+  const groupedProductions = await productionService.findAllGrouped(filters, req.user);
+  res.json({
+    success: true,
+    data: groupedProductions,
+    count: groupedProductions.length,
+  });
+});
+
 const findById = asyncHandler(async (req, res) => {
   const production = await productionService.findById(req.params.id);
   res.json({
@@ -78,6 +95,7 @@ const getToday = asyncHandler(async (req, res) => {
 
 module.exports = {
   findAll,
+  findAllGrouped,
   findById,
   findByOperationalDate,
   create,
