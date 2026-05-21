@@ -28,17 +28,22 @@ const authenticate = async (req, res, next) => {
       userId: decoded.userId,
       role: decoded.role,
       branchId: decoded.branchId,
-      isBlocked: decoded.isBlocked || false
+      isBlocked: decoded.isBlocked || false,
+      isActive: decoded.isActive !== false
     };
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId }
-    });
-
-    if (user.isBlocked || !user.isActive) {
+    if (req.user.isBlocked) {
       return res.status(403).json({
         success: false,
-        message: !user.isActive ? 'Your account has been deactivated. Contact your manager.' : 'Your account has been blocked. Contact your manager.',
+        message: 'Your account has been blocked. Contact your manager.',
+        errors: []
+      });
+    }
+
+    if (!req.user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Contact your manager.',
         errors: []
       });
     }
@@ -67,4 +72,35 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate };
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+
+    if (decoded && !decoded.isBlocked && decoded.isActive !== false) {
+      req.user = {
+        userId: decoded.userId,
+        role: decoded.role,
+        branchId: decoded.branchId,
+        isBlocked: decoded.isBlocked || false,
+        isActive: decoded.isActive !== false
+      };
+    } else {
+      req.user = null;
+    }
+
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { authenticate, optionalAuth };

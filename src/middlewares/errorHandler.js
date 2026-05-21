@@ -64,19 +64,16 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
-
   res.status(err.status || 500).json({
     success: false,
-    message: isProduction ? 'Internal server error' : err.message,
-    ...(isProduction ? {} : { stack: err.stack }),
+    message: 'Internal server error',
   });
 }
 
 function notFoundHandler(req, res) {
   res.status(404).json({
     success: false,
-    message: `Route ${req.method} ${req.path} not found`,
+    message: 'Route not found',
   });
 }
 

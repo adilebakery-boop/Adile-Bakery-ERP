@@ -1,13 +1,40 @@
+# Dependencies
 node_modules/
 frontend/node_modules/
 
-.vite/
-frontend/.vite/
-
+# Environment files
 .env
+.env.local
+.env.*.local
 frontend/.env
+frontend/.env.local
 
+# Build outputs
 dist/
 build/
 
+# Vite
+.vite/
+frontend/.vite/
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+server.log
+server.err
+
+# Prisma
+prisma/migrations/
+
+# Temporary files
+*.tmp
+*.temp
