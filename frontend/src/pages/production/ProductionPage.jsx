@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Plus, Package, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Package, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUserRole, getUserBranchId, getUserId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, getUserId, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import productionService from '../../services/productionService';
 import productService from '../../services/productService';
@@ -25,10 +25,21 @@ const CATEGORY_LABELS = {
 export default function ProductionPage() {
   const [product, setProduct] = useState('');
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
+  const today = new Date();
+  const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() - 2);
+  const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+
+  const [productionDate, setProductionDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [branch, setBranch] = useState('');
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [entries, setEntries] = useState([]);
+  const [groupedEntries, setGroupedEntries] = useState([]);
+  const [expandedGroups, setExpandedGroups] = useState({});
   const [availableProducts, setAvailableProducts] = useState([]);
   const [branches, setBranches] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -42,12 +53,22 @@ export default function ProductionPage() {
   const [editFormData, setEditFormData] = useState({ quantity: '', shift: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const loadProductionsRef = useRef(0);
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
   const canManageAll = isManagerOrAdmin();
-  const operationalDate = getOperationalDate();
+
+  const calculatedOperationalDate = (() => {
+    if (!productionDate || !shift) return null;
+    const prodDate = new Date(productionDate);
+    prodDate.setHours(0, 0, 0, 0);
+    if (shift === 'NIGHT') {
+      prodDate.setDate(prodDate.getDate() + 1);
+    }
+    return `${prodDate.getFullYear()}-${String(prodDate.getMonth() + 1).padStart(2, '0')}-${String(prodDate.getDate()).padStart(2, '0')}`;
+  })();
 
   const loadProducts = async () => {
     setIsLoadingProducts(true);
@@ -72,7 +93,7 @@ export default function ProductionPage() {
       const result = await branchService.getActiveBranches();
       if (result.success && result.data) {
         setBranches(result.data);
-        if (userBranchId) {
+        if (!canManageAll && userBranchId) {
           setBranch(userBranchId.toString());
         }
       }
@@ -83,6 +104,7 @@ export default function ProductionPage() {
   };
 
   const loadProductions = async () => {
+    const requestId = ++loadProductionsRef.current;
     setIsLoadingEntries(true);
     try {
       const params = {};
@@ -91,22 +113,37 @@ export default function ProductionPage() {
       } else if (!canManageAll) {
         params.branchId = userBranchId;
       }
-      const result = await productionService.getProductions(params);
-      if (result.success && result.data) {
-        setEntries(result.data || []);
+      const result = await productionService.getProductionsGrouped(params);
+      if (requestId === loadProductionsRef.current && result.success && result.data) {
+        setGroupedEntries(result.data || []);
       }
     } catch (err) {
-      console.error('Error loading productions:', err);
+      if (requestId === loadProductionsRef.current) {
+        console.error('Error loading productions:', err);
+      }
     }
-    setIsLoadingEntries(false);
+    if (requestId === loadProductionsRef.current) {
+      setIsLoadingEntries(false);
+    }
   };
 
-  const totalPages = Math.ceil(entries.length / itemsPerPage);
-  const paginatedEntries = entries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const toggleGroupExpand = (groupKey) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
+
+  const getGroupKey = (group) => {
+    return `${group.productId}-${group.branchId}-${group.operationalDate}`;
+  };
+
+  const totalPages = Math.ceil(groupedEntries.length / itemsPerPage);
+  const paginatedGroups = groupedEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [entries.length, branch]);
+  }, [groupedEntries.length, branch]);
 
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -120,7 +157,7 @@ export default function ProductionPage() {
     loadProducts();
     loadBranches();
     loadProductions();
-  }, [userRole, userBranchId]);
+  }, [userRole, userBranchId, branch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,6 +167,11 @@ export default function ProductionPage() {
     const requiredBranch = branch || userBranchId;
     if (!product || !requiredBranch || !shift || !quantity) {
       setError('All fields are required');
+      return;
+    }
+
+    if (productionDate < minDateStr || productionDate > maxDateStr) {
+      setError('Production date must be within the last 2 days or today');
       return;
     }
 
@@ -148,7 +190,7 @@ export default function ProductionPage() {
       branchId: parseInt(requiredBranch),
       shift,
       quantity: parseFloat(quantity),
-      operationalDate,
+      productionDate,
     });
 
     setIsSubmitting(false);
@@ -170,6 +212,16 @@ export default function ProductionPage() {
 
   const getCategoryLabel = (category) => {
     return CATEGORY_LABELS[category] || category;
+  };
+
+  const isEditable = (operationalDateStr) => {
+    if (!operationalDateStr) return false;
+    const [y, m, d] = operationalDateStr.split('-');
+    const opDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays < 3;
   };
 
   const handleEditClick = (entry) => {
@@ -195,12 +247,17 @@ export default function ProductionPage() {
       }
     }
 
-    console.log('Updating production:', editingEntry.id, { quantity: editFormData.quantity, shift: editFormData.shift });
+    const updatePayload = {
+      quantity: parseFloat(editFormData.quantity),
+    };
+
+    if (editFormData.shift !== editingEntry?.shift) {
+      updatePayload.shift = editFormData.shift;
+    }
+
+    console.log('Updating production:', editingEntry.id, updatePayload);
     try {
-      const result = await productionService.updateProduction(editingEntry.id, {
-        quantity: parseFloat(editFormData.quantity),
-        shift: editFormData.shift,
-      });
+      const result = await productionService.updateProduction(editingEntry.id, updatePayload);
       console.log('Update result:', result);
 
       setIsSubmitting(false);
@@ -226,7 +283,12 @@ export default function ProductionPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">Production</h1>
-          <p className="text-sm text-gray-400 mt-1">Operational Date: {formatOperationalDate(operationalDate)}</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Production Date: {productionDate ? formatOperationalDate(productionDate) : '-'}
+            {calculatedOperationalDate && calculatedOperationalDate !== productionDate && (
+              <span className="ml-2 text-[#D2B48C]">→ Sales Day: {formatOperationalDate(calculatedOperationalDate)}</span>
+            )}
+          </p>
 </div>
       </div>
 
@@ -292,6 +354,20 @@ export default function ProductionPage() {
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
+          <div className="w-44">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Production Date</label>
+            <input
+              type="date"
+              value={productionDate}
+              onChange={(e) => setProductionDate(e.target.value)}
+              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              required
+              disabled={isSubmitting}
+              min={minDateStr}
+              max={maxDateStr}
+            />
+          </div>
+
           <div className="flex-1 min-w-[180px]">
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Product</label>
             {isLoadingProducts ? (
@@ -405,61 +481,133 @@ export default function ProductionPage() {
           </button>
         </div>
 
-        {isLoadingEntries ? (
+{isLoadingEntries ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
           </div>
-        ) : entries.length > 0 ? (
+        ) : groupedEntries.length > 0 ? (
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Time</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shift</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Qty</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider w-10"></th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Operation Date</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Entries</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Produced</th>
                 {canManageAll && (
-                  <>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
-                    <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Recorded By</th>
-                  </>
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Branch</th>
                 )}
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-<tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-              {paginatedEntries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                    {new Date(entry.createdAt).toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' })}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">
-                    {entry.product?.name || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                    {getShiftLabel(entry.shift)}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-[#001F3F] dark:text-white">
-                    {entry.quantity}
-                  </td>
-                  {canManageAll && (
-                    <>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {entry.branch?.name || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {entry.creator?.name || entry.creator?.username || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => handleEditClick(entry)} 
-                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+              {paginatedGroups.map((group) => {
+                const groupKey = getGroupKey(group);
+                const isExpanded = expandedGroups[groupKey];
+                const [y, m, d] = group.operationalDate.split('-');
+                const formattedDate = `${d}/${m}/${y}`;
+                return (
+                  <>
+                    <tr 
+                      key={groupKey} 
+                      className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] cursor-pointer transition-colors"
+                      onClick={() => toggleGroupExpand(groupKey)}
+                    >
+                      <td className="px-6 py-3.5">
+                        <button className="p-1 text-gray-400 hover:text-[#001F3F] dark:hover:text-white transition-colors">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                       </td>
-                    </>
-                  )}
-                </tr>
-              ))}
+                      <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300 font-medium">
+                        {formattedDate}
+                      </td>
+                      <td className="px-6 py-3.5 text-sm font-semibold text-[#001F3F] dark:text-white">
+                        {group.product?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#F9F7F2] dark:bg-[#2d2d4a] text-gray-600 dark:text-gray-300">
+                          {group.entries.length} {group.entries.length === 1 ? 'entry' : 'entries'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-sm font-bold text-[#001F3F] dark:text-white">
+                        {Number(group.totalQuantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </td>
+                      {canManageAll && (
+                        <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                          {group.branch?.name || '-'}
+                        </td>
+                      )}
+                      <td className="px-6 py-3.5">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleGroupExpand(groupKey); }}
+                          className="text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:underline"
+                        >
+                          {isExpanded ? 'Hide' : 'View'}
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={canManageAll ? 7 : 6} className="p-0">
+                          <div className="bg-[#F9F7F2]/40 dark:bg-[#2d2d4a]/40 border-l-4 border-[#D2B48C] dark:border-[#D2B48C]/50 ml-6 mr-3 my-1 rounded-r-lg">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-[#E5E1D8]/50 dark:border-[#2d2d4a]/50">
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Time & Date</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shift</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quantity</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">User</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#E5E1D8]/30 dark:divide-[#2d2d4a]/30">
+                                {group.entries.map((entry) => {
+                                  const entryDate = new Date(entry.createdAt);
+                                  const entryTime = entryDate.toLocaleTimeString('en-US', { timeZone: 'Africa/Addis_Ababa', hour: '2-digit', minute: '2-digit', hour12: true });
+                                  const entryFormattedDate = entryDate.toLocaleDateString('en-GB', { timeZone: 'Africa/Addis_Ababa', day: '2-digit', month: '2-digit', year: 'numeric' });
+                                  return (
+                                    <tr key={entry.id} className="hover:bg-[#F9F7F2]/60 dark:hover:bg-[#2d2d4a]/60">
+                                      <td className="px-6 py-2.5 text-xs text-gray-600 dark:text-gray-300">
+                                        <span className="font-medium">{entryTime}</span>
+                                        <span className="text-gray-400 dark:text-gray-500">&nbsp;{entryFormattedDate}</span>
+                                      </td>
+                                      <td className="px-6 py-2.5 text-xs text-gray-600 dark:text-gray-300">
+                                        {getShiftLabel(entry.shift)}
+                                      </td>
+                                      <td className="px-6 py-2.5 text-xs font-semibold text-[#001F3F] dark:text-white">
+                                        {Number(entry.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                      </td>
+                                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+                                        {entry.creator?.name || entry.creator?.username || '-'}
+                                      </td>
+                                      <td className="px-6 py-2.5">
+                                        {isEditable(group.operationalDate) ? (
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }} 
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                            Edit
+                                          </button>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Editing allowed only within 3 operational days">
+                                            <Lock className="w-3 h-3" />
+                                            Locked
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         ) : (
@@ -471,10 +619,10 @@ export default function ProductionPage() {
           </div>
         )}
 
-        {!isLoadingEntries && entries.length > 0 && totalPages > 1 && (
+        {!isLoadingEntries && groupedEntries.length > 0 && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, entries.length)} of {entries.length} production records
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, groupedEntries.length)} of {groupedEntries.length} production groups
             </div>
             <div className="flex items-center gap-2">
               <button
