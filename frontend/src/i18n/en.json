@@ -42,7 +42,10 @@
     "na": "N/A",
     "deleteFailed": "Failed to delete",
     "block": "Block",
-    "unblock": "Unblock"
+    "unblock": "Unblock",
+    "view": "View",
+    "hide": "Hide",
+    "locked": "Locked"
   },
   "auth": {
     "login": "Sign In",
@@ -105,7 +108,19 @@
     "productionUpdated": "Production updated successfully!",
     "editProduction": "Edit Production",
     "saving": "Saving...",
-    "selectQuantity": "Quantity"
+    "selectQuantity": "Quantity",
+    "productionDate": "Production Date",
+    "salesDay": "Sales Day",
+    "entries": "Entries",
+    "entry": "entry",
+    "totalProduced": "Total Produced",
+    "actions": "Actions",
+    "timeDate": "Time & Date",
+    "user": "User",
+    "action": "Action",
+    "noRecords": "No production records yet",
+    "showing": "Showing {{from}} to {{to}} of {{total}} production groups",
+    "pageOf": "Page {{current}} of {{total}}"
   },
   "remaining": {
     "title": "Remaining Stock",
