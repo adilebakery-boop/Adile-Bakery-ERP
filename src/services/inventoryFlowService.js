@@ -68,20 +68,7 @@ async function getOpeningStock(branchId, operationalDate, productId) {
     },
   });
 
-  const prevNightProduction = await prisma.productionRecord.aggregate({
-    where: {
-      branchId: parseInt(branchId),
-      productId: parseInt(productId),
-      operationalDate: prevDay,
-      shift: 'NIGHT',
-    },
-    _sum: { quantity: true },
-  });
-
-  const remainingQty = prevRemaining ? toDecimal(prevRemaining.quantity) : ZERO;
-  const nightProdQty = prevNightProduction._sum.quantity ? toDecimal(prevNightProduction._sum.quantity) : ZERO;
-
-  return safePlus(remainingQty, nightProdQty);
+  return prevRemaining ? toDecimal(prevRemaining.quantity) : ZERO;
 }
 
 async function getDayProduction(branchId, operationalDate, productId) {
@@ -93,30 +80,8 @@ async function getDayProduction(branchId, operationalDate, productId) {
 }
 
 async function getNightProduction(branchId, operationalDate, productId) {
-  // Night production for today comes from previous day's Night shift (since Night counts as next day)
-  // Also include Night production from today (for reports on the day itself)
-  const prevDay = getPreviousDay(new Date(operationalDate));
-  const [prevNightResult, todayNightResult] = await Promise.all([
-    prisma.productionRecord.aggregate({
-      where: { branchId: parseInt(branchId), operationalDate: prevDay, shift: 'NIGHT', productId: parseInt(productId) },
-      _sum: { quantity: true },
-    }),
-    prisma.productionRecord.aggregate({
-      where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), shift: 'NIGHT', productId: parseInt(productId) },
-      _sum: { quantity: true },
-    }),
-  ]);
-  
-  const prevNight = prevNightResult._sum.quantity ? Number(prevNightResult._sum.quantity) : 0;
-  const todayNight = todayNightResult._sum.quantity ? Number(todayNightResult._sum.quantity) : 0;
-  
-  return toDecimal(prevNight + todayNight);
-}
-
-async function getNightProductionPreparedFor(branchId, operationalDate, productId) {
-  const prevDay = getPreviousDay(new Date(operationalDate));
   const result = await prisma.productionRecord.aggregate({
-    where: { branchId: parseInt(branchId), productionDate: prevDay, shift: 'NIGHT', productId: parseInt(productId) },
+    where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), shift: 'NIGHT', productId: parseInt(productId) },
     _sum: { quantity: true },
   });
   return result._sum.quantity ? toDecimal(result._sum.quantity) : ZERO;
@@ -125,7 +90,8 @@ async function getNightProductionPreparedFor(branchId, operationalDate, productI
 async function getSellableStock(branchId, operationalDate, productId) {
   const opening = await getOpeningStock(branchId, operationalDate, productId);
   const dayProd = await getDayProduction(branchId, operationalDate, productId);
-  return safePlus(opening, dayProd);
+  const nightProd = await getNightProduction(branchId, operationalDate, productId);
+  return safePlus(safePlus(opening, dayProd), nightProd);
 }
 
 async function getRemainingStock(branchId, operationalDate, productId) {
@@ -179,7 +145,6 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     openingStock,
     dayProduction,
     nightProduction,
-    nightProductionPreparedFor,
     sellableStock,
     remainingStock,
     wasteQuantity,
@@ -189,7 +154,6 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     getOpeningStock(branchId, operationalDate, productId),
     getDayProduction(branchId, operationalDate, productId),
     getNightProduction(branchId, operationalDate, productId),
-    getNightProductionPreparedFor(branchId, operationalDate, productId),
     getSellableStock(branchId, operationalDate, productId),
     getRemainingStock(branchId, operationalDate, productId),
     getWasteQuantity(branchId, operationalDate, productId),
@@ -206,7 +170,7 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     openingStock: decimalToNumber(openingStock),
     dayProduction: decimalToNumber(dayProduction),
     nightProduction: decimalToNumber(nightProduction),
-    nightProductionPreparedFor: decimalToNumber(nightProductionPreparedFor),
+    nightProductionPreparedFor: 0,
     sellableStock: decimalToNumber(sellableStock),
     remainingStock: decimalToNumber(remainingStock),
     wasteQuantity: decimalToNumber(wasteQuantity),
@@ -370,7 +334,6 @@ module.exports = {
   getOpeningStock,
   getDayProduction,
   getNightProduction,
-  getNightProductionPreparedFor,
   getSellableStock,
   getRemainingStock,
   getWasteQuantity,

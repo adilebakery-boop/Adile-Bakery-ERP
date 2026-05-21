@@ -42,7 +42,10 @@
     "na": "የለም",
     "deleteFailed": "ማስወገድ አልተሳካም",
     "block": "አግድ",
-    "unblock": "አስወቀድ"
+    "unblock": "አስወቅ",
+    "view": "ይመልከቱ",
+    "hide": "ደብቅ",
+    "locked": "ተቀልጥፏል"
   },
   "auth": {
     "login": "ግባ",
@@ -105,7 +108,19 @@
     "productionUpdated": "ምርት ተዘምኗል!",
     "editProduction": "ምርት አስተካክል",
     "saving": "በማስቀመጥ ላይ...",
-    "selectQuantity": "ብዛት"
+    "selectQuantity": "ብዛት",
+    "productionDate": "የምርት ቀን",
+    "salesDay": "የሽያጭ ቀን",
+    "entries": "መግቢያዎች",
+    "entry": "መግቢያ",
+    "totalProduced": "ጠቅላላ የተመረተ",
+    "actions": "እርምጃዎች",
+    "timeDate": "ሰዓት እና ቀን",
+    "user": "ተጠቃሚ",
+    "action": "እርምጃ",
+    "noRecords": "ምንም የምርት መዝገቦች የሉም",
+    "showing": "ከ {{total}} የምርት ቡድኖች {{from}} እስከ {{to}} ያሳያል",
+    "pageOf": "ገጽ {{current}} ከ {{total}}"
   },
   "remaining": {
     "title": "የቀረ ክምችት",
