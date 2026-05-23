@@ -42,7 +42,6 @@ export default function ProductsPage() {
   const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', name_am: '', category: '', price: '', unitType: '' });
-  const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState(null);
 
   const filters = {
@@ -81,7 +80,6 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setActionError(null);
     try {
       await createProduct.mutateAsync({ ...formData, price: parseFloat(formData.price) });
@@ -90,7 +88,6 @@ export default function ProductsPage() {
     } catch (err) {
       setActionError(err.message);
     }
-    setSubmitting(false);
   };
 
   const handleEditClick = (product) => {
@@ -107,7 +104,6 @@ export default function ProductsPage() {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setActionError(null);
     try {
       await updateProduct.mutateAsync({ id: editingProduct.id, data: { ...formData, price: parseFloat(formData.price) } });
@@ -117,7 +113,6 @@ export default function ProductsPage() {
     } catch (err) {
       setActionError(err.message);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
@@ -326,7 +321,7 @@ export default function ProductsPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">{t('common.cancel')}</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? t('products.saving') : t('common.save')}</button>
+            <button type="submit" disabled={createProduct.isPending} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{createProduct.isPending ? t('products.saving') : t('common.save')}</button>
           </div>
         </form>
       </Modal>
@@ -364,7 +359,7 @@ export default function ProductsPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm">{t('common.cancel')}</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{submitting ? t('products.saving') : t('common.save')}</button>
+            <button type="submit" disabled={updateProduct.isPending} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{updateProduct.isPending ? t('products.saving') : t('common.save')}</button>
           </div>
         </form>
       </Modal>

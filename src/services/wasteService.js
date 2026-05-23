@@ -33,7 +33,7 @@ async function findAll(filters = {}) {
   const wastes = await prisma.wasteRecord.findMany({
     where,
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: { id: true, name: true, category: true, unitType: true, isActive: true } },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true, username: true } },
     },
@@ -65,11 +65,25 @@ async function findById(id) {
 async function create(data, userId) {
   const { productId, quantity, branchId, operationalDate, reason } = data;
 
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+  const product = await prisma.product.findFirst({
+    where: {
+      id: parseInt(productId),
+      isActive: true,
+    },
   });
 
   if (!product) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: parseInt(productId) },
+      select: { isActive: true },
+    });
+
+    if (existingProduct && !existingProduct.isActive) {
+      const error = new Error('Cannot create waste record for inactive product');
+      error.status = 400;
+      throw error;
+    }
+
     const error = new Error('Product not found');
     error.status = 404;
     throw error;
@@ -96,7 +110,7 @@ async function create(data, userId) {
       createdBy: userId.userId,
     },
     include: {
-      product: { select: { id: true, name: true, category: true } },
+      product: { select: { id: true, name: true, category: true, isActive: true } },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -134,7 +148,7 @@ async function update(id, data, userId) {
     where: { id: parseInt(id) },
     data: updateData,
     include: {
-      product: { select: { id: true, name: true, category: true } },
+      product: { select: { id: true, name: true, category: true, isActive: true } },
       branch: { select: { id: true, name: true } },
     },
   });

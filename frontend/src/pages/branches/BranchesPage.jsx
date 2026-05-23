@@ -21,14 +21,12 @@ export default function BranchesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
   const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '' });
-  const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState(null);
 
   const error = actionError || queryError;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setActionError(null);
     try {
       await addBranch.mutateAsync(formData);
@@ -37,12 +35,10 @@ export default function BranchesPage() {
     } catch (err) {
       setActionError(err.message);
     }
-    setSubmitting(false);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setActionError(null);
     try {
       await editBranch.mutateAsync({ id: editingBranch.id, data: formData });
@@ -52,7 +48,6 @@ export default function BranchesPage() {
     } catch (err) {
       setActionError(err.message);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
@@ -238,10 +233,10 @@ export default function BranchesPage() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={addBranch.isPending}
               className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
             >
-              {submitting ? 'Saving...' : 'Save'}
+              {addBranch.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -298,10 +293,10 @@ required
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={editBranch.isPending}
               className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
             >
-              {submitting ? 'Saving...' : 'Save'}
+              {editBranch.isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

@@ -132,7 +132,7 @@ async function getEstimatedRevenue(branchId, operationalDate, productId) {
 async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
-    select: { id: true, name: true, category: true, price: true, unitType: true },
+    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   if (!product) {
@@ -167,6 +167,7 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     category: product.category,
     unitType: product.unitType,
     price: decimalToNumber(product.price),
+    isActive: product.isActive,
     openingStock: decimalToNumber(openingStock),
     dayProduction: decimalToNumber(dayProduction),
     nightProduction: decimalToNumber(nightProduction),
@@ -181,14 +182,67 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
 }
 
 async function getInventoryFlowForAllProducts(branchId, operationalDate) {
-  const products = await prisma.product.findMany({
+  // Include ALL products that participate in the operational day — even inactive/archived ones.
+  // ERP analytics must preserve historical visibility: archived products are still
+  // operationally and financially relevant for the dates they have records.
+  const activeProducts = await prisma.product.findMany({
     where: { isActive: true },
     select: { id: true },
     orderBy: { category: 'asc' },
   });
 
+  // Also include inactive products that have operational records for this date+branch.
+  const inactiveProductIds = await prisma.productionRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: new Date(operationalDate),
+      product: { isActive: false },
+    },
+    select: { productId: true },
+    distinct: ['productId'],
+  });
+
+  const remainingProductIds = await prisma.remainingRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: new Date(operationalDate),
+      product: { isActive: false },
+    },
+    select: { productId: true },
+    distinct: ['productId'],
+  });
+
+  const wasteProductIds = await prisma.wasteRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: new Date(operationalDate),
+      product: { isActive: false },
+    },
+    select: { productId: true },
+    distinct: ['productId'],
+  });
+
+  const seen = new Set(activeProducts.map(p => p.id));
+  const extraIds = [];
+  for (const r of [...inactiveProductIds, ...remainingProductIds, ...wasteProductIds]) {
+    if (!seen.has(r.productId)) {
+      seen.add(r.productId);
+      extraIds.push(r.productId);
+    }
+  }
+
+  let extraProducts = [];
+  if (extraIds.length > 0) {
+    extraProducts = await prisma.product.findMany({
+      where: { id: { in: extraIds } },
+      select: { id: true },
+    });
+  }
+
+  const allProducts = [...activeProducts, ...extraProducts];
+
   const flows = await Promise.all(
-    products.map(p => getFullInventoryFlow(branchId, operationalDate, p.id))
+    allProducts.map(p => getFullInventoryFlow(branchId, operationalDate, p.id))
   );
 
   return flows;
