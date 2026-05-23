@@ -3,24 +3,24 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const PRODUCTS = [
-  { name: 'Bread Prod 1', category: 'BREAD_AND_SWEET_BREADS', price: 10, unitType: 'piece' },
-  { name: 'Bread Prod 2', category: 'BREAD_AND_SWEET_BREADS', price: 15, unitType: 'piece' },
+  { name: 'Bread Prod 1', name_am: 'ዳቦ ምርት ፩', category: 'BREAD_AND_SWEET_BREADS', price: 10, unitType: 'piece', costPrice: 5, sellingPrice: 10 },
+  { name: 'Bread Prod 2', name_am: 'ዳቦ ምርት ፪', category: 'BREAD_AND_SWEET_BREADS', price: 15, unitType: 'piece', costPrice: 8, sellingPrice: 15 },
 
-  { name: 'Cream Cake 1', category: 'CREAM_CAKES', price: 100, unitType: 'piece' },
-  { name: 'Cream Cake 2', category: 'CREAM_CAKES', price: 150, unitType: 'piece' },
+  { name: 'Cream Cake 1', name_am: 'ክሬም ኬክ ፩', category: 'CREAM_CAKES', price: 100, unitType: 'piece', costPrice: 60, sellingPrice: 100 },
+  { name: 'Cream Cake 2', name_am: 'ክሬም ኬክ ፪', category: 'CREAM_CAKES', price: 150, unitType: 'piece', costPrice: 90, sellingPrice: 150 },
 
-  { name: 'Soft Cake 1', category: 'SOFT_CAKES', price: 50, unitType: 'piece' },
-  { name: 'Soft Cake 2', category: 'SOFT_CAKES', price: 100, unitType: 'piece' },
+  { name: 'Soft Cake 1', name_am: 'ለስላሳ ኬክ ፩', category: 'SOFT_CAKES', price: 50, unitType: 'piece', costPrice: 25, sellingPrice: 50 },
+  { name: 'Soft Cake 2', name_am: 'ለስላሳ ኬክ ፪', category: 'SOFT_CAKES', price: 100, unitType: 'piece', costPrice: 55, sellingPrice: 100 },
 
-  { name: 'Dry Cake 1', category: 'DRY_CAKES', price: 50, unitType: 'piece' },
-  { name: 'Dry Cake 2', category: 'DRY_CAKES', price: 100, unitType: 'piece' },
+  { name: 'Dry Cake 1', name_am: 'ደረቅ ኬክ ፩', category: 'DRY_CAKES', price: 50, unitType: 'piece', costPrice: 25, sellingPrice: 50 },
+  { name: 'Dry Cake 2', name_am: 'ደረቅ ኬክ ፪', category: 'DRY_CAKES', price: 100, unitType: 'piece', costPrice: 55, sellingPrice: 100 },
 
-  { name: 'Cookies 1', category: 'COOKIES', price: 500, unitType: 'piece' },
+  { name: 'Cookies 1', name_am: 'ኩኪስ ፩', category: 'COOKIES', price: 500, unitType: 'piece', costPrice: 300, sellingPrice: 500 },
 
-  { name: 'Fetire 1', category: 'FETIRE_AND_SNACKS', price: 200, unitType: 'piece' },
+  { name: 'Fetire 1', name_am: 'ፍቲር ፩', category: 'FETIRE_AND_SNACKS', price: 200, unitType: 'piece', costPrice: 100, sellingPrice: 200 },
 
-  { name: 'Drinks 1', category: 'DRINKS_AND_RETAIL_ITEMS', price: 200, unitType: 'piece' },
-  { name: 'Drinks 2', category: 'DRINKS_AND_RETAIL_ITEMS', price: 300, unitType: 'piece' },
+  { name: 'Drinks 1', name_am: 'መጠጥ ፩', category: 'DRINKS_AND_RETAIL_ITEMS', price: 200, unitType: 'piece', costPrice: 120, sellingPrice: 200 },
+  { name: 'Drinks 2', name_am: 'መጠጥ ፪', category: 'DRINKS_AND_RETAIL_ITEMS', price: 300, unitType: 'piece', costPrice: 180, sellingPrice: 300 },
 ];
 
 async function main() {
@@ -28,8 +28,8 @@ async function main() {
   for (const product of PRODUCTS) {
     await prisma.product.upsert({
       where: { name: product.name },
-      update: { category: product.category, price: product.price, unitType: product.unitType, isActive: true },
-      create: { name: product.name, category: product.category, price: product.price, unitType: product.unitType, isActive: true },
+      update: { name_am: product.name_am, category: product.category, price: product.price, unitType: product.unitType, isActive: true, costPrice: product.costPrice, sellingPrice: product.sellingPrice },
+      create: { name: product.name, name_am: product.name_am, category: product.category, price: product.price, unitType: product.unitType, isActive: true, costPrice: product.costPrice, sellingPrice: product.sellingPrice },
     });
   }
   console.log(`Products seeded: ${PRODUCTS.length}`);

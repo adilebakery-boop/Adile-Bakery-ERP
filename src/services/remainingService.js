@@ -96,11 +96,25 @@ async function create(data, user) {
     throw new Error('Quantity must be a non-negative number');
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+  const product = await prisma.product.findFirst({
+    where: {
+      id: parseInt(productId),
+      isActive: true,
+    },
   });
 
   if (!product) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: parseInt(productId) },
+      select: { isActive: true },
+    });
+
+    if (existingProduct && !existingProduct.isActive) {
+      const error = new Error('Cannot create remaining record for inactive product');
+      error.status = 400;
+      throw error;
+    }
+
     const error = new Error('Product not found');
     error.status = 404;
     throw error;
@@ -179,11 +193,23 @@ async function createBulk(data, user) {
     const auditLogs = [];
 
     for (const item of items) {
-      const product = await tx.product.findUnique({
-        where: { id: parseInt(item.productId) },
+      const product = await tx.product.findFirst({
+        where: {
+          id: parseInt(item.productId),
+          isActive: true,
+        },
       });
 
       if (!product) {
+        const existingProduct = await tx.product.findUnique({
+          where: { id: parseInt(item.productId) },
+          select: { isActive: true },
+        });
+
+        if (existingProduct && !existingProduct.isActive) {
+          throw new Error(`Cannot save remaining for inactive product: ${existingProduct.id}`);
+        }
+
         throw new Error(`Product ${item.productId} not found`);
       }
 
