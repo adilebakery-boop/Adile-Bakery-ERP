@@ -1,11 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
-import reportService from '../../services/reportService';
-import branchService from '../../services/branchService';
-import productService from '../../services/productService';
 import { getLocalizedName, PRODUCT_NAMES, BRANCH_NAMES } from '../../utils/getLocalizedName';
+import reportService from '../../services/reportService';
+import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import { useProductCategoriesQuery } from '../../features/products/hooks/queries/useProductCategoriesQuery';
+import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
+import { useDailyReportQuery } from '../../features/reports/hooks/queries/useDailyReportQuery';
+import { useWeeklyReportQuery } from '../../features/reports/hooks/queries/useWeeklyReportQuery';
+import { useMonthlyReportQuery } from '../../features/reports/hooks/queries/useMonthlyReportQuery';
+import { useYearlyReportQuery } from '../../features/reports/hooks/queries/useYearlyReportQuery';
 
 const DAY_NAMES = {
   Monday: 'ሰኞ', Tuesday: 'ማክሰኞ', Wednesday: 'ረቡዕ', Thursday: 'ሐሙስ',
@@ -16,27 +21,19 @@ const MONTH_NAMES = {
   May: 'ግንቦት', June: 'ሰኔ', July: 'ሐምሌ', August: 'ነሐሴ',
   September: 'መስከረም', October: 'ጥቅምት', November: 'ኅዳር', December: 'ታኅሣሥ'
 };
-import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
-import { TableSkeleton } from '../../components/skeletons';
 
 export default function ReportsPage() {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('daily');
   const [date, setDate] = useState(getOperationalDate());
   const [branchId, setBranchId] = useState('');
-  const [branches, setBranches] = useState([]);
   const [category, setCategory] = useState('');
   const [productId, setProductId] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [productList, setProductList] = useState([]);
-  const [allProductsData, setAllProductsData] = useState([]);
-  const [reportData, setReportData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const canManageAll = isManagerOrAdmin();
+  const effectiveBranchId = canManageAll ? branchId : null;
 
   const getProductNameDisplay = (product) => {
     if (!product) return '';
@@ -58,103 +55,54 @@ export default function ReportsPage() {
     return branchName;
   };
 
-  useEffect(() => {
-    setDate(getOperationalDate());
-  }, []);
+  const { data: branches = [] } = useActiveBranchesQuery();
+  const { data: categories = [] } = useProductCategoriesQuery();
+
+  const {
+    data: productsResult,
+  } = useProductsQuery({ category: category || undefined, limit: 200 });
+  const productList = productsResult?.data || [];
+
+  const filters = {};
+  if (category) filters.category = category;
+  if (productId) filters.productId = productId;
+
+  const dailyQuery = useDailyReportQuery(effectiveBranchId, date, activeTab === 'daily' ? filters : {});
+  const weeklyQuery = useWeeklyReportQuery(effectiveBranchId, date, activeTab === 'weekly' ? filters : {});
+  const monthlyQuery = useMonthlyReportQuery(effectiveBranchId, date, activeTab === 'monthly' ? filters : {});
+  const yearlyQuery = useYearlyReportQuery(effectiveBranchId, date, activeTab === 'yearly' ? filters : {});
+
+  const activeQuery = activeTab === 'daily' ? dailyQuery
+    : activeTab === 'weekly' ? weeklyQuery
+    : activeTab === 'monthly' ? monthlyQuery
+    : yearlyQuery;
+
+  const reportData = activeQuery.data || {};
+  const loading = activeQuery.isLoading;
+  const error = activeQuery.error;
+
+  const products = reportData.products || [];
+  const days = reportData.days || [];
+  const weeks = reportData.weeks || [];
+  const months = reportData.months || [];
+  const hasData = activeTab === 'daily' ? products.length > 0
+    : activeTab === 'weekly' ? days.length > 0
+    : activeTab === 'monthly' ? weeks.length > 0
+    : months.length > 0;
+
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
-    if (canManageAll) loadBranches();
-    loadCategories();
-  }, [canManageAll]);
-
-  useEffect(() => {
-    loadProducts();
-  }, [category]);
-
-  useEffect(() => {
-    if (date) {
-      loadReport();
-    }
+    setCurrentPage(1);
   }, [activeTab, date, branchId, category, productId]);
-
-  const loadBranches = async () => {
-    const res = await branchService.getActiveBranches();
-    if (res.success) {
-      setBranches(res.data || []);
-      setBranchId('');
-    }
-  };
-
-  const loadCategories = async () => {
-    const res = await productService.getCategories();
-    if (res.success) {
-      setCategories(res.data || []);
-    }
-  };
-
-  const loadProducts = async () => {
-    const res = await productService.getProducts({ category: category || undefined });
-    if (res.success) {
-      setAllProductsData(res.data || []);
-      setProductList(res.data || []);
-      if (!category) {
-        setProductList(res.data || []);
-      }
-    }
-  };
 
   const handleCategoryChange = (cat) => {
     setCategory(cat);
     setProductId('');
-    if (cat) {
-      const filtered = allProductsData.filter(p => p.category === cat);
-      setProductList(filtered);
-    } else {
-      setProductList(allProductsData);
-    }
-};
-
-  const loadReport = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      let res;
-      const params = { operationalDate: date };
-      if (branchId) params.branchId = branchId;
-      if (category) params.category = category;
-      if (productId) params.productId = productId;
-
-      switch (activeTab) {
-        case 'daily':
-          res = await reportService.getDailyReport(params);
-          break;
-        case 'weekly':
-          res = await reportService.getWeeklyReport(params);
-          break;
-        case 'monthly':
-          res = await reportService.getMonthlyReport(params);
-          break;
-        case 'yearly':
-          res = await reportService.getYearlyReport(params);
-          break;
-        default:
-          res = await reportService.getDailyReport(params);
-      }
-
-      if (res.success) {
-        setReportData(res.data);
-      } else {
-        setError(res.message || 'Failed to load report');
-        setReportData(null);
-      }
-    } catch (err) {
-      setError('Error loading report: ' + (err.message || 'Unknown error'));
-      setReportData(null);
-    }
-    setLoading(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     try {
       const params = {
         type: activeTab,
@@ -172,35 +120,11 @@ export default function ReportsPage() {
         a.download = `${activeTab}-report-${date}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
-      } else {
-        setError(res.message || 'Export failed');
       }
     } catch (err) {
       console.error('Export error:', err);
-      setError('Export failed. Please try again.');
     }
-  };
-
-  const products = reportData?.products || [];
-  const days = reportData?.days || [];
-  const weeks = reportData?.weeks || [];
-  const months = reportData?.months || [];
-  const hasData = activeTab === 'daily' ? products.length > 0 : activeTab === 'weekly' ? days.length > 0 : activeTab === 'monthly' ? weeks.length > 0 : months.length > 0;
-
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  useEffect(() => {
-    setCurrentPage(1);
   }, [activeTab, date, branchId, category, productId]);
-
-  const goToPreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
-  const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
 
   const totals = useMemo(() => {
     if (activeTab === 'daily') {
@@ -236,7 +160,7 @@ export default function ReportsPage() {
           totalEstSold: acc.totalEstSold + (parseFloat(t.totalEstimatedSold) || 0),
           totalRevenue: acc.totalRevenue + (parseFloat(t.totalEstimatedRevenue) || 0),
         };
-      }, { totalDayProduction: 0, totalNightProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
+      }, { totalDayProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
     }
     return {};
   }, [activeTab, products, days, weeks]);
@@ -247,7 +171,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('reports.title')}</h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - {formatOperationalDate(date)}
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report — {formatOperationalDate(date)}
             {branchId ? ` — ${getLocalizedName(branches.find(b => b.id.toString() === branchId), i18n.language) || ''}` : ''}
           </p>
         </div>
@@ -263,29 +187,29 @@ export default function ReportsPage() {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
-          {error}
+          {error.message || 'Failed to load report'}
         </div>
       )}
 
-<div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="p-6 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-[50px] p-1 w-fit">
-                {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all ${
-                      activeTab === tab ? 'bg-white dark:bg-[#1a1a2e] text-[#001F3F] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
-                    }`}
-                  >
-                    {t(`reports.${tab}`)}
-                  </button>
-                ))}
-              </div>
+              {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all ${
+                    activeTab === tab ? 'bg-white dark:bg-[#1a1a2e] text-[#001F3F] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  {t(`reports.${tab}`)}
+                </button>
+              ))}
+            </div>
 
             <div className="flex gap-3 flex-wrap">
-<div className="relative">
+              <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="date"
@@ -328,7 +252,7 @@ export default function ReportsPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
 
-{(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
+              {(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
                 <div className="relative">
                   <select
                     value={productId}
@@ -409,7 +333,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={goToPreviousPage}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                         className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -419,7 +343,7 @@ export default function ReportsPage() {
                         {t('reports.pageOf', { current: currentPage, total: totalPages })}
                       </span>
                       <button
-                        onClick={goToNextPage}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                         className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -508,9 +432,7 @@ export default function ReportsPage() {
                     <div className="flex flex-wrap gap-8">
                       <div>
                         <p className="text-xs text-white/60">{t('reports.production')}</p>
-                        <p className="text-xl font-bold">
-                          {(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}
-                        </p>
+                        <p className="text-xl font-bold">{(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.remaining')}</p>
@@ -522,9 +444,7 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.revenue')}</p>
-                        <p className="text-2xl font-bold">
-                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
-                        </p>
+                        <p className="text-2xl font-bold">{totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
                   </div>
@@ -576,9 +496,7 @@ export default function ReportsPage() {
                     <div className="flex flex-wrap gap-8">
                       <div>
                         <p className="text-xs text-white/60">{t('reports.production')}</p>
-                        <p className="text-xl font-bold">
-                          {(totals.totalDayProduction || 0)}
-                        </p>
+                        <p className="text-xl font-bold">{(totals.totalDayProduction || 0)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.remaining')}</p>
@@ -590,9 +508,7 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.revenue')}</p>
-                        <p className="text-2xl font-bold">
-                          {totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB
-                        </p>
+                        <p className="text-2xl font-bold">{totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
                   </div>
@@ -643,9 +559,7 @@ export default function ReportsPage() {
                     <div className="flex flex-wrap gap-8">
                       <div>
                         <p className="text-xs text-white/60">{t('reports.production')}</p>
-                        <p className="text-xl font-bold">
-                          {((totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)).toLocaleString()}
-                        </p>
+                        <p className="text-xl font-bold">{(totals.totalDayProduction || 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.sellable')}</p>
@@ -665,9 +579,7 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/60">{t('reports.revenue')}</p>
-                        <p className="text-2xl font-bold">
-                          {totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB
-                        </p>
+                        <p className="text-2xl font-bold">{totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
                   </div>
