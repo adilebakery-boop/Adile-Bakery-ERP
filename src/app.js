@@ -4,6 +4,7 @@ const helmet = require('./middlewares/helmet.middleware');
 const sanitizeRequest = require('./middlewares/sanitize.middleware');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const { loginLimiter, apiLimiter, exportLimiter } = require('./middlewares/rateLimit.middleware');
+const trafficMonitor = require('./middlewares/trafficMonitor.middleware');
 
 const app = express();
 
@@ -31,6 +32,8 @@ app.use(sanitizeRequest);
 app.use('/api/auth/login', loginLimiter);
 app.use('/api', apiLimiter);
 app.use('/api/reports/export', exportLimiter);
+
+app.use('/api', trafficMonitor);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/branches', branchRoutes);

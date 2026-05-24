@@ -259,3 +259,135 @@ All React Query code is frontend-only. The backend API is unchanged. Rollback is
 | npm deps added | 0 | 2 | @tanstack/react-query + devtools |
 
 The 61 KB increase includes React Query runtime (~12 KB gzipped) + all 30 hook files + infrastructure. No external dependencies like Zustand, Redux, or SWR were needed.
+
+---
+
+## Remaining Module Ownership Model
+
+### Decision: Collaborative Branch Draft (Option A)
+
+The Remaining module uses a **shared collaborative draft** model, not user-owned drafts.
+
+**Evidence:**
+- `@@unique([branchId, operationalDate, productId])` — one row per product/date/branch regardless of user
+- `buildRemainingAccessFilter` filters by **category** (not `createdBy`) for non-admin roles
+- `createBulk` finds records by `branchId + operationalDate + productId` without user filter
+- `findByOperationalDate` returns all records for the branch/date visible to the user's role
+
+**Implications:**
+- All users with overlapping category access see the same draft row
+- The last save overwrites previous data (no per-user isolation)
+- `createdBy` reflects the original creator only — not the current "owner"
+- Frontend `existingRemainings` state includes all visible records regardless of creator
+
+**Why not Option B (User-Owned Drafts):**
+- Would require schema migration: remove `@@unique([branchId, operationalDate, productId])`, add `createdBy` to unique constraint
+- Would require access filter changes: filter `findByOperationalDate` by `createdBy`
+- Would require `createBulk` changes: scope `findFirst` to own records
+- Would break manager workflow: managers need to see/finalize all branch records
+- Not feasible without multi-month coordinated schema + service + frontend changes
+
+**The recent fixes enforce consistency with Option A:**
+- `handleFinalize` now filters inactive products from payload (frontend guard)
+- Business-validation throws include `.status` (proper 4xx codes)
+- Error handler returns real error messages (no more opaque 500s)
+- Defensive logging around `createBulk` failures
+
+---
+
+## Phase C — Governance Rules
+
+### Rule D1 — Stable Query Defaults
+
+Destructuring defaults for server-state data MUST NOT create new object/array references per render. The `= []` and `|| []` patterns produce a new reference on every render, which causes `useEffect` to re-run and can trigger render loops when combined with `setState`.
+
+**Forbidden:**
+```js
+const { data: items = [] } = useQuery(...)       // new [] every render
+const items = data || []                           // new [] every render
+const items = data?.items || []                    // new [] every render
+```
+
+**Allowed:**
+```js
+// Option A — stable module-level constant
+const EMPTY = Object.freeze([]);
+const items = data ?? EMPTY;
+
+// Option B — handle undefined explicitly at consumption point
+const { data } = useQuery(...);
+// In useEffect: if (!data) return;
+
+// Option C — queryFn returns empty array (already stable from cache)
+// queryFn: () => result.data || []    ← safe if result.data is a real array
+```
+
+**Rationale:** The `RemainingPage.jsx:48` render-loop was caused by `data: remainingsData = []` combined with `useEffect` + `setExistingRemainings`. Under normal conditions the loop only ran 1-3 iterations (during loading). Under 429 error conditions where `data` remained `undefined` permanently, the loop persisted until React threw `Maximum update depth exceeded` at ~50 iterations. The guard `if (!data) return;` breaks the loop at the source.
+
+**Enforcement:** Code review. ESLint rule recommended (`@opencode/no-unstable-query-default`).
+
+---
+
+### Retry Ownership Charter
+
+Retry logic is split across two layers. Each layer has a distinct concern. 429 MUST NOT be retried by either layer.
+
+| Layer | Owns | Format | Why |
+|-------|------|--------|-----|
+| **Axios interceptor** (api.js) | Transport/infrastructure retry | `retryableStatuses` array, linear backoff | Network errors have no application context. Axios handles DNS/timeout/connection failures before the application sees them. After the Phase A fix, `retryableStatuses = [408, 502, 503, 504]` — only server-infrastructure codes. |
+| **React Query** (QueryProvider.jsx) | Application/server retry | `retry` callback, exponential backoff | Status codes have business meaning (500 = server error, 503 = unavailable). React Query provides per-query retry config, jitter, and cache integration. After Phase A fix, `retry` callback excludes 429 at the global level. Per-query overrides are allowed for special cases. |
+| **429 Rate Limit** | **NEITHER** | `retry: (fc, error) => error?.response?.status !== 429` | Rate limits signal backpressure. Retrying amplifies the problem. The ONLY acceptable response is to surface the error to the user and let them retry manually, or implement a single retry with explicit `Retry-After` header delay as a future enhancement. |
+
+**Architectural rationale for removal of 429 from both layers:**
+
+Pre-Phase A, request amplification for a single query under rate-limit conditions was:
+```
+(1 axios initial + 2 axios retries) × (1 RQ initial + 2 RQ retries) = 9 HTTP requests
+```
+For three parallel queries on RemainingPage: 27 requests. This caused:
+- Self-sustaining rate-limit lockout (requests keep the limiter hot)
+- Exhaustion of the shared 100/15min global budget in seconds
+- Background retries continuing after component unmount (post "Maximum update depth exceeded")
+
+Post-Phase A, a rate-limited query produces exactly 1 HTTP request before settling in error state. The `ApiErrorState` component displays the error with a manual "Retry" button.
+
+**Future enhancement (optional):** Implement a single `Retry-After`-aware retry in React Query using `retryDelay`:
+```js
+retry: (failureCount, error) => {
+  if (error?.response?.status === 429 && failureCount < 1) return true;
+  return false;
+},
+retryDelay: (attemptIndex, error) => {
+  const retryAfter = error?.response?.headers['retry-after'];
+  return (retryAfter ? parseInt(retryAfter) * 1000 : 5000);
+},
+```
+This is deferred until traffic monitor data justifies the complexity.
+
+---
+
+### Traffic Monitor — Data Collection for Phase C Route Budgets
+
+The `trafficMonitor.middleware.js` logs per-route request counts every 60 seconds. Use this output to design per-route rate limit budgets. Key questions answered by telemetry:
+
+- What is the peak req/min for dashboard vs production vs remaining?
+- Do operational workflows (end-of-day finalize) produce bursts?
+- How does traffic scale with concurrent users?
+- What is the actual headroom between peak traffic and the 250/15min global limit?
+
+**Recommended route budget thresholds (starting estimates — tune from telemetry):**
+
+| Route | Estimated Budget | Rationale |
+|-------|-----------------|-----------|
+| `/api/dashboard/*` | 60 req/15min | ~51 idle baseline + headroom |
+| `/api/remainings/*` | 30 req/15min | Load + save + finalize |
+| `/api/productions/*` | 30 req/15min | Load + create + update |
+| `/api/products/*` | 20 req/15min | List + CRUD |
+| `/api/branches/*` | 20 req/15min | List + CRUD |
+| `/api/reports/*` | 15 req/15min | View + generate |
+| `/api/users/*` | 10 req/15min | Admin operations |
+| `/api/auth/*` | 10 req/15min | Login + refresh (login has own 5/15min limiter) |
+
+Total estimated: 195/15min — within the raised 250 global limit.
+
+**Monitoring period recommendation:** Collect at least 1 week of traffic data under multi-user load before implementing route budgets. Budgets should be set to P95 peak + 50% headroom.

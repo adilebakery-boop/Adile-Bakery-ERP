@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Package, DollarSign, AlertCircle, Loader2, Lock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, DollarSign, AlertCircle, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { useDashboardData } from '../../features/dashboard/hooks/useDashboardData';
-import { useCloseDayMutation } from '../../features/dashboard/hooks/mutations/useCloseDayMutation';
 import { queryKeys } from '../../utils/queryKeys';
 import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skeletons';
 import { ApiErrorState } from '../../components/ui/ErrorState';
@@ -15,23 +15,18 @@ export default function DashboardPage() {
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
   const operationalDate = getOperationalDate();
-  const canClose = isManager;
   const queryClient = useQueryClient();
 
+  const navigate = useNavigate();
   const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
 
-  const { overview, activity, closure } = useDashboardData({
+  const { overview, activity } = useDashboardData({
     branchId: targetBranchId,
     date: operationalDate,
     isManager,
   });
 
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [closureLoading, setClosureLoading] = useState(false);
-  const [closureError, setClosureError] = useState('');
-  const [closureSuccess, setClosureSuccess] = useState('');
-
-  const closeDayMutation = useCloseDayMutation();
 
   useEffect(() => {
     if (overview.data) {
@@ -44,27 +39,11 @@ export default function DashboardPage() {
     pendingDraftsBranches: [], isAllBranches: false, branches: [], allFinalized: true,
   };
 
-  const closureStatus = closure.data || { isClosed: false, operationalDate: '' };
   const recentActivity = activity.data || [];
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview(targetBranchId, operationalDate) });
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.activity(targetBranchId, operationalDate) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.closure.status(operationalDate) });
-  };
-
-  const handleCloseDay = async () => {
-    setClosureLoading(true);
-    setClosureError('');
-    setClosureSuccess('');
-    try {
-      await closeDayMutation.mutateAsync(operationalDate);
-      setClosureSuccess(t('dashboard.closeDaySuccess'));
-      setTimeout(() => setClosureSuccess(''), 3000);
-    } catch (err) {
-      setClosureError(err.message || t('common.errorLoading'));
-    }
-    setClosureLoading(false);
   };
 
   const getActivityIcon = (type) => {
@@ -103,54 +82,41 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {canClose && !kpis.isAllBranches && (
-            <>
-              {closureStatus.isClosed ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 rounded-xl text-sm">
-                  <Lock className="w-4 h-4" />
-                  {t('dashboard.dayClosed')}
-                </div>
-              ) : (
-                <button
-                  onClick={handleCloseDay}
-                  disabled={closureLoading}
-                  className="px-4 py-2.5 bg-[#001F3F] text-white rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#001a35] transition-colors disabled:opacity-70"
-                >
-                  {closureLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                  {t('dashboard.closeDay')}
-                </button>
-              )}
-            </>
-          )}
           <button onClick={handleRefresh} className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors">
             <RefreshCw className="w-5 h-5 text-gray-400" />
           </button>
         </div>
       </div>
 
-      {closureError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
-          <XCircle className="w-4 h-4" />
-          {closureError}
-        </div>
-      )}
-      {closureSuccess && (
-        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
-          {closureSuccess}
-        </div>
-      )}
-
-      {kpis.pendingDrafts > 0 && !closureStatus.isClosed && !kpis.isAllBranches && (
-        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-500" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              {t('dashboard.draftWarning', { count: kpis.pendingDrafts })}
-            </p>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-              {t('dashboard.draftWarningSubtitle')}
-            </p>
+      {kpis.pendingDrafts > 0 && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                {t('dashboard.draftWarning', { count: kpis.pendingDrafts })}
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                {t('dashboard.draftWarningSubtitle')}
+              </p>
+              {kpis.isAllBranches && kpis.branches && kpis.branches.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {kpis.branches.filter(b => b.pendingDrafts > 0).map(b => (
+                    <li key={b.branchId} className="text-xs text-amber-700 dark:text-amber-300">
+                      {b.branchName}: {b.pendingDrafts} pending
+                    </li>
+                  ))}
+                    </ul>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/remaining')}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
+                  >
+                    {t('dashboard.goToRemaining')}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+            </div>
           </div>
         </div>
       )}

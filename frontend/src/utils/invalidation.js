@@ -13,13 +13,19 @@ export function invalidateRemainingBranch(queryClient, branchId, date) {
   queryClient.invalidateQueries({
     queryKey: queryKeys.inventory.remaining.entries(branchId, date),
   });
-  queryClient.invalidateQueries({
-    queryKey: queryKeys.inventory.remaining.drafts(branchId),
-  });
 }
 
 export function invalidateDashboardScope(queryClient, branchId) {
   queryClient.invalidateQueries({
+    predicate: (query) => {
+      const key = query.queryKey;
+      return key[0] === 'dashboard' && (key[2] === branchId || key[2] === 'all');
+    },
+  });
+  // Force immediate refetch instead of waiting for the next poll interval.
+  // Without this, the dashboard stale-time gap (30s poll) delays visibility
+  // of pending-draft state changes from the Remaining page.
+  queryClient.refetchQueries({
     predicate: (query) => {
       const key = query.queryKey;
       return key[0] === 'dashboard' && (key[2] === branchId || key[2] === 'all');

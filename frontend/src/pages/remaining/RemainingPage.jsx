@@ -45,7 +45,7 @@ export default function RemainingPage() {
   const { data: branches = [] } = useActiveBranchesQuery();
 
   const {
-    data: remainingsData = [],
+    data: remainingsData,
     isLoading: isLoadingRemainings,
     isError: remainingsError,
     error: remainingsErrorObj,
@@ -53,6 +53,8 @@ export default function RemainingPage() {
   } = useRemainingEntriesQuery(effectiveBranchId, operationalDate);
 
   useEffect(() => {
+    if (!remainingsData) return;
+
     const map = {};
     remainingsData.forEach(r => {
       map[r.productId] = {
@@ -162,15 +164,21 @@ export default function RemainingPage() {
     setError('');
     setSuccess('');
 
+    const activeProductIds = new Set(products.map(p => p.id));
+
     const items = Object.values(existingRemainings)
-      .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined)
+      .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined && activeProductIds.has(r.productId))
       .map(r => ({
         productId: r.productId,
         remainingQuantity: r.remainingQuantity,
       }));
 
+    const skippedCount = Object.values(existingRemainings).filter(
+      r => r.remainingQuantity !== null && r.remainingQuantity !== undefined && !activeProductIds.has(r.productId)
+    ).length;
+
     if (items.length === 0) {
-      setError(t('remaining.enterAtLeastOneBeforeFinalize'));
+      setError(skippedCount > 0 ? t('remaining.allSkippedInactive') : t('remaining.enterAtLeastOneBeforeFinalize'));
       return;
     }
 
@@ -185,8 +193,21 @@ export default function RemainingPage() {
         operationalDate,
         items,
       });
-      setSuccess(t('remaining.allFinalized'));
-      setTimeout(() => setSuccess(''), 3000);
+      // Optimistically update local state to FINAL before cache refetch completes.
+      // This eliminates the gap where the Finalize button still shows after
+      // the server confirms finalization but before the query refetches.
+      setExistingRemainings(prev => {
+        const updated = {};
+        for (const [key, val] of Object.entries(prev)) {
+          updated[key] = { ...val, status: 'FINAL', _dirty: false };
+        }
+        return updated;
+      });
+      const msg = skippedCount > 0
+        ? `${t('remaining.allFinalized')} (${skippedCount} ${t('remaining.skippedInactive')})`
+        : t('remaining.allFinalized');
+      setSuccess(msg);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       setError(err.message || t('common.saveFailed'));
     }
