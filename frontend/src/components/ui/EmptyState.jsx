@@ -2,6 +2,7 @@ import { Package, FileText, Users, PieChart, Search, FolderOpen } from 'lucide-r
 
 const iconMap = {
   products: Package,
+  production: Package,
   branches: Users,
   reports: PieChart,
   search: Search,

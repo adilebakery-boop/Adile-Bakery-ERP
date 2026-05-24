@@ -45,7 +45,8 @@
     "unblock": "Unblock",
     "view": "View",
     "hide": "Hide",
-    "locked": "Locked"
+    "locked": "Locked",
+    "selectBranch": "Select branch"
   },
   "auth": {
     "login": "Sign In",
@@ -82,7 +83,8 @@
     "closeDaySuccess": "Day closed successfully!",
     "closeDayFailed": "Failed to close day",
     "draftWarning": "{{count}} product(s) still in DRAFT status",
-    "draftWarningSubtitle": "Finalize all remainings before closing the day"
+    "draftWarningSubtitle": "Some branches still have unfinalized remainings that require review.",
+    "goToRemaining": "Go to Remaining Inventory"
   },
   "production": {
     "title": "Production",
@@ -131,7 +133,11 @@
     "allFinalized": "All remainings finalized!",
     "enterAtLeastOne": "Please enter at least one remaining value",
     "enterAtLeastOneBeforeFinalize": "Please enter at least one remaining value before finalizing",
-    "noProductsAvailable": "No products available for your role"
+    "allSkippedInactive": "All records are for products that are no longer active. Cannot finalize.",
+    "skippedInactive": "inactive product(s) skipped",
+    "noProductsAvailable": "No products available for your role",
+    "selectBranch": "Select branch",
+    "branch": "Branch"
   },
   "products": {
     "title": "Products",
@@ -201,7 +207,7 @@
     "allBranches": "All Branches",
     "allCategories": "All Categories",
     "allProducts": "All Products",
-    "comparisonMode": "Comparison Mode",
+
     "noDataForPeriod": "No data for this period",
     "product": "Product",
     "category": "Category",
@@ -244,7 +250,14 @@
     "updatePassword": "Update Password",
     "passwordChanged": "Password changed successfully",
     "passwordsDoNotMatch": "New passwords do not match",
-    "passwordTooShort": "New password must be at least 6 characters"
+    "passwordTooShort": "New password must be at least 6 characters",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "passwordMismatch": "New passwords do not match",
+    "passwordMinLength": "New password must be at least 6 characters",
+    "passwordChangedSuccess": "Password changed successfully",
+    "passwordChangeFailed": "Failed to change password"
   },
   "categories": {
     "breadAndSweetBreads": "Bread & Sweet Breads",
@@ -280,25 +293,5 @@
   "units": {
     "piece": "piece",
     "kg": "kg"
-  },
-  "profile": {
-    "title": "Profile Settings",
-    "accountOverview": "Account Overview",
-    "name": "Name",
-    "username": "Username",
-    "branch": "Branch",
-    "role": "Role",
-    "changePassword": "Change Password",
-    "passwordMismatch": "New passwords do not match",
-    "passwordMinLength": "New password must be at least 6 characters",
-    "passwordChangedSuccess": "Password changed successfully",
-    "passwordChangeFailed": "Failed to change password",
-    "currentPassword": "Current Password",
-    "currentPasswordPlaceholder": "Enter current password",
-    "newPassword": "New Password",
-    "newPasswordPlaceholder": "Enter new password",
-    "confirmNewPassword": "Confirm New Password",
-    "confirmPasswordPlaceholder": "Confirm new password",
-    "updatePassword": "Update Password"
   }
 }

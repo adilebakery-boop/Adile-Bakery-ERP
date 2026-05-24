@@ -6,7 +6,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30 * 1000,
       gcTime: 5 * 60 * 1000,
-      retry: 2,
+      retry: (failureCount, error) => {
+        if (error?.response?.status === 429) return false;
+        return failureCount < 2;
+      },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,

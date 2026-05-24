@@ -1,13 +1,9 @@
 import { useDashboardOverviewQuery } from './queries/useDashboardOverviewQuery';
 import { useDashboardActivityQuery } from './queries/useDashboardActivityQuery';
-import { useClosureStatusQuery } from './queries/useClosureStatusQuery';
 
 export function useDashboardData({ branchId, date, isManager }) {
   const overviewQuery = useDashboardOverviewQuery(branchId, date);
   const activityQuery = useDashboardActivityQuery(branchId, date, 10);
-  const closureQuery = useClosureStatusQuery(date, {
-    enabled: !isManager && !!date,
-  });
 
   return {
     overview: {
@@ -23,13 +19,6 @@ export function useDashboardData({ branchId, date, isManager }) {
       isError: activityQuery.isError,
       error: activityQuery.error,
       refetch: activityQuery.refetch,
-    },
-    closure: {
-      data: closureQuery.data,
-      isLoading: closureQuery.isLoading,
-      isError: closureQuery.isError,
-      error: closureQuery.error,
-      refetch: closureQuery.refetch,
     },
   };
 }

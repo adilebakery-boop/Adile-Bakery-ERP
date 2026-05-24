@@ -162,8 +162,19 @@ export default function ReportsPage() {
         };
       }, { totalDayProduction: 0, totalRemainingStock: 0, totalWaste: 0, totalEstSold: 0, totalRevenue: 0 });
     }
+    if (activeTab === 'yearly') {
+      const t = reportData.totals || {};
+      return {
+        totalDayProduction: parseFloat(t.totalDayProduction) || 0,
+        totalSellableStock: parseFloat(t.totalSellableStock) || 0,
+        totalRemainingStock: parseFloat(t.totalRemainingStock) || 0,
+        totalWasteQuantity: parseFloat(t.totalWasteQuantity) || 0,
+        totalEstimatedSold: parseFloat(t.totalEstimatedSold) || 0,
+        totalEstimatedRevenue: parseFloat(t.totalEstimatedRevenue) || 0,
+      };
+    }
     return {};
-  }, [activeTab, products, days, weeks]);
+  }, [activeTab, products, days, weeks, months, reportData]);
 
   return (
     <div>
@@ -227,9 +238,6 @@ export default function ReportsPage() {
                     className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
                   >
                     <option value="">{t('reports.allBranches')}</option>
-                    {(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
-                      <option value="comparison">{t('reports.comparisonMode')}</option>
-                    )}
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
                     ))}

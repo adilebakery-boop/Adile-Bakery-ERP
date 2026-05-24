@@ -186,9 +186,30 @@ async function createBulk(data, user) {
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
+  console.log('[REMAINING:BULK] start', {
+    userId: user?.userId,
+    branchId,
+    operationalDate: opDateParam,
+    itemCount: items?.length,
+  });
+
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
 
-  const result = await prisma.$transaction(async (tx) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+    // Re-check day open inside transaction boundary to close race window.
+    // The outer assertDayOpen guards against closed days without starting a
+    // transaction, but the day could close between check and transaction start.
+    // This inner check ensures atomicity.
+    const closure = await tx.dailyClosure.findUnique({
+      where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
+    });
+    if (closure?.isClosed) {
+      const err = new Error('Operational day is closed. Reopen required to make changes.');
+      err.status = 403;
+      throw err;
+    }
+
     const results = [];
     const auditLogs = [];
 
@@ -207,15 +228,21 @@ async function createBulk(data, user) {
         });
 
         if (existingProduct && !existingProduct.isActive) {
-          throw new Error(`Cannot save remaining for inactive product: ${existingProduct.id}`);
+          const err = new Error(`Cannot save remaining for inactive product: ${existingProduct.id}`);
+          err.status = 400;
+          throw err;
         }
 
-        throw new Error(`Product ${item.productId} not found`);
+        const err = new Error(`Product ${item.productId} not found`);
+        err.status = 404;
+        throw err;
       }
 
       const bulkUnitValidation = validateQuantityForUnitType(item.remainingQuantity, product.unitType);
       if (!bulkUnitValidation.valid) {
-        throw new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
+        const err = new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
+        err.status = 400;
+        throw err;
       }
 
       const existing = await tx.remainingRecord.findFirst({
@@ -285,7 +312,25 @@ async function createBulk(data, user) {
     return results;
   });
 
-  return result;
+    console.log('[REMAINING:BULK] success', {
+      userId: user?.userId,
+      branchId,
+      operationalDate: opDateParam,
+      recordCount: result?.length,
+    });
+
+    return result;
+  } catch (err) {
+    console.error('[REMAINING:BULK] error', {
+      userId: user?.userId,
+      branchId,
+      operationalDate: opDateParam,
+      message: err.message,
+      status: err.status,
+      code: err.code,
+    });
+    throw err;
+  }
 }
 
 async function update(id, data, user) {

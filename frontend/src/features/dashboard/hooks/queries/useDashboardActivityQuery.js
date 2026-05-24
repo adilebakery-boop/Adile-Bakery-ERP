@@ -10,8 +10,9 @@ export function useDashboardActivityQuery(branchId, date, limit = 10) {
       if (!result.success) throw new Error(result.message || 'Failed to load recent activity');
       return result.data || [];
     },
-    staleTime: 15 * 1000,
+    staleTime: 45 * 1000,
     refetchInterval: 45 * 1000,
+    refetchOnWindowFocus: false,
     enabled: !!date,
   });
 }

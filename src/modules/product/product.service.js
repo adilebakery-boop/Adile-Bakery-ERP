@@ -165,7 +165,7 @@ const productService = {
         where,
         skip,
         take,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { id: 'desc' },
       }),
       prisma.product.count({ where }),
     ]);
