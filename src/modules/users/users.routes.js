@@ -14,15 +14,33 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany({
-      where: { isActive: true },
-      include: { role: true, branch: true },
-      orderBy: { createdAt: 'desc' }
-    });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: { isActive: true },
+        include: { role: true, branch: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.user.count({ where: { isActive: true } }),
+    ]);
+
     res.json({
       success: true,
       message: 'Users retrieved successfully',
-      data: { users }
+      data: {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
     });
   })
 );
@@ -39,6 +57,24 @@ router.get(
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.json({ success: true, message: 'User retrieved successfully', data: user });
+  })
+);
+
+router.get(
+  '/deactivated',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  asyncHandler(async (req, res) => {
+    const users = await prisma.user.findMany({
+      where: { isActive: false },
+      include: { role: true, branch: true },
+      orderBy: { deletedAt: 'desc' }
+    });
+    res.json({
+      success: true,
+      message: 'Deactivated users retrieved successfully',
+      data: { users }
+    });
   })
 );
 
@@ -122,6 +158,37 @@ router.post(
 );
 
 router.put(
+  '/:id/restore',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id);
+    const currentUserRole = req.user.role;
+
+    const canManage = await canManageTargetUser(currentUserRole, userId);
+    if (!canManage) {
+      return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.isActive) {
+      return res.status(400).json({ success: false, message: 'User is already active' });
+    }
+
+    const restored = await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: true, deletedAt: null },
+      include: { role: true, branch: true }
+    });
+
+    res.json({ success: true, message: 'User restored successfully', data: restored });
+  })
+);
+
+router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
@@ -196,7 +263,7 @@ router.delete(
 
     await prisma.user.update({
       where: { id: userId },
-      data: { isActive: false }
+      data: { isActive: false, deletedAt: new Date() }
     });
 
     res.json({ success: true, message: 'User deactivated successfully', data: {} });

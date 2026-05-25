@@ -92,8 +92,8 @@ async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
   // Validate quantity is positive
-  if (quantity === undefined || quantity === null || Number(quantity) < 0) {
-    throw new Error('Quantity must be a non-negative number');
+  if (quantity === undefined || quantity === null || Number(quantity) <= 0) {
+    throw new Error('Quantity must be a positive number');
   }
 
   const product = await prisma.product.findUnique({

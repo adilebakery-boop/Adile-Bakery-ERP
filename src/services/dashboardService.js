@@ -69,7 +69,6 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
   const opDate = new Date(opDateStr + 'T00:00:00.000Z');
   
-  // Get user's productions for today
   const productions = await prisma.productionRecord.findMany({
     where: {
       branchId: parseInt(branchId),
@@ -79,7 +78,6 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     select: { quantity: true, shift: true }
   });
   
-  // Get user's remainings for today
   const remainings = await prisma.remainingRecord.findMany({
     where: {
       branchId: parseInt(branchId),
@@ -89,7 +87,6 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     select: { quantity: true, status: true }
   });
   
-  // Get previous day's remaining for opening stock
   const prevDate = new Date(opDate);
   prevDate.setDate(prevDate.getDate() - 1);
   const prevDayRemainings = await prisma.remainingRecord.findMany({
@@ -102,13 +99,11 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     select: { quantity: true }
   });
   
-  // Calculate totals
   let totalDayProduction = 0;
   let totalNightProduction = 0;
   let totalRemainingStock = 0;
   let totalOpeningStock = 0;
   
-  // Opening stock = previous day's remaining
   for (const r of prevDayRemainings) {
     totalOpeningStock += Number(r.quantity);
   }
@@ -126,7 +121,6 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     totalRemainingStock += Number(r.quantity);
   }
   
-  // Calculate estimated sold
   const totalProduction = totalDayProduction + totalNightProduction;
   const sellableStock = totalOpeningStock + totalProduction;
   const totalEstimatedSold = Math.max(0, sellableStock - totalRemainingStock);
@@ -175,7 +169,8 @@ async function checkAllProductsHaveRemaining(branchId, operationalDate) {
   });
 
   const submittedIds = new Set(submitted.map(p => p.productId));
-  return activeProducts.every(p => submittedIds.has(p.id));
+  const result = activeProducts.every(p => submittedIds.has(p.id));
+  return result;
 }
 
 async function getAllBranchesStatus(operationalDate) {
