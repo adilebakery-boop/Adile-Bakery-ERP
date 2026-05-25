@@ -36,9 +36,9 @@ async function main() {
   const cashierRole = await prisma.role.findUnique({ where: { name: 'CASHIER' } });
 
   const branches = [
-    { name: 'Main Branch' },
-    { name: 'Branch 2' },
-    { name: 'Branch 3' },
+    { name: 'Main Branch', name_am: 'ዋና ቅርንጫፍ' },
+    { name: 'Branch 2', name_am: 'ቅርንጫፍ ፪' },
+    { name: 'Branch 3', name_am: 'ቅርንጫፍ ፫' },
   ];
 
   for (const branch of branches) {
