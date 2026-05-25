@@ -72,7 +72,6 @@ export default function UsersPage() {
   const [formData, setFormData] = useState({ name: '', username: '', password: '', role: '', branchId: '' });
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
   const itemsPerPage = 10;
 
   const { data: users = [], isLoading: loading } = useUsersQuery();
@@ -86,24 +85,8 @@ export default function UsersPage() {
   const paginatedUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
-<<<<<<< HEAD
-    loadUsers();
-    loadBranches();
-  }, [currentPage]);
-
-  const loadUsers = async () => {
-    setLoading(true);
-    setError('');
-    const res = await userService.getUsers({ page: currentPage, limit: itemsPerPage });
-    if (res.success) {
-      setUsers(res.data?.users || res.data || []);
-      setTotalUsers(res.data?.pagination?.total || res.data?.users?.length || 0);
-    } else {
-      setError(res.message || 'Failed to load users');
-=======
     if (paginatedUsers.length === 0 && currentPage > 1 && totalPages > 0) {
       setCurrentPage(totalPages);
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
     }
   }, [paginatedUsers.length, currentPage, totalPages]);
 
@@ -200,24 +183,7 @@ export default function UsersPage() {
     }
   };
 
-<<<<<<< HEAD
-  const goToPreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
 
-  const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-
-  const totalPages = Math.ceil(totalUsers / itemsPerPage);
-  const paginatedUsers = users;
-
-  const isAdminOrManagerRole = (roleName) => {
-    return roleName === 'ADMIN' || roleName === 'MANAGER';
-  };
-
-=======
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -306,10 +272,10 @@ export default function UsersPage() {
           </table>
         </div>
 
-        {!loading && totalUsers > 0 && totalPages > 1 && (
+        {!loading && users.length > 0 && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, users.length)} of {users.length} users
             </div>
             <div className="flex items-center gap-2">
               <button
