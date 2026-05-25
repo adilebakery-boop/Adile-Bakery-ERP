@@ -40,17 +40,7 @@ export default function ProductionPage() {
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
-<<<<<<< HEAD
-  const [availableProducts, setAvailableProducts] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [isLoadingBranches, setIsLoadingBranches] = useState(true);
-  const [isLoadingEntries, setIsLoadingEntries] = useState(true);
-  const [loadingError, setLoadingError] = useState(null);
-  const [totalGroups, setTotalGroups] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-=======
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -81,49 +71,6 @@ export default function ProductionPage() {
 
   const { data: branches = [], isLoading: isLoadingBranches } = useActiveBranchesQuery();
 
-<<<<<<< HEAD
-  const loadProductions = async () => {
-    const requestId = ++loadProductionsRef.current;
-    setIsLoadingEntries(true);
-    setLoadingError(null);
-    try {
-      const params = {};
-      if (canManageAll && branch) {
-        params.branchId = parseInt(branch);
-      } else if (!canManageAll) {
-        params.branchId = userBranchId;
-      }
-
-      // Default to last 7 days to prevent fetching all historical records
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
-      params.startDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-      params.endDate = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-
-      params.page = currentPage;
-      params.limit = itemsPerPage;
-
-      const result = await productionService.getProductionsGrouped(params);
-      if (requestId === loadProductionsRef.current) {
-        if (result.success && result.data) {
-          setGroupedEntries(result.data || []);
-          setTotalGroups(result.pagination?.total || 0);
-        } else {
-          setLoadingError(result);
-        }
-      }
-    } catch (err) {
-      if (requestId === loadProductionsRef.current) {
-        setLoadingError(err.response ? err.response.data : { message: 'Failed to load productions', status: 0 });
-      }
-    } finally {
-      if (requestId === loadProductionsRef.current) {
-        setIsLoadingEntries(false);
-      }
-    }
-  };
-=======
   const {
     data: groupedEntries = [],
     isLoading: isLoadingEntries,
@@ -138,7 +85,6 @@ export default function ProductionPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [groupedEntries.length, branch]);
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
 
   const toggleGroupExpand = (groupKey) => {
     setExpandedGroups(prev => ({
@@ -151,16 +97,10 @@ export default function ProductionPage() {
     return `${group.productId}-${group.branchId}-${group.operationalDate}`;
   };
 
-  const totalPages = Math.ceil(totalGroups / itemsPerPage);
+  const totalPages = Math.ceil(groupedEntries.length / itemsPerPage);
   const paginatedGroups = groupedEntries;
 
-<<<<<<< HEAD
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [branch]);
 
-=======
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
@@ -169,15 +109,7 @@ export default function ProductionPage() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-<<<<<<< HEAD
-  useEffect(() => {
-    loadProducts();
-    loadBranches();
-    loadProductions();
-  }, [userRole, userBranchId, branch, currentPage]);
 
-=======
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -624,17 +556,13 @@ export default function ProductionPage() {
           <EmptyState type="production" message={t('production.noRecords')} />
         )}
 
-<<<<<<< HEAD
-        {!isLoadingEntries && !loadingError && totalGroups > 0 && totalPages > 1 && (
-=======
         {!isLoadingEntries && !entriesError && groupedEntries.length > 0 && totalPages > 1 && (
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('production.showing', {
                 from: ((currentPage - 1) * itemsPerPage) + 1,
-                to: Math.min(currentPage * itemsPerPage, totalGroups),
-                total: totalGroups
+                to: Math.min(currentPage * itemsPerPage, groupedEntries.length),
+                total: groupedEntries.length
               })}
             </div>
             <div className="flex items-center gap-2">

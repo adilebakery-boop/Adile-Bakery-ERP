@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -10,32 +10,10 @@ import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skele
 import { ApiErrorState } from '../../components/ui/ErrorState';
 
 export default function DashboardPage() {
-<<<<<<< HEAD
-  const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [kpis, setKpis] = useState({ production: 0, sales: 0, remaining: 0, pendingDrafts: 0, pendingDraftsBranches: [] });
-  const [closureStatus, setClosureStatus] = useState({ isClosed: false, operationalDate: '' });
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [closureLoading, setClosureLoading] = useState(false);
-  const [closureError, setClosureError] = useState('');
-  const [closureSuccess, setClosureSuccess] = useState('');
-
-  const fetchInProgress = useRef(false);
-
-const userRole = getUserRole();
-  const userBranchId = getUserBranchId();
-  const isManager = isManagerOrAdmin();
-  
-  const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
-  
-=======
   const { t } = useTranslation();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const operationalDate = getOperationalDate();
   const queryClient = useQueryClient();
 
@@ -50,76 +28,6 @@ const userRole = getUserRole();
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
-<<<<<<< HEAD
-  const loadDashboard = useCallback(async () => {
-    if (fetchInProgress.current) return;
-    fetchInProgress.current = true;
-
-    setLoading(true);
-    setError(null);
-    
-    const branchIdForApi = isManager ? 'all' : (userBranchId ? Number(userBranchId) : undefined);
-    
-    try {
-      const [overviewRes, statusRes, activityRes] = await Promise.all([
-        dashboardService.getOverview(branchIdForApi, operationalDate),
-        isManager ? Promise.resolve({ success: true, data: { isClosed: false } }) : closureService.getStatus(operationalDate),
-        dashboardService.getRecentActivity(isManager ? 'all' : userBranchId, operationalDate, 10),
-      ]);
-
-      if (overviewRes.success) {
-        const data = overviewRes.data;
-        setKpis({
-          production: data.totalProduction || 0,
-          sales: data.totalEstimatedSold || 0,
-          remaining: data.totalRemaining || 0,
-          pendingDrafts: data.pendingDrafts || 0,
-          isAllBranches: data.isAllBranches || false,
-          branches: data.branches || [],
-          allFinalized: data.allFinalized !== undefined ? data.allFinalized : (data.pendingDrafts === 0),
-        });
-      } else if (!overviewRes.success && overviewRes.status !== 0) {
-        setError(overviewRes);
-      }
-
-      if (!isManager && statusRes.success) {
-        setClosureStatus({
-          isClosed: statusRes.data.isClosed || false,
-          operationalDate: operationalDate,
-        });
-      }
-
-      if (activityRes.success) {
-        setRecentActivity(activityRes.data || []);
-      }
-    } catch (err) {
-      console.error('Dashboard load error:', err);
-      setError(err.response ? err.response.data : { message: 'Failed to load dashboard', status: 0 });
-    }
-    setLoading(false);
-    setLastUpdated(new Date());
-    fetchInProgress.current = false;
-  }, [isManager, userBranchId, operationalDate]);
-
-  useEffect(() => {
-    loadDashboard();
-    const interval = setInterval(() => {
-      loadDashboard();
-    }, 30000);
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadDashboard();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [loadDashboard]);
-=======
   useEffect(() => {
     if (overview.data) {
       setLastUpdated(new Date());
@@ -130,7 +38,6 @@ const userRole = getUserRole();
     production: 0, sales: 0, remaining: 0, pendingDrafts: 0,
     pendingDraftsBranches: [], isAllBranches: false, branches: [], allFinalized: true,
   };
->>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
 
   const recentActivity = activity.data || [];
 
