@@ -17,21 +17,14 @@ export const queryKeys = {
   dashboard: {
     overview: (branchId, date) => ['dashboard', 'overview', branchId, date],
     activity: (branchId, date, limit) => ['dashboard', 'activity', branchId, date, limit],
-    alerts: (branchId) => ['dashboard', 'alerts', branchId],
-  },
-  closure: {
-    status: (date) => ['closure', 'status', date],
   },
   inventory: {
     production: {
-      entries: (branchId, filters = {}) => ['inventory', 'production', branchId, 'entries', filters],
       grouped: (branchId, filters = {}) => ['inventory', 'production', branchId, 'grouped', filters],
     },
     remaining: {
       entries: (branchId, date, filters = {}) => ['inventory', 'remaining', branchId, date, filters],
-      drafts: (branchId) => ['inventory', 'remaining', branchId, 'drafts'],
     },
-    alerts: (branchId) => ['inventory', 'alerts', branchId],
   },
   reports: {
     daily: (branchId, date, filters = {}) => ['reports', 'daily', branchId, date, filters],

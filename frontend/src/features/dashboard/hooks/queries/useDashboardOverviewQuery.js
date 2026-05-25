@@ -20,8 +20,9 @@ export function useDashboardOverviewQuery(branchId, date) {
         allFinalized: data.allFinalized !== undefined ? data.allFinalized : (data.pendingDrafts === 0),
       };
     },
-    staleTime: 20 * 1000,
+    staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: false,
     enabled: !!date,
   });
 }

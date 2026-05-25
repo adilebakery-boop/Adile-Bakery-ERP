@@ -22,17 +22,3 @@ export default function Skeleton({ className = '', variant = 'text' }) {
     />
   );
 }
-
-export function SkeletonText({ lines = 3, className = '' }) {
-  return (
-    <div className={`space-y-3 ${className}`}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton 
-          key={i} 
-          variant="text" 
-          className={i === lines - 1 ? 'w-3/4' : 'w-full'} 
-        />
-      ))}
-    </div>
-  );
-}

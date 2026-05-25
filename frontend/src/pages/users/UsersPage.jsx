@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -84,9 +84,11 @@ export default function UsersPage() {
   const totalPages = Math.ceil(users.length / itemsPerPage);
   const paginatedUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (paginatedUsers.length === 0 && currentPage > 1 && totalPages > 0) {
-    setCurrentPage(totalPages);
-  }
+  useEffect(() => {
+    if (paginatedUsers.length === 0 && currentPage > 1 && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [paginatedUsers.length, currentPage, totalPages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -179,10 +181,6 @@ export default function UsersPage() {
     } catch (err) {
       setError(err.message || 'Failed to update user status');
     }
-  };
-
-  const isAdminOrManagerRole = (roleName) => {
-    return roleName === 'ADMIN' || roleName === 'MANAGER';
   };
 
   return (

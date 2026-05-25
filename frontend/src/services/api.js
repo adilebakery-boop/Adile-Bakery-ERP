@@ -15,7 +15,7 @@ const api = axios.create({
 // Only retry on transient infrastructure errors, NOT 500 (application error — retrying non-idempotent
 // mutations with the same payload will produce the same result). GET requests already have React Query
 // retry (2 attempts, exponential backoff), so axios-level retry is redundant for them too.
-const retryableStatuses = [408, 429, 502, 503, 504];
+const retryableStatuses = [408, 502, 503, 504];
 
 const shouldRetry = (error) => {
   if (!error.config) return false;
