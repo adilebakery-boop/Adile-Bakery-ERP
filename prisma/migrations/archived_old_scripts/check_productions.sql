@@ -1,1 +1,0 @@
-SELECT id, "productId", "productionDate", "operationalDate", shift, quantity, "createdBy" FROM "ProductionRecord" ORDER BY id;
