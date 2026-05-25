@@ -39,7 +39,7 @@ function errorHandler(err, req, res, next) {
   if (err.status === 403) {
     return res.status(403).json({
       success: false,
-      message: 'Insufficient permissions',
+      message: err.message || 'Insufficient permissions',
     });
   }
 
