@@ -10,6 +10,7 @@ export function useBranchMutations() {
     mutationFn: (data) => unwrap(branchService.createBranch(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
     },
   });
 
@@ -17,6 +18,7 @@ export function useBranchMutations() {
     mutationFn: ({ id, data }) => unwrap(branchService.updateBranch(id, data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
     },
   });
 
@@ -24,6 +26,7 @@ export function useBranchMutations() {
     mutationFn: (id) => unwrap(branchService.deleteBranch(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
     },
   });
 

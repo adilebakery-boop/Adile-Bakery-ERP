@@ -18,6 +18,7 @@ async function getStatus(branchId, operationalDate) {
     branchId: parseInt(branchId),
     operationalDate: toDateString(new Date(operationalDate)),
     isClosed: closure?.isClosed || false,
+    closureType: closure?.closureType || 'MANUAL',
     closedBy: closure?.closedByUser || null,
     closedAt: closure?.closedAt || null,
     note: closure?.note || null,
@@ -143,6 +144,7 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
           branchId: branchIdInt,
           operationalDate: opDate,
           isClosed: true,
+          closureType: 'MANUAL',
           closedBy: userId,
           closedAt: new Date(),
           note,
@@ -153,6 +155,7 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
         where: { id: existingClosure.id },
         data: {
           isClosed: true,
+          closureType: 'MANUAL',
           closedBy: userId,
           closedAt: new Date(),
           note,

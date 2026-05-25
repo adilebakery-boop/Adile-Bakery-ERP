@@ -47,6 +47,13 @@ router.get(
 );
 
 router.get(
+  '/deleted',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  productController.getDeleted
+);
+
+router.get(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
@@ -85,13 +92,6 @@ router.patch(
   allowRoles('ADMIN', 'MANAGER'),
   validateParams(productIdSchema),
   productController.restore
-);
-
-router.get(
-  '/deleted',
-  authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
-  productController.getDeleted
 );
 
 module.exports = router;

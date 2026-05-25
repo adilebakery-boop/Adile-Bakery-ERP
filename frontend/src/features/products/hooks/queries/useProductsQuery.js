@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { queryKeys } from '../../../../utils/queryKeys';
 import { productService } from '../../../../services/productService';
 
@@ -13,7 +13,7 @@ export function useProductsQuery(filters = {}) {
         pagination: result.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 },
       };
     },
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
   });
 }
