@@ -2,9 +2,8 @@ const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString } = require('../utils/dateUtils');
 
-async function getAllBranchesOverview(operationalDate) {
-  const opDate = new Date(operationalDate);
-  opDate.setHours(0, 0, 0, 0);
+async function getAllBranchesOverview(operationalDate, userId, userRole) {
+  const opDate = new Date(operationalDate + 'T00:00:00.000Z');
 
   const branches = await prisma.branch.findMany({
     where: { isActive: true },

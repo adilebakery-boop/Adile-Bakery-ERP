@@ -91,16 +91,32 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
 async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
+  requireBranchAccess(branchId, user);
+
   // Validate quantity is positive
   if (quantity === undefined || quantity === null || Number(quantity) <= 0) {
     throw new Error('Quantity must be a positive number');
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+  const product = await prisma.product.findFirst({
+    where: {
+      id: parseInt(productId),
+      isActive: true,
+    },
   });
 
   if (!product) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: parseInt(productId) },
+      select: { isActive: true },
+    });
+
+    if (existingProduct && !existingProduct.isActive) {
+      const error = new Error('Cannot create remaining record for inactive product');
+      error.status = 400;
+      throw error;
+    }
+
     const error = new Error('Product not found');
     error.status = 404;
     throw error;
@@ -172,24 +188,58 @@ async function createBulk(data, user) {
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
+  requireBranchAccess(branchId, user);
+
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
 
-  const result = await prisma.$transaction(async (tx) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+    // Re-check day open inside transaction boundary to close race window.
+    // The outer assertDayOpen guards against closed days without starting a
+    // transaction, but the day could close between check and transaction start.
+    // This inner check ensures atomicity.
+    const closure = await tx.dailyClosure.findUnique({
+      where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
+    });
+    if (closure?.isClosed) {
+      const err = new Error('Operational day is closed. Reopen required to make changes.');
+      err.status = 403;
+      throw err;
+    }
+
     const results = [];
     const auditLogs = [];
 
     for (const item of items) {
-      const product = await tx.product.findUnique({
-        where: { id: parseInt(item.productId) },
+      const product = await tx.product.findFirst({
+        where: {
+          id: parseInt(item.productId),
+          isActive: true,
+        },
       });
 
       if (!product) {
-        throw new Error(`Product ${item.productId} not found`);
+        const existingProduct = await tx.product.findUnique({
+          where: { id: parseInt(item.productId) },
+          select: { isActive: true },
+        });
+
+        if (existingProduct && !existingProduct.isActive) {
+          const err = new Error(`Cannot save remaining for inactive product: ${existingProduct.id}`);
+          err.status = 400;
+          throw err;
+        }
+
+        const err = new Error(`Product ${item.productId} not found`);
+        err.status = 404;
+        throw err;
       }
 
       const bulkUnitValidation = validateQuantityForUnitType(item.remainingQuantity, product.unitType);
       if (!bulkUnitValidation.valid) {
-        throw new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
+        const err = new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
+        err.status = 400;
+        throw err;
       }
 
       const existing = await tx.remainingRecord.findFirst({
@@ -259,11 +309,16 @@ async function createBulk(data, user) {
     return results;
   });
 
-  return result;
+    return result;
+  } catch (err) {
+    throw err;
+  }
 }
 
 async function update(id, data, user) {
   const existing = await findById(id);
+
+  requireBranchAccess(existing.branchId, user);
 
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
@@ -311,6 +366,8 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
+  requireBranchAccess(existing.branchId, user);
+
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   await prisma.remainingRecord.delete({
@@ -357,6 +414,22 @@ async function getPendingRemainings(branchId) {
   const missingProducts = activeProducts.filter(p => !submittedIds.has(p.id));
 
   return missingProducts;
+}
+
+function requireBranchAccess(branchId, user) {
+  if (!user?.role) return;
+
+  const privilegedRoles = ['ADMIN', 'MANAGER'];
+
+  if (privilegedRoles.includes(user.role)) {
+    return;
+  }
+
+  if (Number(branchId) !== Number(user.branchId)) {
+    const err = new Error('You can only modify inventory for your assigned branch');
+    err.status = 403;
+    throw err;
+  }
 }
 
 module.exports = {

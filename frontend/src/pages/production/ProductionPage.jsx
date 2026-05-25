@@ -1,30 +1,22 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Package, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUserRole, getUserBranchId, getUserId, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
-import productionService from '../../services/productionService';
-import productService from '../../services/productService';
-import branchService from '../../services/branchService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
+import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
+import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import { useProductionEntriesQuery } from '../../features/production/hooks/queries/useProductionEntriesQuery';
+import { useCreateProductionMutation } from '../../features/production/hooks/mutations/useCreateProductionMutation';
+import { useUpdateProductionMutation } from '../../features/production/hooks/mutations/useUpdateProductionMutation';
 
 const SHIFTS = [
   { value: 'DAY', labelKey: 'shifts.day' },
   { value: 'NIGHT', labelKey: 'shifts.night' },
 ];
-
-const CATEGORY_LABELS = {
-  [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
-  [CATEGORIES.CREAM_CAKES]: 'productCategories.CREAM_CAKES',
-  [CATEGORIES.SOFT_CAKES]: 'productCategories.SOFT_CAKES',
-  [CATEGORIES.DRY_CAKES]: 'productCategories.DRY_CAKES',
-  [CATEGORIES.COOKIES]: 'productCategories.COOKIES',
-  [CATEGORIES.FETIRE_AND_SNACKS]: 'productCategories.FETIRE_AND_SNACKS',
-  [CATEGORIES.DRINKS_AND_RETAIL_ITEMS]: 'productCategories.DRINKS_AND_RETAIL_ITEMS',
-};
 
 export default function ProductionPage() {
   const { t, i18n } = useTranslation();
@@ -40,11 +32,15 @@ export default function ProductionPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
-  const [branch, setBranch] = useState('');
+  const [branch, setBranch] = useState(() => {
+    const role = getUserRole();
+    const uid = getUserBranchId();
+    return (role !== 'ROLE_MANAGER' && role !== 'ROLE_ADMIN') && uid ? uid.toString() : '';
+  });
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [groupedEntries, setGroupedEntries] = useState([]);
   const [expandedGroups, setExpandedGroups] = useState({});
+<<<<<<< HEAD
   const [availableProducts, setAvailableProducts] = useState([]);
   const [branches, setBranches] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -53,6 +49,8 @@ export default function ProductionPage() {
   const [loadingError, setLoadingError] = useState(null);
   const [totalGroups, setTotalGroups] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+=======
+>>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -60,12 +58,13 @@ export default function ProductionPage() {
   const [editFormData, setEditFormData] = useState({ quantity: '', shift: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const loadProductionsRef = useRef(0);
 
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
   const canManageAll = isManagerOrAdmin();
+
+  const entriesBranchId = canManageAll ? (branch ? parseInt(branch) : 'all') : userBranchId;
 
   const calculatedOperationalDate = (() => {
     if (!productionDate || !shift) return null;
@@ -77,39 +76,12 @@ export default function ProductionPage() {
     return `${prodDate.getFullYear()}-${String(prodDate.getMonth() + 1).padStart(2, '0')}-${String(prodDate.getDate()).padStart(2, '0')}`;
   })();
 
-  const loadProducts = async () => {
-    setIsLoadingProducts(true);
-    setError('');
-    try {
-      const result = await productService.getProducts({ isActive: true, limit: 100 });
-      if (result.success && result.data) {
-        const filtered = result.data.filter(p => allowedCategories.includes(p.category));
-        setAvailableProducts(filtered);
-      } else {
-        setError(result.message || 'Failed to load products');
-      }
-    } catch (err) {
-      setError('Error loading products: ' + err.message);
-    }
-    setIsLoadingProducts(false);
-  };
+  const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
+  const fullProductList = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
 
-  const loadBranches = async () => {
-    setIsLoadingBranches(true);
-    try {
-      const result = await branchService.getActiveBranches();
-      if (result.success && result.data) {
-        setBranches(result.data);
-        if (!canManageAll && userBranchId) {
-          setBranch(userBranchId.toString());
-        }
-      }
-    } catch (err) {
-      console.error('Error loading branches:', err);
-    }
-    setIsLoadingBranches(false);
-  };
+  const { data: branches = [], isLoading: isLoadingBranches } = useActiveBranchesQuery();
 
+<<<<<<< HEAD
   const loadProductions = async () => {
     const requestId = ++loadProductionsRef.current;
     setIsLoadingEntries(true);
@@ -151,6 +123,22 @@ export default function ProductionPage() {
       }
     }
   };
+=======
+  const {
+    data: groupedEntries = [],
+    isLoading: isLoadingEntries,
+    isError: entriesError,
+    error: entriesErrorObj,
+    refetch: refetchEntries,
+  } = useProductionEntriesQuery(entriesBranchId);
+
+  const createMutation = useCreateProductionMutation();
+  const updateMutation = useUpdateProductionMutation();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupedEntries.length, branch]);
+>>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
 
   const toggleGroupExpand = (groupKey) => {
     setExpandedGroups(prev => ({
@@ -166,10 +154,13 @@ export default function ProductionPage() {
   const totalPages = Math.ceil(totalGroups / itemsPerPage);
   const paginatedGroups = groupedEntries;
 
+<<<<<<< HEAD
   useEffect(() => {
     setCurrentPage(1);
   }, [branch]);
 
+=======
+>>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
@@ -178,12 +169,15 @@ export default function ProductionPage() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
+<<<<<<< HEAD
   useEffect(() => {
     loadProducts();
     loadBranches();
     loadProductions();
   }, [userRole, userBranchId, branch, currentPage]);
 
+=======
+>>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -208,26 +202,21 @@ export default function ProductionPage() {
       }
     }
 
-    setIsSubmitting(true);
-
-    const result = await productionService.createProduction({
-      productId: parseInt(product),
-      branchId: parseInt(requiredBranch),
-      shift,
-      quantity: parseFloat(quantity),
-      productionDate,
-    });
-
-    setIsSubmitting(false);
-
-    if (result.success) {
+    try {
+      await createMutation.mutateAsync({
+        productId: parseInt(product),
+        branchId: parseInt(requiredBranch),
+        shift,
+        quantity: parseFloat(quantity),
+        productionDate,
+      });
       setSuccess('Production recorded successfully!');
-      loadProductions();
       setProduct('');
       setQuantity('');
+      setSelectedProductUnitType(null);
       setTimeout(() => setSuccess(''), 3000);
-    } else {
-      setError(result.message || 'Failed to record production');
+    } catch (err) {
+      setError(err.message || 'Failed to record production');
     }
   };
 
@@ -262,13 +251,11 @@ export default function ProductionPage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setIsSubmitting(true);
 
     if (editingEntry?.product?.unitType === 'piece') {
       const qty = parseFloat(editFormData.quantity);
       if (!Number.isInteger(qty)) {
         setError('Quantity for piece products must be a whole number (no decimals)');
-        setIsSubmitting(false);
         return;
       }
     }
@@ -282,21 +269,17 @@ export default function ProductionPage() {
     }
 
     try {
-      const result = await productionService.updateProduction(editingEntry.id, updatePayload);
-      setIsSubmitting(false);
-
-      if (result.success) {
-        setSuccess('Production updated successfully!');
-        loadProductions();
-        setIsEditModalOpen(false);
-        setEditingEntry(null);
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError(result.message || 'Failed to update production');
-      }
+      await updateMutation.mutateAsync({
+        id: editingEntry.id,
+        data: updatePayload,
+        branchId: entriesBranchId,
+      });
+      setSuccess('Production updated successfully!');
+      setIsEditModalOpen(false);
+      setEditingEntry(null);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setIsSubmitting(false);
-      setError('Error updating production: ' + err.message);
+      setError(err.message || 'Failed to update production');
     }
   };
 
@@ -359,10 +342,10 @@ export default function ProductionPage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={updateMutation.isPending}
               className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
             >
-              {isSubmitting ? t('production.saving') : t('common.save')}
+              {updateMutation.isPending ? t('production.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -390,7 +373,7 @@ export default function ProductionPage() {
               onChange={(e) => setProductionDate(e.target.value)}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
-              disabled={isSubmitting}
+              disabled={createMutation.isPending}
               min={minDateStr}
               max={maxDateStr}
             />
@@ -408,16 +391,16 @@ export default function ProductionPage() {
                 value={product}
                 onChange={(e) => {
                   setProduct(e.target.value);
-                  const selected = availableProducts.find(p => p.id === parseInt(e.target.value));
+                  const selected = fullProductList.find(p => p.id === parseInt(e.target.value));
                   setSelectedProductUnitType(selected?.unitType || null);
                   setQuantity('');
                 }}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
-                disabled={isSubmitting}
+                disabled={createMutation.isPending}
               >
-                <option value="">{t('production.selectProduct')} ({availableProducts.length})</option>
-                {availableProducts.map((p) => (
+                <option value="">{t('production.selectProduct')} ({fullProductList.length})</option>
+                {fullProductList.map((p) => (
                   <option key={p.id} value={p.id}>
                     {getLocalizedName(p, i18n.language)} ({getCategoryLabel(p.category)}) [{p.unitType}]
                   </option>
@@ -434,7 +417,7 @@ export default function ProductionPage() {
                 onChange={(e) => setBranch(e.target.value)}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
-                disabled={isSubmitting}
+                disabled={createMutation.isPending}
               >
                 <option value="">{t('production.selectBranch')}</option>
                 {branches.map((b) => (
@@ -451,7 +434,7 @@ export default function ProductionPage() {
               onChange={(e) => setShift(e.target.value)}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               required
-              disabled={isSubmitting}
+              disabled={createMutation.isPending}
             >
               <option value="">{t('production.selectShift')}</option>
               {SHIFTS.map((s) => (
@@ -469,7 +452,7 @@ export default function ProductionPage() {
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
               placeholder="0"
               required
-              disabled={isSubmitting}
+              disabled={createMutation.isPending}
               min="0"
               step={selectedProductUnitType === 'piece' ? '1' : '0.01'}
             />
@@ -477,10 +460,10 @@ export default function ProductionPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={createMutation.isPending}
             className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? (
+            {createMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {t('production.recording')}
@@ -501,7 +484,7 @@ export default function ProductionPage() {
             {canManageAll ? t('production.allProductionRecords') : t('production.todaysEntries')}
           </h2>
           <button
-            onClick={() => loadProductions()}
+            onClick={() => refetchEntries()}
             className="p-2 hover:bg-[#F9F7F2] rounded-lg transition-colors"
             title={t('common.refresh')}
           >
@@ -511,8 +494,8 @@ export default function ProductionPage() {
 
         {isLoadingEntries ? (
           <TableSkeleton rows={10} columns={canManageAll ? 6 : 5} />
-        ) : loadingError ? (
-          <ApiErrorState error={loadingError} onRetry={loadProductions} />
+        ) : entriesError ? (
+          <ApiErrorState error={entriesErrorObj} onRetry={() => refetchEntries()} />
         ) : groupedEntries.length > 0 ? (
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50">
@@ -641,7 +624,11 @@ export default function ProductionPage() {
           <EmptyState type="production" message={t('production.noRecords')} />
         )}
 
+<<<<<<< HEAD
         {!isLoadingEntries && !loadingError && totalGroups > 0 && totalPages > 1 && (
+=======
+        {!isLoadingEntries && !entriesError && groupedEntries.length > 0 && totalPages > 1 && (
+>>>>>>> 26cfa72b921ca05f892a11c86904874a2f15462e
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('production.showing', {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import router from './routes';
 import { ErrorBoundary } from './components/ui';
+import QueryProvider from './providers/QueryProvider';
 
 function App() {
   useEffect(() => {
@@ -12,7 +13,9 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <RouterProvider router={router} />
+      <QueryProvider>
+        <RouterProvider router={router} />
+      </QueryProvider>
     </ErrorBoundary>
   );
 }
