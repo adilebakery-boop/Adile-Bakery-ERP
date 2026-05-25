@@ -542,9 +542,24 @@ async function getYearlyReport(branchId, year, category, productId) {
         wasteMap[r.productId] = Number(r._sum.quantity) || 0;
       }
 
+      // Include active products plus any inactive products that have operational records.
+      // Archived products are still operationally relevant for the dates they have data.
+      const allProdIds = new Set([
+        ...Object.keys(dayProdMap).map(Number),
+        ...Object.keys(nightProdMap).map(Number),
+        ...Object.keys(remainingMap).map(Number),
+        ...Object.keys(wasteMap).map(Number),
+      ]);
       const products = await prisma.product.findMany({
-        where: { isActive: true, ...(category ? { category } : {}), ...(pidFilter ? { id: pidFilter } : {}) },
-        select: { id: true, name: true, category: true, price: true },
+        where: {
+          ...(category ? { category } : {}),
+          ...(pidFilter ? { id: pidFilter } : {}),
+          OR: [
+            { isActive: true },
+            ...(allProdIds.size > 0 ? [{ id: { in: [...allProdIds] } }] : []),
+          ],
+        },
+        select: { id: true, name: true, category: true, price: true, isActive: true },
       });
 
       for (const product of products) {

@@ -92,11 +92,25 @@ async function findByOperationalDate(branchId, operationalDate, shift = null) {
 async function create(data, user) {
   const { productId, quantity, branchId, shift, productionDate } = data;
 
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+  const product = await prisma.product.findFirst({
+    where: {
+      id: parseInt(productId),
+      isActive: true,
+    },
   });
 
   if (!product) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: parseInt(productId) },
+      select: { isActive: true },
+    });
+
+    if (existingProduct && !existingProduct.isActive) {
+      const error = new Error('Cannot create production for inactive product');
+      error.status = 400;
+      throw error;
+    }
+
     const error = new Error('Product not found');
     error.status = 404;
     throw error;

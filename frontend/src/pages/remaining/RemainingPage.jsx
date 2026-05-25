@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
-import remainingService from '../../services/remainingService';
-import productService from '../../services/productService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
-import branchService from '../../services/branchService';
-import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
-import { TableSkeleton } from '../../components/skeletons';
+import { ApiErrorState, EmptyState } from '../../components/ui';
+import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
+import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import { useRemainingEntriesQuery } from '../../features/remaining/hooks/queries/useRemainingEntriesQuery';
+import { useSaveRemainingMutation } from '../../features/remaining/hooks/mutations/useSaveRemainingMutation';
+import { useFinalizeRemainingMutation } from '../../features/remaining/hooks/mutations/useFinalizeRemainingMutation';
 
 const CATEGORY_LABELS = {
   [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
@@ -26,15 +27,9 @@ export default function RemainingPage() {
     const lang = i18n.language || localStorage.getItem('language') || 'en';
     return getLocalizedName(product, lang);
   };
-  const [products, setProducts] = useState([]);
   const [existingRemainings, setExistingRemainings] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [loadingRemainings, setLoadingRemainings] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [unsaved, setUnsaved] = useState(false);
-  const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState(null);
 
   const userRole = getUserRole();
@@ -42,73 +37,42 @@ export default function RemainingPage() {
   const allowedCategories = getCategoriesForRole(userRole);
   const operationalDate = getOperationalDate();
   const canManageAll = isManagerOrAdmin();
-
   const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
 
+  const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
+  const products = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
+
+  const { data: branches = [] } = useActiveBranchesQuery();
+
+  const {
+    data: remainingsData,
+    isLoading: isLoadingRemainings,
+    isError: remainingsError,
+    error: remainingsErrorObj,
+    refetch: refetchRemainings,
+  } = useRemainingEntriesQuery(effectiveBranchId, operationalDate);
+
   useEffect(() => {
-    loadProducts();
-    loadRemainings();
-    if (canManageAll) {
-      loadBranches();
-    }
-  }, [userRole, userBranchId, operationalDate, canManageAll, selectedBranchId]);
+    if (!remainingsData) return;
 
-  const loadBranches = async () => {
-    try {
-      const result = await branchService.getActiveBranches();
-      if (result.success && result.data) {
-        setBranches(result.data);
-        if (!selectedBranchId && result.data.length > 0) {
-          setSelectedBranchId(result.data[0].id);
-        }
-      }
-    } catch (err) {
-      console.error('Error loading branches:', err);
-    }
-  };
+    const map = {};
+    remainingsData.forEach(r => {
+      map[r.productId] = {
+        ...r,
+        remainingQuantity: r.quantity,
+      };
+    });
+    setExistingRemainings(map);
+  }, [remainingsData]);
 
-  const handleBranchChange = (e) => {
-    const branchId = parseInt(e.target.value);
-    setSelectedBranchId(branchId);
-  };
+  useEffect(() => {
+    if (canManageAll && branches.length > 0 && !selectedBranchId) {
+      setSelectedBranchId(branches[0].id);
+    }
+  }, [branches, canManageAll, selectedBranchId]);
 
-  const loadProducts = async () => {
-    setLoadingProducts(true);
-    try {
-      const res = await productService.getProducts({ isActive: true, limit: 100 });
-      if (res.success) {
-        const filtered = (res.data || []).filter(p => allowedCategories.includes(p.category));
-        setProducts(filtered);
-      }
-    } catch (err) {
-      console.error('Error loading products:', err);
-    }
-    setLoadingProducts(false);
-  };
-
-  const loadRemainings = async () => {
-    if (!effectiveBranchId) {
-      setLoadingRemainings(false);
-      return;
-    }
-    setLoadingRemainings(true);
-    try {
-      const res = await remainingService.getByOperationalDate(operationalDate, { branchId: effectiveBranchId });
-      if (res.success) {
-        const map = {};
-        (res.data || []).forEach(r => {
-          map[r.productId] = {
-            ...r,
-            remainingQuantity: r.quantity,
-          };
-        });
-        setExistingRemainings(map);
-      }
-    } catch (err) {
-      console.error('Error loading remainings:', err);
-    }
-    setLoadingRemainings(false);
-  };
+  const saveMutation = useSaveRemainingMutation();
+  const finalizeMutation = useFinalizeRemainingMutation();
 
   const getProductUnitType = (productId) => {
     const product = products.find(p => p.id === productId);
@@ -123,7 +87,6 @@ export default function RemainingPage() {
         return;
       }
     }
-    setUnsaved(true);
     const existing = existingRemainings[productId];
     setExistingRemainings(prev => ({
       ...prev,
@@ -149,7 +112,6 @@ export default function RemainingPage() {
   };
 
   const handleSave = async () => {
-    setSaving(true);
     setError('');
     setSuccess('');
 
@@ -161,7 +123,6 @@ export default function RemainingPage() {
           if (!Number.isInteger(qty)) {
             const product = products.find(p => p.id === r.productId);
             setError(`Quantity for "${product?.name}" must be a whole number (no decimals)`);
-            setSaving(false);
             return;
           }
         }
@@ -178,74 +139,77 @@ export default function RemainingPage() {
 
     if (items.length === 0) {
       setError(t('remaining.enterAtLeastOne'));
-      setSaving(false);
       return;
     }
 
     if (!effectiveBranchId) {
       setError('Please select a branch');
-      setSaving(false);
       return;
     }
 
-    const result = await remainingService.saveBulk({
-      branchId: effectiveBranchId,
-      operationalDate,
-      items,
-    });
-
-    setSaving(false);
-
-    if (result.success) {
+    try {
+      await saveMutation.mutateAsync({
+        branchId: effectiveBranchId,
+        operationalDate,
+        items,
+      });
       setSuccess(t('remaining.remainingSaved'));
-      setUnsaved(false);
-      loadRemainings();
       setTimeout(() => setSuccess(''), 3000);
-    } else {
-      setError(result.message || t('common.saveFailed'));
+    } catch (err) {
+      setError(err.message || t('common.saveFailed'));
     }
   };
 
   const handleFinalize = async () => {
-    setSaving(true);
     setError('');
     setSuccess('');
 
+    const activeProductIds = new Set(products.map(p => p.id));
+
     const items = Object.values(existingRemainings)
-      .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined)
+      .filter(r => r.remainingQuantity !== null && r.remainingQuantity !== undefined && activeProductIds.has(r.productId))
       .map(r => ({
         productId: r.productId,
         remainingQuantity: r.remainingQuantity,
-        status: 'FINAL',
       }));
 
+    const skippedCount = Object.values(existingRemainings).filter(
+      r => r.remainingQuantity !== null && r.remainingQuantity !== undefined && !activeProductIds.has(r.productId)
+    ).length;
+
     if (items.length === 0) {
-      setError(t('remaining.enterAtLeastOneBeforeFinalize'));
-      setSaving(false);
+      setError(skippedCount > 0 ? t('remaining.allSkippedInactive') : t('remaining.enterAtLeastOneBeforeFinalize'));
       return;
     }
 
     if (!effectiveBranchId) {
       setError('Please select a branch');
-      setSaving(false);
       return;
     }
 
-    const result = await remainingService.saveBulk({
-      branchId: effectiveBranchId,
-      operationalDate,
-      items,
-    });
-
-    setSaving(false);
-
-    if (result.success) {
-      setSuccess(t('remaining.allFinalized'));
-      setUnsaved(false);
-      loadRemainings();
-      setTimeout(() => setSuccess(''), 3000);
-    } else {
-      setError(result.message || t('common.saveFailed'));
+    try {
+      await finalizeMutation.mutateAsync({
+        branchId: effectiveBranchId,
+        operationalDate,
+        items,
+      });
+      // Optimistically update local state to FINAL before cache refetch completes.
+      // This eliminates the gap where the Finalize button still shows after
+      // the server confirms finalization but before the query refetches.
+      setExistingRemainings(prev => {
+        const updated = {};
+        for (const [key, val] of Object.entries(prev)) {
+          updated[key] = { ...val, status: 'FINAL', _dirty: false };
+        }
+        return updated;
+      });
+      const msg = skippedCount > 0
+        ? `${t('remaining.allFinalized')} (${skippedCount} ${t('remaining.skippedInactive')})`
+        : t('remaining.allFinalized');
+      setSuccess(msg);
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      setError(err.message || t('common.saveFailed'));
     }
   };
 
@@ -255,7 +219,33 @@ export default function RemainingPage() {
     return acc;
   }, {});
 
+  const hasUnsavedChanges = Object.values(existingRemainings).some(r => r._dirty === true);
   const hasUnfinalizedChanges = Object.values(existingRemainings).some(r => r._dirty === true || r.status === 'DRAFT');
+
+  const isSaving = saveMutation.isPending || finalizeMutation.isPending;
+
+  if (!effectiveBranchId) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+          </div>
+        </div>
+        {canManageAll && branches.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#D2B48C]" />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Building2 className="w-12 h-12 text-gray-400 mb-4" />
+            <p className="text-gray-400 text-sm">{t('remaining.selectBranch')}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="pb-28">
@@ -270,10 +260,10 @@ export default function RemainingPage() {
               <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <select
                 value={selectedBranchId || ''}
-                onChange={handleBranchChange}
+                onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
                 className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
               >
-                <option value="">Select Branch</option>
+                <option value="">{t('common.selectBranch')}</option>
                 {branches.map(branch => (
                   <option key={branch.id} value={branch.id}>
                     {branch.name}
@@ -285,17 +275,17 @@ export default function RemainingPage() {
           {!canManageAll && (
             <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Building2 className="w-4 h-4" />
-              Branch: {userBranchId || 'N/A'}
+              {t('remaining.branch')}: {userBranchId || 'N/A'}
             </span>
           )}
-          {unsaved && (
+          {hasUnsavedChanges && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
               {t('remaining.unsavedChanges')}
             </span>
           )}
           <button
-            onClick={loadRemainings}
+            onClick={() => refetchRemainings()}
             className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors"
             title={t('common.refresh')}
           >
@@ -317,10 +307,12 @@ export default function RemainingPage() {
         </div>
       )}
 
-      {loadingProducts || loadingRemainings ? (
+      {isLoadingProducts || isLoadingRemainings ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-[#D2B48C]" />
         </div>
+      ) : remainingsError ? (
+        <ApiErrorState error={remainingsErrorObj} onRetry={() => refetchRemainings()} />
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
@@ -357,7 +349,7 @@ export default function RemainingPage() {
                         {status}
                       </div>
                     )}
-<p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
@@ -380,19 +372,19 @@ export default function RemainingPage() {
           {hasUnfinalizedChanges && (
             <button
               onClick={handleFinalize}
-              disabled={saving}
+              disabled={isSaving}
               className="px-8 py-3.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors text-sm flex items-center gap-2 disabled:opacity-70"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
               {t('remaining.finalizeAll')}
             </button>
           )}
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={isSaving}
             className="px-8 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {t('remaining.saveRemaining')}
           </button>
         </div>

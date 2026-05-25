@@ -39,7 +39,7 @@ function errorHandler(err, req, res, next) {
   if (err.status === 403) {
     return res.status(403).json({
       success: false,
-      message: 'Insufficient permissions',
+      message: err.message || 'Insufficient permissions',
     });
   }
 
@@ -64,9 +64,10 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  res.status(err.status || 500).json({
+  const status = err.status || 500;
+  res.status(status).json({
     success: false,
-    message: 'Internal server error',
+    message: status === 500 ? 'An unexpected error occurred' : err.message,
   });
 }
 

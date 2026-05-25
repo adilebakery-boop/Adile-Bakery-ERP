@@ -45,7 +45,8 @@
     "unblock": "አስወቅ",
     "view": "ይመልከቱ",
     "hide": "ደብቅ",
-    "locked": "ተቀልጥፏል"
+    "locked": "ተቀልጥፏል",
+    "selectBranch": "ቅርንጫፍ ምረጥ"
   },
   "auth": {
     "login": "ግባ",
@@ -82,7 +83,8 @@
     "closeDaySuccess": "ቀን በተሳካ ሁኔታ ተዘግቷል!",
     "closeDayFailed": "ቀን መዝጋት አልተሳካም",
     "draftWarning": "{{count}} ምርት(ዎች) አሁንም በዲራፍት ሁኔታ ላይ ናቸው",
-    "draftWarningSubtitle": "ቀን ከመዝጋት በፊት ሁሉንም አጠናቅቅ"
+    "draftWarningSubtitle": "አንዳንድ ቅርንጫፎች ገና ያልተጠናቀቁ ቀሪዎች አሏቸው፣ መገምገም ያስፍልጋል",
+    "goToRemaining": "ወደ ቀሪ እቃዎች ይሂዱ"
   },
   "production": {
     "title": "ምርት",
@@ -131,7 +133,11 @@
     "allFinalized": "ሁሉም ቀሪዎች ተጠናቅቀዋል!",
     "enterAtLeastOne": "እባክህ ቢያንስ አንድ እሴት አስገባ",
     "enterAtLeastOneBeforeFinalize": "እባክህ ከማጠናቅም በፊት ቢያንስ አንድ እሴት አስገባ",
-    "noProductsAvailable": "ለእርስዎ ሚና ምርት የለም"
+    "allSkippedInactive": "ሁሉም መዝገቦች ንቁ ላልሆኑ ምርቶች ናቸው። ማጠናቀቅ አይቻልም።",
+    "skippedInactive": "ንቁ ያልሆኑ ምርቶች ተዘለሉ",
+    "noProductsAvailable": "ለእርስዎ ሚና ምርት የለም",
+    "selectBranch": "ቅርንጫፍ ምረጥ",
+    "branch": "ቅርንጫፍ"
   },
   "products": {
     "title": "ምርቶች",
@@ -201,7 +207,7 @@
     "allBranches": "ሁሉም ቅርንጫፎች",
     "allCategories": "ሁሉም ምድቦች",
     "allProducts": "ሁሉም ምርቶች",
-    "comparisonMode": "የንጽጽር ሁኔታ",
+
     "noDataForPeriod": "ለዚህ ጊዜ መረጃ የለም",
     "product": "ምርት",
     "category": "ምድብ",
@@ -244,7 +250,14 @@
     "updatePassword": "የይለፍ ቃል አዘምን",
     "passwordChanged": "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል",
     "passwordsDoNotMatch": "የይለፍ ቃሎች አይመሳሰሉም",
-    "passwordTooShort": "የይለፍ ቃል ቢያንስ 6 ፊደላት መሆን አለበት"
+    "passwordTooShort": "የይለፍ ቃል ቢያንስ 6 ፊደላት መሆን አለበት",
+    "currentPasswordPlaceholder": "አሁን ያለውን የይለፍ ቃል አስገባ",
+    "newPasswordPlaceholder": "አዲስ የይለፍ ቃል አስገባ",
+    "confirmPasswordPlaceholder": "አዲስ የይለፍ ቃል አረጋግጥ",
+    "passwordMismatch": "አዲስ የይለፍ ቃሎች አይዛመዱም",
+    "passwordMinLength": "አዲስ የይለፍ ቃል ቢያንስ 6 ፊደሎች ሊኖረው ይገባል",
+    "passwordChangedSuccess": "የይለፍ ቃል በተሳካ ሁኔታ ተለውጧል",
+    "passwordChangeFailed": "የይለፍ ቃል መለወጥ አልተሳካም"
   },
   "categories": {
     "breadAndSweetBreads": "ዳቦ እና ጣፋጭ ዳቦ",
@@ -280,25 +293,5 @@
   "units": {
     "piece": "ነገር",
     "kg": "ኪሎ"
-  },
-  "profile": {
-    "title": "ፕሮፋይል ማስተካከያ",
-    "accountOverview": "መለያ እይታ",
-    "name": "ስም",
-    "username": "የተጠቃሚ ስም",
-    "branch": "ቅርንጫፍ",
-    "role": "ሚና",
-    "changePassword": "የይለፍ ቃል ቀይር",
-    "passwordMismatch": "አዲስ የይለፍ ቃሎች አይዛመዱም",
-    "passwordMinLength": "አዲስ የይለፍ ቃል ቢያንስ 6 ፊደሎች ሊኖረው ይገባል",
-    "passwordChangedSuccess": "የይለፍ ቃል በተሳካ ሁኔታ ተለውጧል",
-    "passwordChangeFailed": "የይለፍ ቃል መለወጥ አልተሳካም",
-    "currentPassword": "አሁን ያለው የይለፍ ቃል",
-    "currentPasswordPlaceholder": "አሁን ያለውን የይለፍ ቃል አስገባ",
-    "newPassword": "አዲስ የይለፍ ቃል",
-    "newPasswordPlaceholder": "አዲስ የይለፍ ቃል አስገባ",
-    "confirmNewPassword": "አዲሱን የይለፍ ቃል አረጋግጥ",
-    "confirmPasswordPlaceholder": "አዲስ የይለፍ ቃል አረጋግጥ",
-    "updatePassword": "የይለፍ ቃል አዘምን"
   }
 }

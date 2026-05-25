@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import { getUserRole, getUser } from '../utils/authUtils';
 import { getPagesForRole, PAGES } from '../utils/permissions';
+import { queryClient } from '../providers/QueryProvider';
 
 export default function MainLayout() {
   const { t, i18n } = useTranslation();
@@ -66,6 +67,7 @@ export default function MainLayout() {
   }, [language]);
 
   const handleLogout = async () => {
+    queryClient.clear();
     await authService.logout();
     navigate('/login');
   };

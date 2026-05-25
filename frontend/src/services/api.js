@@ -12,7 +12,10 @@ const api = axios.create({
   },
 });
 
-const retryableStatuses = [408, 429, 500, 502, 503, 504];
+// Only retry on transient infrastructure errors, NOT 500 (application error — retrying non-idempotent
+// mutations with the same payload will produce the same result). GET requests already have React Query
+// retry (2 attempts, exponential backoff), so axios-level retry is redundant for them too.
+const retryableStatuses = [408, 502, 503, 504];
 
 const shouldRetry = (error) => {
   if (!error.config) return false;
@@ -37,13 +40,17 @@ const retryRequest = async (error) => {
   return api(config);
 };
 
+// Track retry attempts per request. Counter initialized on fresh requests only — retried requests
+// preserve the value set by retryRequest() to prevent infinite retry loops.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    config.__retryCount = 0;
+    if (config.__retryCount === undefined) {
+      config.__retryCount = 0;
+    }
     return config;
   },
   (error) => Promise.reject(error)
