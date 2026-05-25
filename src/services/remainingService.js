@@ -91,6 +91,8 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
 async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
+  requireBranchAccess(branchId, user);
+
   // Validate quantity is positive
   if (quantity === undefined || quantity === null || Number(quantity) < 0) {
     throw new Error('Quantity must be a non-negative number');
@@ -186,12 +188,7 @@ async function createBulk(data, user) {
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
-  console.log('[REMAINING:BULK] start', {
-    userId: user?.userId,
-    branchId,
-    operationalDate: opDateParam,
-    itemCount: items?.length,
-  });
+  requireBranchAccess(branchId, user);
 
   await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
 
@@ -312,29 +309,16 @@ async function createBulk(data, user) {
     return results;
   });
 
-    console.log('[REMAINING:BULK] success', {
-      userId: user?.userId,
-      branchId,
-      operationalDate: opDateParam,
-      recordCount: result?.length,
-    });
-
     return result;
   } catch (err) {
-    console.error('[REMAINING:BULK] error', {
-      userId: user?.userId,
-      branchId,
-      operationalDate: opDateParam,
-      message: err.message,
-      status: err.status,
-      code: err.code,
-    });
     throw err;
   }
 }
 
 async function update(id, data, user) {
   const existing = await findById(id);
+
+  requireBranchAccess(existing.branchId, user);
 
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
@@ -382,6 +366,8 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
+  requireBranchAccess(existing.branchId, user);
+
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   await prisma.remainingRecord.delete({
@@ -428,6 +414,22 @@ async function getPendingRemainings(branchId) {
   const missingProducts = activeProducts.filter(p => !submittedIds.has(p.id));
 
   return missingProducts;
+}
+
+function requireBranchAccess(branchId, user) {
+  if (!user?.role) return;
+
+  const privilegedRoles = ['ADMIN', 'MANAGER'];
+
+  if (privilegedRoles.includes(user.role)) {
+    return;
+  }
+
+  if (Number(branchId) !== Number(user.branchId)) {
+    const err = new Error('You can only modify inventory for your assigned branch');
+    err.status = 403;
+    throw err;
+  }
 }
 
 module.exports = {
