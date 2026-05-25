@@ -1,12 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Search, RotateCcw, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
-import useProducts from '../../hooks/useProducts';
+import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
+import { useDeletedProductsQuery } from '../../features/products/hooks/queries/useDeletedProductsQuery';
+import { useCreateProductMutation } from '../../features/products/hooks/mutations/useCreateProductMutation';
+import { useUpdateProductMutation } from '../../features/products/hooks/mutations/useUpdateProductMutation';
+import { useDeleteProductMutation } from '../../features/products/hooks/mutations/useDeleteProductMutation';
+import { useRestoreProductMutation } from '../../features/products/hooks/mutations/useRestoreProductMutation';
 import { getUser } from '../../utils/authUtils';
-import productService from '../../services/productService';
 import { getLocalizedName } from '../../utils/getLocalizedName';
-import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
 
 const CATEGORIES = [
@@ -28,55 +32,65 @@ export default function ProductsPage() {
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
-  const { products, loading, error, pagination, fetchProducts, addProduct, editProduct, removeProduct, restoreProduct } = useProducts();
-  
+  const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [deletedProducts, setDeletedProducts] = useState([]);
-  const [deletedLoading, setDeletedLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', name_am: '', category: '', price: '', unitType: '' });
   const [submitting, setSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const isInitialLoad = useRef(true);
+  const [actionError, setActionError] = useState(null);
 
-  const loadProducts = useCallback((page = 1) => {
-    fetchProducts({
-      search: searchTerm || undefined,
-      category: selectedCategory || undefined,
-      page: page,
-    });
-  }, [searchTerm, selectedCategory, fetchProducts]);
+  const filters = {
+    search: searchTerm || undefined,
+    category: selectedCategory || undefined,
+    page: currentPage,
+    limit: 10,
+  };
+
+  const { data, isLoading, isError, error: queryError, isPreviousData, refetch } = useProductsQuery(filters);
+  const products = data?.data || [];
+  const pagination = data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
+
+  const { data: deletedProducts = [], isLoading: deletedLoading, refetch: refetchDeleted } = useDeletedProductsQuery(
+    {},
+    { enabled: isDeletedModalOpen }
+  );
+
+  const createProduct = useCreateProductMutation();
+  const updateProduct = useUpdateProductMutation();
+  const deleteProduct = useDeleteProductMutation();
+  const restoreProduct = useRestoreProductMutation();
+
+  const error = actionError || queryError;
 
   useEffect(() => {
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      loadProducts(1);
-    }
-  }, [loadProducts]);
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
-    if (!isInitialLoad.current) {
-      const delaySearch = setTimeout(() => {
-        setCurrentPage(1);
-        loadProducts(1);
-      }, 300);
-      return () => clearTimeout(delaySearch);
-    }
-  }, [searchTerm, selectedCategory, loadProducts]);
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const result = await addProduct({ ...formData, price: parseFloat(formData.price) });
-    setSubmitting(false);
-    if (result.success) {
+    setActionError(null);
+    try {
+      await createProduct.mutateAsync({ ...formData, price: parseFloat(formData.price) });
       setIsModalOpen(false);
       setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
+    } catch (err) {
+      setActionError(err.message);
     }
+    setSubmitting(false);
   };
 
   const handleEditClick = (product) => {
@@ -94,66 +108,48 @@ export default function ProductsPage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const result = await editProduct(editingProduct.id, { ...formData, price: parseFloat(formData.price) });
-    setSubmitting(false);
-    if (result.success) {
+    setActionError(null);
+    try {
+      await updateProduct.mutateAsync({ id: editingProduct.id, data: { ...formData, price: parseFloat(formData.price) } });
       setIsEditModalOpen(false);
       setEditingProduct(null);
       setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
+    } catch (err) {
+      setActionError(err.message);
     }
+    setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      console.log('Deleting product with id:', id);
+      setActionError(null);
       try {
-        const result = await removeProduct(id);
-        console.log('Delete result:', result);
-        if (!result.success) {
-          setError(result.message || 'Failed to delete product');
-        }
+        await deleteProduct.mutateAsync(id);
       } catch (err) {
-        console.error('Delete error:', err);
-        setError('Error deleting product: ' + err.message);
+        setActionError(err.message);
       }
     }
   };
 
-  const loadDeletedProducts = async () => {
-    setDeletedLoading(true);
-    const result = await productService.getDeletedProducts();
-    if (result.success) {
-      setDeletedProducts(result.data?.data || result.data || []);
-    }
-    setDeletedLoading(false);
-  };
-
   const handleRestore = async (id) => {
-    const result = await restoreProduct(id);
-    if (result.success) {
-      await loadDeletedProducts();
+    setActionError(null);
+    try {
+      await restoreProduct.mutateAsync(id);
+    } catch (err) {
+      setActionError(err.message);
     }
   };
 
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      loadProducts(newPage);
+      setCurrentPage(currentPage - 1);
     }
   };
 
   const goToNextPage = () => {
-    if (currentPage < pagination.totalPages) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      loadProducts(newPage);
+    if (!isPreviousData && currentPage < pagination.totalPages) {
+      setCurrentPage(currentPage + 1);
     }
-  };
-
-  const openDeletedModal = () => {
-    loadDeletedProducts();
-    setIsDeletedModalOpen(true);
   };
 
   return (
@@ -163,7 +159,7 @@ export default function ProductsPage() {
         <div className="flex items-center gap-3">
           {canManage && (
             <button 
-              onClick={openDeletedModal}
+              onClick={() => setIsDeletedModalOpen(true)}
               className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
             >
               <Eye className="w-4 h-4" />
@@ -188,8 +184,8 @@ export default function ProductsPage() {
           <input 
             type="text" 
             placeholder={t('products.searchProducts')} 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
@@ -206,7 +202,7 @@ export default function ProductsPage() {
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
+          {error?.message || error}
         </div>
       )}
 
@@ -223,16 +219,16 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-              {loading ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4}>
                     <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
                   </td>
                 </tr>
-              ) : error ? (
+              ) : isError ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4}>
-                    <ApiErrorState error={error} onRetry={() => loadProducts(1)} />
+                    <ApiErrorState error={queryError} onRetry={() => refetch()} />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
@@ -269,7 +265,7 @@ export default function ProductsPage() {
           </table>
         </div>
 
-        {!loading && products.length > 0 && pagination.totalPages > 1 && (
+        {!isLoading && products.length > 0 && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} products
@@ -277,7 +273,7 @@ export default function ProductsPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPreviousPage}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isPreviousData}
                 className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -287,7 +283,7 @@ export default function ProductsPage() {
               </span>
               <button
                 onClick={goToNextPage}
-                disabled={currentPage === pagination.totalPages}
+                disabled={currentPage === pagination.totalPages || isPreviousData}
                 className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -311,7 +307,7 @@ export default function ProductsPage() {
             <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.category')}</label>
             <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
               <option value="">{t('products.selectCategory')}</option>
-              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
+              {CATEGORIES.filter(c => c.value).map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
             </select>
           </div>
           <div>
@@ -349,7 +345,7 @@ export default function ProductsPage() {
             <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.category')}</label>
             <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required>
               <option value="">{t('products.selectCategory')}</option>
-              {CATEGORIES.map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
+              {CATEGORIES.filter(c => c.value).map((cat) => <option key={cat.value} value={cat.value}>{getCategoryLabel(cat.labelKey)}</option>)}
             </select>
           </div>
           <div>
