@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal';
-import useBranches from '../../hooks/useBranches';
+import { useBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import { useBranchMutations } from '../../features/branches/hooks/mutations/useBranchMutations';
 import { getUser } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
@@ -13,26 +14,65 @@ export default function BranchesPage() {
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
-  const { branches, loading, error, fetchBranches, addBranch, editBranch, removeBranch } = useBranches();
+  const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery();
+  const { addBranch, editBranch, removeBranch } = useBranchMutations();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
   const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
-  useEffect(() => {
-    fetchBranches();
-  }, [fetchBranches]);
+  const error = actionError || queryError;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const result = await addBranch(formData);
-    setSubmitting(false);
-    if (result.success) {
+    setActionError(null);
+    try {
+      await addBranch.mutateAsync(formData);
       setIsModalOpen(false);
       setFormData({ name: '', name_am: '', address: '', phone: '' });
+    } catch (err) {
+      setActionError(err.message);
+    }
+    setSubmitting(false);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      await editBranch.mutateAsync({ id: editingBranch.id, data: formData });
+      setIsEditModalOpen(false);
+      setEditingBranch(null);
+      setFormData({ name: '', name_am: '', address: '', phone: '' });
+    } catch (err) {
+      setActionError(err.message);
+    }
+    setSubmitting(false);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this branch?')) {
+      setActionError(null);
+      try {
+        await removeBranch.mutateAsync(id);
+      } catch (err) {
+        setActionError(err.message);
+      }
+    }
+  };
+
+  const handleToggleStatus = async (branch) => {
+    const newStatus = branch.isActive === false ? true : false;
+    setActionError(null);
+    try {
+      await editBranch.mutateAsync({ id: branch.id, data: { isActive: newStatus } });
+    } catch (err) {
+      setActionError(err.message);
     }
   };
 
@@ -45,32 +85,6 @@ export default function BranchesPage() {
       phone: branch.phone || '',
     });
     setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const result = await editBranch(editingBranch.id, formData);
-    setSubmitting(false);
-    if (result.success) {
-      setIsEditModalOpen(false);
-      setEditingBranch(null);
-      setFormData({ name: '', name_am: '', address: '', phone: '' });
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this branch?')) {
-      await removeBranch(id);
-    }
-  };
-
-  const handleToggleStatus = async (branch) => {
-    const newStatus = branch.isActive === false ? true : false;
-    const res = await editBranch(branch.id, { isActive: newStatus });
-    if (!res.success) {
-      setError(res.message || 'Failed to update branch status');
-    }
   };
 
   return (
@@ -90,7 +104,7 @@ export default function BranchesPage() {
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
+          {error?.message || error}
         </div>
       )}
 
@@ -107,7 +121,7 @@ export default function BranchesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-              {loading ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4}>
                     <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
@@ -116,7 +130,7 @@ export default function BranchesPage() {
               ) : error ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4}>
-                    <ApiErrorState error={error} onRetry={fetchBranches} />
+                    <ApiErrorState error={error} onRetry={refetch} />
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
