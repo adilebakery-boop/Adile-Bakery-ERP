@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Package, DollarSign, AlertCircle, Loader2, Lock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
@@ -33,40 +33,21 @@ export default function DashboardPage() {
   const [closureError, setClosureError] = useState('');
   const [closureSuccess, setClosureSuccess] = useState('');
 
+  const fetchInProgress = useRef(false);
+
 const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
   
-  let targetBranchId;
-  if (isManager) {
-    targetBranchId = 'all';
-  } else {
-    targetBranchId = userBranchId ? Number(userBranchId) : 'all';
-  }
+  const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
   
   const operationalDate = getOperationalDate();
   const canClose = isManager;
 
-  useEffect(() => {
-    loadDashboard();
-    const interval = setInterval(() => {
-      loadDashboard();
-    }, 10000);
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadDashboard();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [targetBranchId]);
+  const loadDashboard = useCallback(async () => {
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
 
-const loadDashboard = async () => {
     setLoading(true);
     setError(null);
     
@@ -110,7 +91,27 @@ const loadDashboard = async () => {
     }
     setLoading(false);
     setLastUpdated(new Date());
-  };
+    fetchInProgress.current = false;
+  }, [isManager, userBranchId, operationalDate]);
+
+  useEffect(() => {
+    loadDashboard();
+    const interval = setInterval(() => {
+      loadDashboard();
+    }, 30000);
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadDashboard();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadDashboard]);
 
   const handleCloseDay = async () => {
     setClosureLoading(true);

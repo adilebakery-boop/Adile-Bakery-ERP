@@ -51,6 +51,7 @@ export default function ProductionPage() {
   const [isLoadingBranches, setIsLoadingBranches] = useState(true);
   const [isLoadingEntries, setIsLoadingEntries] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
+  const [totalGroups, setTotalGroups] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -120,10 +121,22 @@ export default function ProductionPage() {
       } else if (!canManageAll) {
         params.branchId = userBranchId;
       }
+
+      // Default to last 7 days to prevent fetching all historical records
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      params.startDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      params.endDate = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+      params.page = currentPage;
+      params.limit = itemsPerPage;
+
       const result = await productionService.getProductionsGrouped(params);
       if (requestId === loadProductionsRef.current) {
         if (result.success && result.data) {
           setGroupedEntries(result.data || []);
+          setTotalGroups(result.pagination?.total || 0);
         } else {
           setLoadingError(result);
         }
@@ -150,12 +163,12 @@ export default function ProductionPage() {
     return `${group.productId}-${group.branchId}-${group.operationalDate}`;
   };
 
-  const totalPages = Math.ceil(groupedEntries.length / itemsPerPage);
-  const paginatedGroups = groupedEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(totalGroups / itemsPerPage);
+  const paginatedGroups = groupedEntries;
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [groupedEntries.length, branch]);
+  }, [branch]);
 
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -169,7 +182,7 @@ export default function ProductionPage() {
     loadProducts();
     loadBranches();
     loadProductions();
-  }, [userRole, userBranchId, branch]);
+  }, [userRole, userBranchId, branch, currentPage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -628,13 +641,13 @@ export default function ProductionPage() {
           <EmptyState type="production" message={t('production.noRecords')} />
         )}
 
-        {!isLoadingEntries && !loadingError && groupedEntries.length > 0 && totalPages > 1 && (
+        {!isLoadingEntries && !loadingError && totalGroups > 0 && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('production.showing', {
                 from: ((currentPage - 1) * itemsPerPage) + 1,
-                to: Math.min(currentPage * itemsPerPage, groupedEntries.length),
-                total: groupedEntries.length
+                to: Math.min(currentPage * itemsPerPage, totalGroups),
+                total: totalGroups
               })}
             </div>
             <div className="flex items-center gap-2">

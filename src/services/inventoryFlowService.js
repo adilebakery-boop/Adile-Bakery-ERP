@@ -5,6 +5,11 @@ const { logAudit } = require('./auditService');
 
 const ZERO = new Prisma.Decimal('0');
 
+// ============================================================
+// UTILITY FUNCTIONS (unchanged — used for backward compatibility
+// and single-value lookups outside the batch pipeline)
+// ============================================================
+
 function toDecimal(value) {
   if (value instanceof Prisma.Decimal) return value;
   if (value === null || value === undefined) return ZERO;
@@ -44,21 +49,15 @@ function getPrismaDecimalOps() {
   return { zero: ZERO, toDecimal: toDecimalRaw, plus: safePlus, minus: safeMinus };
 }
 
-async function assertDayOpen(branchId, operationalDate) {
-  const closure = await prisma.dailyClosure.findUnique({
-    where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate) } },
-  });
-
-  if (closure?.isClosed) {
-    const error = new Error('Operational day is closed. Reopen required to make changes.');
-    error.status = 403;
-    throw error;
-  }
-}
+// ============================================================
+// BACKWARD-COMPATIBLE SINGLE-PRODUCT FUNCTIONS
+// These still work for callers that need one product's data.
+// They are NOT used by the batch pipeline — they exist only
+// for backward compatibility and the verifyCalculations utility.
+// ============================================================
 
 async function getOpeningStock(branchId, operationalDate, productId) {
   const prevDay = getPreviousDay(new Date(operationalDate));
-
   const prevRemaining = await prisma.remainingRecord.findFirst({
     where: {
       branchId: parseInt(branchId),
@@ -67,7 +66,6 @@ async function getOpeningStock(branchId, operationalDate, productId) {
       status: 'FINAL',
     },
   });
-
   return prevRemaining ? toDecimal(prevRemaining.quantity) : ZERO;
 }
 
@@ -114,7 +112,6 @@ async function getEstimatedSold(branchId, operationalDate, productId) {
   const sellable = await getSellableStock(branchId, operationalDate, productId);
   const remaining = await getRemainingStock(branchId, operationalDate, productId);
   const waste = await getWasteQuantity(branchId, operationalDate, productId);
-  
   const sold = safeMinus(safeMinus(sellable, remaining), waste);
   return sold.lt(ZERO) ? ZERO : sold;
 }
@@ -129,37 +126,163 @@ async function getEstimatedRevenue(branchId, operationalDate, productId) {
   return safeMultiply(sold, price);
 }
 
-async function getFullInventoryFlow(branchId, operationalDate, productId) {
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+// ============================================================
+// NEW BATCH AGGREGATION PIPELINE
+//
+// This replaces the per-product query explosion. Instead of
+// firing ~17 queries per product, we fire 4 batch queries
+// total and compute everything in memory.
+//
+// Flow:
+//   1. buildInventoryMap() — fetches all raw data in 4 queries
+//   2. computeFlowFromMap() — pure function, computes derived values
+//   3. getInventoryFlowForAllProducts() — orchestrates 1+2
+// ============================================================
+
+/**
+ * STEP 1 — Fetch all raw inventory data ONCE for a branch/date.
+ *
+ * Returns a map keyed by productId with all raw values:
+ * {
+ *   [productId]: {
+ *     product: { id, name, category, price, unitType },
+ *     openingStock: Decimal,
+ *     dayProduction: Decimal,
+ *     nightProduction: Decimal,
+ *     remaining: Decimal,
+ *     waste: Decimal,
+ *   }
+ * }
+ *
+ * Query count: 4 (regardless of product count)
+ *   1. Active products list
+ *   2. Previous day remainings (opening stock) — grouped by productId
+ *   3. Productions — grouped by productId + shift
+ *   4. Current day remainings — grouped by productId
+ *   5. Wastes — grouped by productId
+ */
+async function buildInventoryMap(branchId, operationalDate) {
+  const branchIdInt = parseInt(branchId);
+  const opDate = new Date(operationalDate);
+  const prevDay = getPreviousDay(opDate);
+
+  // Query 1: Fetch all active products with pricing info
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, category: true, price: true, unitType: true },
+    orderBy: { category: 'asc' },
   });
 
-  if (!product) {
-    const error = new Error('Product not found');
-    error.status = 404;
-    throw error;
+  // Initialize the map with all products (zero defaults)
+  const map = {};
+  for (const p of products) {
+    map[p.id] = {
+      product: p,
+      openingStock: ZERO,
+      dayProduction: ZERO,
+      nightProduction: ZERO,
+      remaining: ZERO,
+      waste: ZERO,
+    };
   }
 
-  const [
-    openingStock,
-    dayProduction,
-    nightProduction,
-    sellableStock,
-    remainingStock,
-    wasteQuantity,
-    estimatedSold,
-    estimatedRevenue,
-  ] = await Promise.all([
-    getOpeningStock(branchId, operationalDate, productId),
-    getDayProduction(branchId, operationalDate, productId),
-    getNightProduction(branchId, operationalDate, productId),
-    getSellableStock(branchId, operationalDate, productId),
-    getRemainingStock(branchId, operationalDate, productId),
-    getWasteQuantity(branchId, operationalDate, productId),
-    getEstimatedSold(branchId, operationalDate, productId),
-    getEstimatedRevenue(branchId, operationalDate, productId),
+  // Query 2: Previous day's FINAL remainings (opening stock)
+  // Uses groupBy to get one row per productId instead of per-product queries
+  const openingData = await prisma.remainingRecord.groupBy({
+    by: ['productId'],
+    where: {
+      branchId: branchIdInt,
+      operationalDate: prevDay,
+      status: 'FINAL',
+    },
+    _sum: { quantity: true },
+  });
+  for (const row of openingData) {
+    if (map[row.productId]) {
+      map[row.productId].openingStock = toDecimal(row._sum.quantity);
+    }
+  }
+
+  // Query 3: Productions grouped by productId + shift
+  // Two groupBy calls (DAY and NIGHT) instead of per-product aggregate calls
+  const [dayProdData, nightProdData] = await Promise.all([
+    prisma.productionRecord.groupBy({
+      by: ['productId'],
+      where: { branchId: branchIdInt, operationalDate: opDate, shift: 'DAY' },
+      _sum: { quantity: true },
+    }),
+    prisma.productionRecord.groupBy({
+      by: ['productId'],
+      where: { branchId: branchIdInt, operationalDate: opDate, shift: 'NIGHT' },
+      _sum: { quantity: true },
+    }),
   ]);
+  for (const row of dayProdData) {
+    if (map[row.productId]) {
+      map[row.productId].dayProduction = toDecimal(row._sum.quantity);
+    }
+  }
+  for (const row of nightProdData) {
+    if (map[row.productId]) {
+      map[row.productId].nightProduction = toDecimal(row._sum.quantity);
+    }
+  }
+
+  // Query 4: Current day's FINAL remainings
+  const remainingData = await prisma.remainingRecord.groupBy({
+    by: ['productId'],
+    where: {
+      branchId: branchIdInt,
+      operationalDate: opDate,
+      status: 'FINAL',
+    },
+    _sum: { quantity: true },
+  });
+  for (const row of remainingData) {
+    if (map[row.productId]) {
+      map[row.productId].remaining = toDecimal(row._sum.quantity);
+    }
+  }
+
+  // Query 5: Wastes grouped by productId
+  const wasteData = await prisma.wasteRecord.groupBy({
+    by: ['productId'],
+    where: { branchId: branchIdInt, operationalDate: opDate },
+    _sum: { quantity: true },
+  });
+  for (const row of wasteData) {
+    if (map[row.productId]) {
+      map[row.productId].waste = toDecimal(row._sum.quantity);
+    }
+  }
+
+  return map;
+}
+
+/**
+ * STEP 2 — Pure function: compute all derived inventory values
+ * from a pre-built inventory map entry.
+ *
+ * NO database queries. All calculations are in-memory.
+ *
+ * Business rules preserved exactly:
+ *   sellableStock = openingStock + dayProduction + nightProduction
+ *   estimatedSold = max(0, sellableStock - remaining - waste)
+ *   estimatedRevenue = estimatedSold * unitPrice
+ */
+function computeFlowFromMap(entry, operationalDate) {
+  const { product, openingStock, dayProduction, nightProduction, remaining, waste } = entry;
+
+  // sellableStock = opening + day prod + night prod
+  const sellableStock = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+
+  // estimatedSold = sellable - remaining - waste (floor at 0)
+  const estimatedSoldRaw = safeMinus(safeMinus(sellableStock, remaining), waste);
+  const estimatedSold = estimatedSoldRaw.lt(ZERO) ? ZERO : estimatedSoldRaw;
+
+  // estimatedRevenue = estimatedSold * price
+  const price = product.price ? toDecimal(product.price) : ZERO;
+  const estimatedRevenue = safeMultiply(estimatedSold, price);
 
   return {
     productId: product.id,
@@ -172,27 +295,64 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     nightProduction: decimalToNumber(nightProduction),
     nightProductionPreparedFor: 0,
     sellableStock: decimalToNumber(sellableStock),
-    remainingStock: decimalToNumber(remainingStock),
-    wasteQuantity: decimalToNumber(wasteQuantity),
+    remainingStock: decimalToNumber(remaining),
+    wasteQuantity: decimalToNumber(waste),
     estimatedSold: decimalToNumber(estimatedSold),
     estimatedRevenue: decimalToNumber(estimatedRevenue),
     operationalDate: toDateString(new Date(operationalDate)),
   };
 }
 
+/**
+ * STEP 3 — Orchestrator: build map + compute flows for all products.
+ *
+ * This replaces the old loop that called getFullInventoryFlow per product.
+ *
+ * OLD: 1 query for products + (17 × N) queries for N products = ~850 queries for 50 products
+ * NEW: 5 batch queries total (regardless of product count)
+ */
 async function getInventoryFlowForAllProducts(branchId, operationalDate) {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    select: { id: true },
-    orderBy: { category: 'asc' },
-  });
+  // Step 1: Fetch all raw data in 5 batch queries
+  const inventoryMap = await buildInventoryMap(branchId, operationalDate);
 
-  const flows = await Promise.all(
-    products.map(p => getFullInventoryFlow(branchId, operationalDate, p.id))
+  // Step 2: Compute all flows in memory (zero DB queries)
+  const flows = Object.values(inventoryMap).map(entry =>
+    computeFlowFromMap(entry, operationalDate)
   );
-
   return flows;
 }
+
+/**
+ * Single-product inventory flow — used by validateInventoryFlow
+ * and backward-compatible callers.
+ *
+ * Uses the batch pipeline internally so even single-product lookups
+ * benefit from grouped queries. The map is built for all products
+ * but only the requested one is returned.
+ *
+ * For callers that need many products one-by-one (like closure validation),
+ * they should use getInventoryFlowForAllProducts instead.
+ */
+async function getFullInventoryFlow(branchId, operationalDate, productId) {
+  // Use the batch pipeline — even for a single product this is faster
+  // than the old 17-query approach because groupBy is more efficient
+  // than 17 individual queries.
+  const inventoryMap = await buildInventoryMap(branchId, operationalDate);
+
+  const entry = inventoryMap[parseInt(productId)];
+  if (!entry) {
+    const error = new Error('Product not found');
+    error.status = 404;
+    throw error;
+  }
+
+  const flow = computeFlowFromMap(entry, operationalDate);
+  return flow;
+}
+
+// ============================================================
+// TOTALS (unchanged — operates on flow arrays)
+// ============================================================
 
 function getTotals(flows) {
   const totals = flows.reduce(
@@ -234,6 +394,10 @@ function getTotals(flows) {
     totalEstimatedRevenue: decimalToNumber(totals.totalEstimatedRevenue),
   };
 }
+
+// ============================================================
+// REPORT (unchanged logic — uses refactored getInventoryFlowForAllProducts)
+// ============================================================
 
 async function getInventoryFlowReport(branchId, operationalDate) {
   const closure = await prisma.dailyClosure.findUnique({
@@ -304,6 +468,10 @@ async function getInventoryFlowReport(branchId, operationalDate) {
   };
 }
 
+// ============================================================
+// VALIDATION (unchanged logic — uses refactored getFullInventoryFlow)
+// ============================================================
+
 async function validateInventoryFlow(branchId, operationalDate, productId) {
   const flow = await getFullInventoryFlow(branchId, operationalDate, productId);
   const warnings = [];
@@ -328,6 +496,28 @@ async function validateInventoryFlow(branchId, operationalDate, productId) {
   return { flow, warnings };
 }
 
+// ============================================================
+// DAY OPEN ASSERTION (unchanged)
+// ============================================================
+
+async function assertDayOpen(branchId, operationalDate) {
+  const closure = await prisma.dailyClosure.findUnique({
+    where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate) } },
+  });
+
+  if (closure?.isClosed) {
+    const error = new Error('Operational day is closed. Reopen required to make changes.');
+    error.status = 403;
+    throw error;
+  }
+}
+
+// ============================================================
+// EXPORTS
+// All original exports preserved for backward compatibility.
+// New exports: buildInventoryMap, computeFlowFromMap
+// ============================================================
+
 module.exports = {
   calculateOperationalDate,
   assertDayOpen,
@@ -350,4 +540,7 @@ module.exports = {
   safeMultiply,
   safeDivide,
   decimalToNumber,
+  // New batch pipeline exports (for advanced callers)
+  buildInventoryMap,
+  computeFlowFromMap,
 };

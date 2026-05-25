@@ -77,23 +77,54 @@ async function validateBeforeClose(branchId, operationalDate) {
     });
   }
 
-  for (const product of activeProducts) {
-    const validation = await inventoryFlowService.validateInventoryFlow(branchIdInt, operationalDate, product.id);
-    
-    for (const warning of validation.warnings) {
-      if (warning.severity === 'error') {
-        errors.push({
-          type: warning.type,
-          message: `${product.name}: ${warning.message}`,
-          productId: product.id,
-        });
-      } else {
-        warnings.push({
-          type: warning.type,
-          message: `${product.name}: ${warning.message}`,
-          productId: product.id,
-        });
-      }
+  // OPTIMIZED: Use batch inventory pipeline instead of per-product DB calls.
+  // OLD: Called validateInventoryFlow per product → 5 batch queries × N products
+  // NEW: Single getInventoryFlowForAllProducts → 5 batch queries total, then in-memory validation
+  const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchIdInt, operationalDate);
+
+  // Build a product name lookup for error messages
+  const productNames = {};
+  for (const p of activeProducts) {
+    productNames[p.id] = p.name;
+  }
+
+  // Validate each product's flow in memory (zero DB queries)
+  for (const flow of flows) {
+    if (flow.estimatedSold < 0) {
+      errors.push({
+        type: 'NEGATIVE_SOLD',
+        message: `${productNames[flow.productId] || 'Unknown'}: Remaining exceeds production for this product`,
+        severity: 'error',
+        productId: flow.productId,
+      });
+    }
+
+    if (flow.remainingStock > flow.sellableStock) {
+      errors.push({
+        type: 'REMAINDER_EXCEEDS_SELLABLE',
+        message: `${productNames[flow.productId] || 'Unknown'}: Remaining stock exceeds sellable stock`,
+        severity: 'error',
+        productId: flow.productId,
+      });
+    }
+
+    const wasteRatio = flow.sellableStock > 0 ? flow.wasteQuantity / flow.sellableStock : 0;
+    if (wasteRatio > 0.2) {
+      warnings.push({
+        type: 'HIGH_WASTE',
+        message: `${productNames[flow.productId] || 'Unknown'}: Waste rate is ${(wasteRatio * 100).toFixed(1)}%`,
+        severity: 'warning',
+        productId: flow.productId,
+      });
+    }
+
+    if (flow.openingStock > 0 && flow.dayProduction === 0 && flow.remainingStock > flow.openingStock * 1.5) {
+      warnings.push({
+        type: 'LARGE_OPENING_NO_PRODUCTION',
+        message: `${productNames[flow.productId] || 'Unknown'}: Large opening stock with no new production`,
+        severity: 'warning',
+        productId: flow.productId,
+      });
     }
   }
 
@@ -217,8 +248,8 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
   return result;
 }
 
-async function reopenDay(branchId, operationalDate, userId, reason) {
-  if (userId.role !== 'ADMIN' && userId.role !== 'MANAGER') {
+async function reopenDay(branchId, operationalDate, user, reason) {
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
     const error = new Error('Only ADMIN or MANAGER can reopen closed days');
     error.status = 403;
     throw error;
@@ -242,7 +273,7 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
       data: {
         branchId: branchIdInt,
         operationalDate: opDate,
-        reopenedBy: userId,
+        reopenedBy: user.userId,
         reason,
       },
     });
@@ -257,7 +288,7 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
         data: {
           isInvalidated: true,
           invalidatedAt: new Date(),
-          invalidatedBy: userId,
+          invalidatedBy: user.userId,
         },
       });
     }
@@ -277,8 +308,8 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
         entityId: closure.id,
         action: 'REOPEN',
         oldValue: JSON.parse(JSON.stringify({ wasClosed: true })),
-        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: userId })),
-        userId,
+        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: user.userId })),
+        userId: user.userId,
       },
     });
 
