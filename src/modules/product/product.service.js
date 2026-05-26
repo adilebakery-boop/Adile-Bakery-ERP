@@ -1,7 +1,9 @@
 const prisma = require('../../config/prisma');
+const cache = require('../../utils/cache');
+const auditService = require('../../services/auditService');
 
 const productService = {
-  async create(data) {
+  async create(data, userId) {
     const existingProduct = await prisma.product.findUnique({
       where: { name: data.name },
     });
@@ -12,7 +14,7 @@ const productService = {
       throw error;
     }
 
-    return prisma.product.create({
+    const product = await prisma.product.create({
       data: {
         name: data.name,
         name_am: data.name_am || null,
@@ -22,6 +24,10 @@ const productService = {
         isActive: true,
       },
     });
+
+    await auditService.logAudit('product', product.id, 'CREATE', null, product, userId);
+    cache.invalidatePrefix('products:');
+    return product;
   },
 
   async findAll(options = {}) {
@@ -46,7 +52,7 @@ const productService = {
       where.category = category;
     }
     if (isActive !== undefined && isActive !== null && isActive !== '') {
-      const isActiveBool = isActive === true || isActive === 'true' || isActive === true;
+      const isActiveBool = isActive === true || isActive === 'true';
       where.isActive = isActiveBool;
     }
 
@@ -85,8 +91,8 @@ const productService = {
     return product;
   },
 
-  async update(id, data) {
-    const existing = await this.findById(id);
+  async update(id, data, userId) {
+    const old = await this.findById(id);
 
     if (data.name) {
       const existingProduct = await prisma.product.findFirst({
@@ -100,7 +106,7 @@ const productService = {
       }
     }
 
-    const priceChanged = data.price !== undefined && Number(data.price) !== Number(existing.price);
+    const priceChanged = data.price !== undefined && Number(data.price) !== Number(old.price);
 
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.product.update({
@@ -129,19 +135,25 @@ const productService = {
       return updated;
     });
 
+    await auditService.logAudit('product', result.id, 'UPDATE', old, result, userId);
+    cache.invalidatePrefix('products:');
     return result;
   },
 
-  async delete(id) {
-    await this.findById(id);
+  async delete(id, userId) {
+    const old = await this.findById(id);
 
-    return prisma.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data: { isActive: false },
     });
+
+    await auditService.logAudit('product', product.id, 'DELETE', old, product, userId);
+    cache.invalidatePrefix('products:');
+    return product;
   },
 
-  async restore(id) {
+  async restore(id, userId) {
     const product = await prisma.product.findUnique({
       where: { id },
     });
@@ -152,14 +164,21 @@ const productService = {
       throw error;
     }
 
-    return prisma.product.update({
+    const restored = await prisma.product.update({
       where: { id },
       data: { isActive: true },
     });
+
+    await auditService.logAudit('product', restored.id, 'RESTORE', product, restored, userId);
+    cache.invalidatePrefix('products:');
+    return restored;
   },
 
   async getCategories() {
-    return [
+    const cached = cache.get('categories:all');
+    if (cached) return cached;
+
+    const categories = [
       { value: 'BREAD_AND_SWEET_BREADS', label: 'Bread & Sweet Breads' },
       { value: 'CREAM_CAKES', label: 'Cream Cakes' },
       { value: 'SOFT_CAKES', label: 'Soft Cakes' },
@@ -168,6 +187,9 @@ const productService = {
       { value: 'FETIRE_AND_SNACKS', label: 'Fetir & Snacks' },
       { value: 'COOKIES', label: 'Cookies' },
     ];
+
+    cache.set('categories:all', categories, 30 * 60 * 1000);
+    return categories;
   },
 
   async getDeleted(options = {}) {

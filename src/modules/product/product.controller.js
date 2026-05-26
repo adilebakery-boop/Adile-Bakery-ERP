@@ -3,7 +3,7 @@ const productService = require('./product.service');
 const productController = {
   async create(req, res) {
     try {
-      const product = await productService.create(req.body);
+      const product = await productService.create(req.body, req.user?.userId);
       res.status(201).json({
         success: true,
         message: 'Product created successfully',
@@ -54,7 +54,7 @@ const productController = {
 
   async update(req, res) {
     try {
-      const product = await productService.update(parseInt(req.params.id), req.body);
+      const product = await productService.update(parseInt(req.params.id), req.body, req.user?.userId);
       res.json({
         success: true,
         message: 'Product updated successfully',
@@ -65,6 +65,39 @@ const productController = {
       res.status(statusCode).json({
         success: false,
         message: error.code === 'P2025' ? 'Product not found' : error.code === 'P2002' ? 'Product name already exists' : error.message,
+      });
+    }
+  },
+
+  async delete(req, res) {
+    try {
+      await productService.delete(parseInt(req.params.id), req.user?.userId);
+      res.json({
+        success: true,
+        message: 'Product deleted successfully',
+      });
+    } catch (error) {
+      const statusCode = error.code === 'P2025' ? 404 : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.code === 'P2025' ? 'Product not found' : error.message,
+      });
+    }
+  },
+
+  async restore(req, res) {
+    try {
+      const product = await productService.restore(parseInt(req.params.id), req.user?.userId);
+      res.json({
+        success: true,
+        message: 'Product restored successfully',
+        data: product,
+      });
+    } catch (error) {
+      const statusCode = error.code === 'P2025' ? 404 : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.code === 'P2025' ? 'Product not found' : error.message,
       });
     }
   },

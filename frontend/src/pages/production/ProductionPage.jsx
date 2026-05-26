@@ -40,6 +40,7 @@ export default function ProductionPage() {
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -97,7 +98,8 @@ export default function ProductionPage() {
   };
 
   const totalPages = Math.ceil(groupedEntries.length / itemsPerPage);
-  const paginatedGroups = groupedEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedGroups = groupedEntries;
+
 
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -106,6 +108,7 @@ export default function ProductionPage() {
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
