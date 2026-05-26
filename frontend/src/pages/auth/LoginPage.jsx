@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import authService from '../../services/authService';
 
@@ -9,7 +9,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lockoutCountdown, setLockoutCountdown] = useState(0);
+  const [wasLockedOut, setWasLockedOut] = useState(false);
+  const lockoutTimerRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return () => clearInterval(lockoutTimerRef.current);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,9 +31,25 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (result.success) {
+      setWasLockedOut(false);
+      setLockoutCountdown(0);
       navigate('/dashboard');
+    } else if (result.message && result.message.includes('Too many login attempts')) {
+      setLockoutCountdown(60);
+      setWasLockedOut(true);
+      setError('');
+      clearInterval(lockoutTimerRef.current);
+      lockoutTimerRef.current = setInterval(() => {
+        setLockoutCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(lockoutTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } else {
-      setError(result.message || 'Login failed. Please try again.');
+      setError('Invalid username or password');
     }
   };
 
@@ -53,9 +76,13 @@ export default function LoginPage() {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {(error || lockoutCountdown > 0 || wasLockedOut) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-              {error}
+              {lockoutCountdown > 0
+                ? `Too many login attempts. Try again in ${Math.floor(lockoutCountdown / 60)}:${String(lockoutCountdown % 60).padStart(2, '0')}`
+                : wasLockedOut && lockoutCountdown === 0
+                  ? 'You can try again now'
+                  : error}
             </div>
           )}
 
@@ -107,11 +134,11 @@ export default function LoginPage() {
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#001F3F] focus:ring-[#001F3F]" />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-[#001F3F] hover:underline">Forgot password?</a>
+              <Link to="/forgot-password" className="text-sm text-[#001F3F] hover:underline">Forgot password?</Link>
             </div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || lockoutCountdown > 0}
               className="w-full bg-[#001F3F] text-white py-4 rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
