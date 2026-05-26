@@ -412,7 +412,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? item.product.price) || 0,
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -440,7 +440,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? item.product.price) || 0,
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -465,7 +465,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? item.product.price) || 0,
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -487,69 +487,107 @@ async function getYearlyReport(branchId, year, category, productId) {
       }
     }
 
+    // DUAL-PATH REPORTING:
+    //   Snapshot path (above): reads pre-computed numbers from DailySnapshotItem
+    //     for closed days.  Revenue comes from estimatedRevenue (calculated at
+    //     close time using snapshotPrice).  NEVER re-look-up prices here.
+    //
+    //   Live path (below): queries raw ProductionRecord / RemainingRecord /
+    //     WasteRecord for days that are still open (no snapshot).  Revenue is
+    //     calculated on-the-fly using PriceHistory (via historyByProduct), with
+    //     Product.price as a fallback for dates without PriceHistory entries.
+    //
+    //   snapshotDatesForBranch excludes snapshot-covered dates from the live
+    //     path to prevent double-counting.
+    const snapshotDatesForBranch = snapshots.map(s => s.operationalDate);
+
+    const allPriceHistory = await prisma.productPriceHistory.findMany({
+      where: {
+        validFrom: { lte: yearEnd },
+        OR: [
+          { validTo: null },
+          { validTo: { gt: yearStart } },
+        ],
+      },
+      orderBy: { validFrom: 'desc' },
+    });
+    const historyByProduct = {};
+    for (const ph of allPriceHistory) {
+      if (!historyByProduct[ph.productId]) historyByProduct[ph.productId] = [];
+      historyByProduct[ph.productId].push(ph);
+    }
+
     for (let m = 1; m <= 12; m++) {
       const monthStart = new Date(yearNum, m - 1, 1);
       const monthEnd = new Date(yearNum, m, 0);
+      const monthSnapshotDates = snapshotDatesForBranch.filter(d => d >= monthStart && d <= monthEnd);
+      const dateExclude = monthSnapshotDates.length > 0 ? { notIn: monthSnapshotDates } : {};
+      const baseWhere = {
+        branchId: branch.id,
+        operationalDate: { gte: monthStart, lte: monthEnd, ...dateExclude },
+        ...(pidFilter ? { productId: pidFilter } : {}),
+      };
 
       const prodRecords = await prisma.productionRecord.groupBy({
-        by: ['productId', 'shift'],
-        where: {
-          branchId: branch.id,
-          operationalDate: { gte: monthStart, lte: monthEnd },
-          ...(pidFilter ? { productId: pidFilter } : {}),
-        },
+        by: ['productId', 'shift', 'operationalDate'],
+        where: baseWhere,
         _sum: { quantity: true },
       });
 
       const remainingRecords = await prisma.remainingRecord.groupBy({
-        by: ['productId'],
-        where: {
-          branchId: branch.id,
-          operationalDate: { gte: monthStart, lte: monthEnd },
-          status: 'FINAL',
-          ...(pidFilter ? { productId: pidFilter } : {}),
-        },
+        by: ['productId', 'operationalDate'],
+        where: { ...baseWhere, status: 'FINAL' },
         _sum: { quantity: true },
       });
 
       const wasteRecords = await prisma.wasteRecord.groupBy({
-        by: ['productId'],
-        where: {
-          branchId: branch.id,
-          operationalDate: { gte: monthStart, lte: monthEnd },
-          ...(pidFilter ? { productId: pidFilter } : {}),
-        },
+        by: ['productId', 'operationalDate'],
+        where: baseWhere,
         _sum: { quantity: true },
       });
 
-      const dayProdMap = {};
-      const nightProdMap = {};
+      const dayProdByDate = {};
+      const nightProdByDate = {};
       for (const r of prodRecords) {
+        const dk = r.operationalDate.toISOString().split('T')[0];
         if (r.shift === 'DAY') {
-          dayProdMap[r.productId] = Number(r._sum.quantity) || 0;
+          if (!dayProdByDate[dk]) dayProdByDate[dk] = {};
+          dayProdByDate[dk][r.productId] = Number(r._sum.quantity) || 0;
         } else if (r.shift === 'NIGHT') {
-          nightProdMap[r.productId] = Number(r._sum.quantity) || 0;
+          if (!nightProdByDate[dk]) nightProdByDate[dk] = {};
+          nightProdByDate[dk][r.productId] = Number(r._sum.quantity) || 0;
         }
       }
 
-      const remainingMap = {};
+      const remainingByDate = {};
       for (const r of remainingRecords) {
-        remainingMap[r.productId] = Number(r._sum.quantity) || 0;
+        const dk = r.operationalDate.toISOString().split('T')[0];
+        if (!remainingByDate[dk]) remainingByDate[dk] = {};
+        remainingByDate[dk][r.productId] = Number(r._sum.quantity) || 0;
       }
 
-      const wasteMap = {};
+      const wasteByDate = {};
       for (const r of wasteRecords) {
-        wasteMap[r.productId] = Number(r._sum.quantity) || 0;
+        const dk = r.operationalDate.toISOString().split('T')[0];
+        if (!wasteByDate[dk]) wasteByDate[dk] = {};
+        wasteByDate[dk][r.productId] = Number(r._sum.quantity) || 0;
       }
 
-      // Include active products plus any inactive products that have operational records.
-      // Archived products are still operationally relevant for the dates they have data.
-      const allProdIds = new Set([
-        ...Object.keys(dayProdMap).map(Number),
-        ...Object.keys(nightProdMap).map(Number),
-        ...Object.keys(remainingMap).map(Number),
-        ...Object.keys(wasteMap).map(Number),
-      ]);
+      const allDateKeys = [...new Set([
+        ...Object.keys(dayProdByDate),
+        ...Object.keys(nightProdByDate),
+        ...Object.keys(remainingByDate),
+        ...Object.keys(wasteByDate),
+      ])];
+
+      const allProdIds = new Set();
+      for (const dk of allDateKeys) {
+        if (dayProdByDate[dk]) Object.keys(dayProdByDate[dk]).forEach(p => allProdIds.add(Number(p)));
+        if (nightProdByDate[dk]) Object.keys(nightProdByDate[dk]).forEach(p => allProdIds.add(Number(p)));
+        if (remainingByDate[dk]) Object.keys(remainingByDate[dk]).forEach(p => allProdIds.add(Number(p)));
+        if (wasteByDate[dk]) Object.keys(wasteByDate[dk]).forEach(p => allProdIds.add(Number(p)));
+      }
+
       const products = await prisma.product.findMany({
         where: {
           ...(category ? { category } : {}),
@@ -562,26 +600,71 @@ async function getYearlyReport(branchId, year, category, productId) {
         select: { id: true, name: true, category: true, price: true, isActive: true },
       });
 
+      const monthlyProd = {};
+
       for (const product of products) {
         const pid = product.id;
-        const dayProd = dayProdMap[pid] || 0;
-        const nightProd = nightProdMap[pid] || 0;
-        const remaining = remainingMap[pid] || 0;
-        const waste = wasteMap[pid] || 0;
+        let mDayProd = 0, mNightProd = 0, mRemaining = 0, mWaste = 0;
+        let mEstimatedSold = 0, mEstimatedRevenue = 0;
 
-        const sellable = dayProd + nightProd;
-        const estimatedSold = Math.max(0, sellable - remaining - waste);
-        const estimatedRevenue = estimatedSold * (Number(product.price) || 0);
-        const price = Number(product.price) || 0;
+        for (const dk of allDateKeys) {
+          const dayProd = dayProdByDate[dk]?.[pid] || 0;
+          const nightProd = nightProdByDate[dk]?.[pid] || 0;
+          const remaining = remainingByDate[dk]?.[pid] || 0;
+          const waste = wasteByDate[dk]?.[pid] || 0;
 
-        const key = `${pid}`;
+          if (dayProd === 0 && nightProd === 0 && remaining === 0 && waste === 0) continue;
+
+          const sellable = dayProd + nightProd;
+          const dailySold = Math.max(0, sellable - remaining - waste);
+          const opDate = new Date(dk);
+
+          const entries = historyByProduct[pid] || [];
+          let histPrice = null;
+          for (let i = entries.length - 1; i >= 0; i--) {
+            const e = entries[i];
+            if (e.validFrom <= opDate && (!e.validTo || e.validTo > opDate)) {
+              histPrice = Number(e.price);
+              break;
+            }
+          }
+          const dailyPrice = histPrice ?? (Number(product.price) || 0);
+          const dailyRevenue = dailySold * dailyPrice;
+
+          mDayProd += dayProd;
+          mNightProd += nightProd;
+          mRemaining += remaining;
+          mWaste += waste;
+          mEstimatedSold += dailySold;
+          mEstimatedRevenue += dailyRevenue;
+        }
+
+        const sellable = mDayProd + mNightProd;
+
+        monthlyProd[pid] = {
+          name: product.name,
+          category: product.category,
+          price: Number(product.price) || 0,
+          dayProd: mDayProd,
+          nightProd: mNightProd,
+          sellable,
+          remaining: mRemaining,
+          waste: mWaste,
+          estimatedSold: mEstimatedSold,
+          estimatedRevenue: mEstimatedRevenue,
+        };
+      }
+
+      for (const [pidStr, prod] of Object.entries(monthlyProd)) {
+        const pid = Number(pidStr);
+        const key = pidStr;
 
         if (!monthProductsMap[m][key]) {
           monthProductsMap[m][key] = {
             productId: pid,
-            productName: product.name,
-            category: product.category,
-            price: price,
+            productName: prod.name,
+            category: prod.category,
+            price: prod.price,
             totalDayProduction: 0,
             totalNightProduction: 0,
             totalSellableStock: 0,
@@ -591,13 +674,13 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        monthProductsMap[m][key].totalDayProduction += dayProd;
-        monthProductsMap[m][key].totalNightProduction += nightProd;
-        monthProductsMap[m][key].totalSellableStock += sellable;
-        monthProductsMap[m][key].totalRemainingStock += remaining;
-        monthProductsMap[m][key].totalWasteQuantity += waste;
-        monthProductsMap[m][key].totalEstimatedSold += estimatedSold;
-        monthProductsMap[m][key].totalEstimatedRevenue += estimatedRevenue;
+        monthProductsMap[m][key].totalDayProduction += prod.dayProd;
+        monthProductsMap[m][key].totalNightProduction += prod.nightProd;
+        monthProductsMap[m][key].totalSellableStock += prod.sellable;
+        monthProductsMap[m][key].totalRemainingStock += prod.remaining;
+        monthProductsMap[m][key].totalWasteQuantity += prod.waste;
+        monthProductsMap[m][key].totalEstimatedSold += prod.estimatedSold;
+        monthProductsMap[m][key].totalEstimatedRevenue += prod.estimatedRevenue;
 
         if (!branchProductsMap[branch.id][m]) {
           branchProductsMap[branch.id][m] = {};
@@ -605,9 +688,9 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (!branchProductsMap[branch.id][m][key]) {
           branchProductsMap[branch.id][m][key] = {
             productId: pid,
-            productName: product.name,
-            category: product.category,
-            price: price,
+            productName: prod.name,
+            category: prod.category,
+            price: prod.price,
             totalDayProduction: 0,
             totalNightProduction: 0,
             totalSellableStock: 0,
@@ -617,35 +700,35 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        branchProductsMap[branch.id][m][key].totalDayProduction += dayProd;
-        branchProductsMap[branch.id][m][key].totalNightProduction += nightProd;
-        branchProductsMap[branch.id][m][key].totalSellableStock += sellable;
-        branchProductsMap[branch.id][m][key].totalRemainingStock += remaining;
-        branchProductsMap[branch.id][m][key].totalWasteQuantity += waste;
-        branchProductsMap[branch.id][m][key].totalEstimatedSold += estimatedSold;
-        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += estimatedRevenue;
+        branchProductsMap[branch.id][m][key].totalDayProduction += prod.dayProd;
+        branchProductsMap[branch.id][m][key].totalNightProduction += prod.nightProd;
+        branchProductsMap[branch.id][m][key].totalSellableStock += prod.sellable;
+        branchProductsMap[branch.id][m][key].totalRemainingStock += prod.remaining;
+        branchProductsMap[branch.id][m][key].totalWasteQuantity += prod.waste;
+        branchProductsMap[branch.id][m][key].totalEstimatedSold += prod.estimatedSold;
+        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += prod.estimatedRevenue;
 
-        monthTotalsMap[m].totalDayProduction += dayProd;
-        monthTotalsMap[m].totalNightProduction += nightProd;
-        monthTotalsMap[m].totalSellableStock += sellable;
-        monthTotalsMap[m].totalRemainingStock += remaining;
-        monthTotalsMap[m].totalWasteQuantity += waste;
-        monthTotalsMap[m].totalEstimatedSold += estimatedSold;
-        monthTotalsMap[m].totalEstimatedRevenue += estimatedRevenue;
+        monthTotalsMap[m].totalDayProduction += prod.dayProd;
+        monthTotalsMap[m].totalNightProduction += prod.nightProd;
+        monthTotalsMap[m].totalSellableStock += prod.sellable;
+        monthTotalsMap[m].totalRemainingStock += prod.remaining;
+        monthTotalsMap[m].totalWasteQuantity += prod.waste;
+        monthTotalsMap[m].totalEstimatedSold += prod.estimatedSold;
+        monthTotalsMap[m].totalEstimatedRevenue += prod.estimatedRevenue;
 
-        branchYearlyTotals[branch.id][m].totalDayProduction += dayProd;
-        branchYearlyTotals[branch.id][m].totalNightProduction += nightProd;
-        branchYearlyTotals[branch.id][m].totalSellableStock += sellable;
-        branchYearlyTotals[branch.id][m].totalRemainingStock += remaining;
-        branchYearlyTotals[branch.id][m].totalWasteQuantity += waste;
-        branchYearlyTotals[branch.id][m].totalEstimatedSold += estimatedSold;
-        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += estimatedRevenue;
+        branchYearlyTotals[branch.id][m].totalDayProduction += prod.dayProd;
+        branchYearlyTotals[branch.id][m].totalNightProduction += prod.nightProd;
+        branchYearlyTotals[branch.id][m].totalSellableStock += prod.sellable;
+        branchYearlyTotals[branch.id][m].totalRemainingStock += prod.remaining;
+        branchYearlyTotals[branch.id][m].totalWasteQuantity += prod.waste;
+        branchYearlyTotals[branch.id][m].totalEstimatedSold += prod.estimatedSold;
+        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += prod.estimatedRevenue;
 
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
             productId: pid,
-            productName: product.name,
-            category: product.category,
+            productName: prod.name,
+            category: prod.category,
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -656,13 +739,13 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        productYearlyTotals[key].totalDayProduction += dayProd;
-        productYearlyTotals[key].totalNightProduction += nightProd;
-        productYearlyTotals[key].totalSellableStock += sellable;
-        productYearlyTotals[key].totalRemainingStock += remaining;
-        productYearlyTotals[key].totalWasteQuantity += waste;
-        productYearlyTotals[key].totalEstimatedSold += estimatedSold;
-        productYearlyTotals[key].totalEstimatedRevenue += estimatedRevenue;
+        productYearlyTotals[key].totalDayProduction += prod.dayProd;
+        productYearlyTotals[key].totalNightProduction += prod.nightProd;
+        productYearlyTotals[key].totalSellableStock += prod.sellable;
+        productYearlyTotals[key].totalRemainingStock += prod.remaining;
+        productYearlyTotals[key].totalWasteQuantity += prod.waste;
+        productYearlyTotals[key].totalEstimatedSold += prod.estimatedSold;
+        productYearlyTotals[key].totalEstimatedRevenue += prod.estimatedRevenue;
       }
     }
   }
@@ -742,6 +825,14 @@ async function getYearlyReport(branchId, year, category, productId) {
 };
 }
 
+function escapeCSV(value) {
+  const str = String(value ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
 function exportToCSV(reportData) {
   const headers = [
     'Product',
@@ -757,9 +848,23 @@ function exportToCSV(reportData) {
     'Estimated Revenue',
   ];
 
-  const rows = reportData.products.map(p => [
-    p.productName,
-    p.category,
+  const normalizedProducts = reportData.products.map(p => ({
+    productName: p.productName,
+    category: p.category,
+    openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
+    dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
+    nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,
+    nightProductionPreparedFor: p.nightProductionPreparedFor ?? 0,
+    sellableStock: p.sellableStock ?? p.totalSellableStock ?? 0,
+    remainingStock: p.remainingStock ?? p.totalRemainingStock ?? 0,
+    wasteQuantity: p.wasteQuantity ?? p.totalWasteQuantity ?? 0,
+    estimatedSold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
+    estimatedRevenue: p.estimatedRevenue ?? p.totalEstimatedRevenue ?? 0,
+  }));
+
+  const rows = normalizedProducts.map(p => [
+    escapeCSV(p.productName),
+    escapeCSV(p.category),
     p.openingStock,
     p.dayProduction,
     p.nightProduction,
@@ -772,23 +877,23 @@ function exportToCSV(reportData) {
   ]);
 
   const totalsRow = [
-    'TOTAL',
+    escapeCSV('TOTAL'),
     '',
-    reportData.totals.totalOpeningStock,
-    reportData.totals.totalDayProduction,
-    reportData.totals.totalNightProduction,
-    reportData.totals.totalNightProductionPreparedFor,
-    reportData.totals.totalSellableStock,
-    reportData.totals.totalRemainingStock,
-    reportData.totals.totalWasteQuantity,
-    reportData.totals.totalEstimatedSold,
-    reportData.totals.totalEstimatedRevenue,
+    reportData.totals.totalOpeningStock ?? reportData.totals.totalOpening ?? 0,
+    reportData.totals.totalDayProduction ?? 0,
+    reportData.totals.totalNightProduction ?? 0,
+    reportData.totals.totalNightProductionPreparedFor ?? 0,
+    reportData.totals.totalSellableStock ?? 0,
+    reportData.totals.totalRemainingStock ?? 0,
+    reportData.totals.totalWasteQuantity ?? 0,
+    reportData.totals.totalEstimatedSold ?? 0,
+    reportData.totals.totalEstimatedRevenue ?? 0,
   ];
 
   const csvContent = [
-    headers.join(','),
-    ...rows.map(r => r.join(',')),
-    totalsRow.join(','),
+    headers.map(escapeCSV).join(','),
+    ...rows.map(r => r.map(v => typeof v === 'number' ? String(v) : escapeCSV(String(v))).join(',')),
+    totalsRow.map(v => typeof v === 'number' ? String(v) : escapeCSV(String(v))).join(','),
   ].join('\n');
 
   return csvContent;

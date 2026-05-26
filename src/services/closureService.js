@@ -1,3 +1,33 @@
+// ACCOUNTING INVARIANTS
+//
+// A. Snapshot invariant
+//    Closed-day accounting truth lives in DailySnapshot / DailySnapshotItem.
+//    The DailyClosure record is the gate (isClosed flag); the DailySnapshot
+//    holds the frozen operational numbers (production, remaining, waste,
+//    estimatedSold, estimatedRevenue, snapshotPrice).
+//
+// B. Reopen invariant
+//    reopenDay sets isClosed=false and marks the existing snapshot as
+//    isInvalidated=true.  Accounting history is preserved — the invalidated
+//    snapshot remains in the database and can be audited.  No data is deleted.
+//
+// C. Re-close invariant
+//    After reopenDay, closeDay reuses the existing closure-linked snapshot
+//    (found by closureId).  It deletes the old snapshot items, resets the
+//    isInvalidated flag to false, and writes fresh snapshot items with
+//    current operational data.  The snapshot lifecycle is: active → invalidated
+//    → active (reused) for the same closure.
+//
+// D. Historical pricing invariant
+//    Revenue must NEVER use Product.price for historical dates.  The chain is:
+//    snapshotPrice (if reading a snapshot) → PriceHistory lookup → Product.price
+//    fallback (only for dates without any PriceHistory entry).
+//
+// E. Snapshot pricing invariant
+//    snapshotPrice stores the exact historical price used when the snapshot was
+//    generated.  Reports reading from snapshot items must use snapshotPrice,
+//    NOT re-look-up the price from PriceHistory.
+
 const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
@@ -110,6 +140,10 @@ async function validateBeforeClose(branchId, operationalDate) {
   };
 }
 
+// closeDay — freezes operational data into a DailySnapshot.
+// If the day was previously closed and reopened, the existing snapshot
+// (found by closureId) is reused — items are replaced, not accumulated.
+// snapshotPrice is set from inventoryFlowService (PriceHistory) at close time.
 async function closeDay(branchId, operationalDate, userId, note = null) {
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
@@ -163,30 +197,40 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
       });
     }
 
-    const existingSnapshot = await tx.dailySnapshot.findFirst({
-      where: { branchId: branchIdInt, operationalDate: opDate, isInvalidated: false },
+    // Re-close path: if a snapshot already exists for this closure (e.g. after
+    // reopenDay), reuse it — delete old items, reset invalidation flags, write
+    // fresh items.  This preserves the invariant that each closure has exactly
+    // one active snapshot (closureId is @unique).
+    let snapshot = await tx.dailySnapshot.findFirst({
+      where: { closureId: closure.id },
     });
 
-    if (existingSnapshot) {
+    if (snapshot) {
       await tx.dailySnapshotItem.deleteMany({
-        where: { snapshotId: existingSnapshot.id },
+        where: { snapshotId: snapshot.id },
       });
-      await tx.dailySnapshot.update({
-        where: { id: existingSnapshot.id },
-        data: { isInvalidated: true, invalidatedAt: new Date(), invalidatedBy: userId },
+      snapshot = await tx.dailySnapshot.update({
+        where: { id: snapshot.id },
+        data: {
+          isInvalidated: false,
+          closedBy: userId,
+          closedAt: new Date(),
+          invalidatedAt: null,
+          invalidatedBy: null,
+        },
+      });
+    } else {
+      snapshot = await tx.dailySnapshot.create({
+        data: {
+          closureId: closure.id,
+          branchId: branchIdInt,
+          operationalDate: opDate,
+          closedBy: userId,
+          closedAt: new Date(),
+          isInvalidated: false,
+        },
       });
     }
-
-    const snapshot = await tx.dailySnapshot.create({
-      data: {
-        closureId: closure.id,
-        branchId: branchIdInt,
-        operationalDate: opDate,
-        closedBy: userId,
-        closedAt: new Date(),
-        isInvalidated: false,
-      },
-    });
 
     const snapshotItems = flows.map(flow => ({
       snapshotId: snapshot.id,
@@ -199,6 +243,7 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
       wasteQuantity: new Prisma.Decimal(String(flow.wasteQuantity)),
       estimatedSold: new Prisma.Decimal(String(flow.estimatedSold)),
       estimatedRevenue: new Prisma.Decimal(String(flow.estimatedRevenue)),
+      snapshotPrice: new Prisma.Decimal(String(flow.price)),
     }));
 
     await tx.dailySnapshotItem.createMany({ data: snapshotItems });
@@ -220,6 +265,12 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
   return result;
 }
 
+// reopenDay — reopens a closed day for editing.
+// Invariant: the existing DailySnapshot is marked isInvalidated=true but is
+// NOT deleted.  This preserves the accounting audit trail.  The DailyClosure
+// is set to isClosed=false, allowing new operational data to be entered.
+// A subsequent closeDay call will reuse the same closure-linked snapshot
+// (see Re-close invariant above).
 async function reopenDay(branchId, operationalDate, userId, reason) {
   if (userId.role !== 'ADMIN' && userId.role !== 'MANAGER') {
     const error = new Error('Only ADMIN or MANAGER can reopen closed days');
@@ -245,7 +296,7 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
       data: {
         branchId: branchIdInt,
         operationalDate: opDate,
-        reopenedBy: userId,
+        reopenedBy: userId.userId ?? userId.id ?? userId,
         reason,
       },
     });
@@ -260,7 +311,7 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
         data: {
           isInvalidated: true,
           invalidatedAt: new Date(),
-          invalidatedBy: userId,
+          invalidatedBy: userId.userId || userId.id || userId,
         },
       });
     }
@@ -280,8 +331,8 @@ async function reopenDay(branchId, operationalDate, userId, reason) {
         entityId: closure.id,
         action: 'REOPEN',
         oldValue: JSON.parse(JSON.stringify({ wasClosed: true })),
-        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: userId })),
-        userId,
+        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: userId.userId ?? userId.id ?? userId })),
+        userId: userId.userId ?? userId.id ?? userId,
       },
     });
 

@@ -86,7 +86,7 @@ const productService = {
   },
 
   async update(id, data) {
-    await this.findById(id);
+    const existing = await this.findById(id);
 
     if (data.name) {
       const existingProduct = await prisma.product.findFirst({
@@ -100,17 +100,36 @@ const productService = {
       }
     }
 
-    return prisma.product.update({
-      where: { id },
-      data: {
-        name: data.name,
-        name_am: data.name_am !== undefined ? (data.name_am || null) : undefined,
-        category: data.category,
-        price: data.price,
-        unitType: data.unitType,
-        isActive: data.isActive,
-      },
+    const priceChanged = data.price !== undefined && Number(data.price) !== Number(existing.price);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.product.update({
+        where: { id },
+        data: {
+          name: data.name,
+          name_am: data.name_am !== undefined ? (data.name_am || null) : undefined,
+          category: data.category,
+          price: data.price,
+          unitType: data.unitType,
+          isActive: data.isActive,
+        },
+      });
+
+      if (priceChanged) {
+        const now = new Date();
+        await tx.productPriceHistory.updateMany({
+          where: { productId: id, validTo: null },
+          data: { validTo: now },
+        });
+        await tx.productPriceHistory.create({
+          data: { productId: id, price: data.price, validFrom: now, validTo: null },
+        });
+      }
+
+      return updated;
     });
+
+    return result;
   },
 
   async delete(id) {
