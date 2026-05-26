@@ -189,9 +189,14 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     worksheet.getCell(row, 2).alignment = { horizontal: 'left' };
     worksheet.getCell(row, 2).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
-    worksheet.getCell(row, 3).value = toNumber(p.price || 0);
-    worksheet.getCell(row, 3).numFmt = '#,##0.00';
-    worksheet.getCell(row, 3).alignment = { horizontal: 'right' };
+    if (p.displayPrice) {
+      worksheet.getCell(row, 3).value = p.displayPrice;
+      worksheet.getCell(row, 3).alignment = { horizontal: 'center' };
+    } else {
+      worksheet.getCell(row, 3).value = toNumber(p.price || 0);
+      worksheet.getCell(row, 3).numFmt = '#,##0.00';
+      worksheet.getCell(row, 3).alignment = { horizontal: 'right' };
+    }
     worksheet.getCell(row, 3).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
     let col = 4;
@@ -2299,6 +2304,7 @@ async function exportYearlyReportComparison(reportData, options = {}) {
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }
+
 module.exports = {
   exportDailyReport,
   exportWeeklyReport,

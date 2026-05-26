@@ -69,7 +69,7 @@ export default function UsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', username: '', password: '', role: '', branchId: '' });
+  const [formData, setFormData] = useState({ name: '', username: '', password: '', role: '', branchId: '', email: '' });
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -100,6 +100,7 @@ export default function UsersPage() {
       username: formData.username,
       password: formData.password,
       roleId: roleObj?.id,
+      email: formData.email || null,
     };
 
     if (formData.role === 'MANAGER' && isAdmin) {
@@ -111,7 +112,7 @@ export default function UsersPage() {
     try {
       await createMutation.mutateAsync(submitData);
       setIsModalOpen(false);
-      setFormData({ name: '', username: '', password: '', role: '', branchId: '' });
+      setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' });
     } catch (err) {
       setError(err.message || 'Failed to create user');
     }
@@ -124,7 +125,8 @@ export default function UsersPage() {
       username: user.username,
       password: '',
       role: user.role?.name || '',
-      branchId: user.branchId ? String(user.branchId) : ''
+      branchId: user.branchId ? String(user.branchId) : '',
+      email: user.email || ''
     });
     setIsEditModalOpen(true);
   };
@@ -138,6 +140,7 @@ export default function UsersPage() {
       name: formData.name,
       username: formData.username,
       roleId: roleObj?.id,
+      email: formData.email || null,
     };
 
     if (formData.role === 'MANAGER' && isAdmin) {
@@ -154,7 +157,7 @@ export default function UsersPage() {
       await updateMutation.mutateAsync({ id: editingUser.id, data: submitData });
       setIsEditModalOpen(false);
       setEditingUser(null);
-      setFormData({ name: '', username: '', password: '', role: '', branchId: '' });
+      setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' });
     } catch (err) {
       setError(err.message || 'Failed to update user');
     }
@@ -183,12 +186,13 @@ export default function UsersPage() {
     }
   };
 
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('users.title')}</h1>
         {canManage && (
-          <button onClick={() => setIsModalOpen(true)} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
+          <button onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsModalOpen(true); }} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" />
             {t('users.addUser')}
           </button>
@@ -310,6 +314,10 @@ export default function UsersPage() {
             <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter username" required disabled={createMutation.isPending} />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Email</label>
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter email address" disabled={createMutation.isPending} />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Password</label>
             <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter password" required disabled={createMutation.isPending} />
           </div>
@@ -353,6 +361,10 @@ export default function UsersPage() {
             <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required disabled={updateMutation.isPending} />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Email</label>
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter email address" disabled={updateMutation.isPending} />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Role</label>
             <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" required disabled={updateMutation.isPending}>
               <option value="">{t('users.selectRole')}</option>
@@ -379,7 +391,7 @@ export default function UsersPage() {
             <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter new password" disabled={updateMutation.isPending} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm" disabled={updateMutation.isPending}>Cancel</button>
+            <button type="button" onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsEditModalOpen(false); }} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm" disabled={updateMutation.isPending}>Cancel</button>
             <button type="submit" disabled={updateMutation.isPending} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{updateMutation.isPending ? 'Saving...' : 'Save'}</button>
           </div>
         </form>

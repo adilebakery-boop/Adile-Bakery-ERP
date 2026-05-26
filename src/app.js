@@ -3,12 +3,13 @@ const cors = require('cors');
 const helmet = require('./middlewares/helmet.middleware');
 const sanitizeRequest = require('./middlewares/sanitize.middleware');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
-const { loginLimiter, apiLimiter, exportLimiter } = require('./middlewares/rateLimit.middleware');
+const { loginLimiter, apiLimiter, exportLimiter, otpLimiter } = require('./middlewares/rateLimit.middleware');
 const trafficMonitor = require('./middlewares/trafficMonitor.middleware');
 
 const app = express();
 
 const authRoutes = require('./modules/auth/auth.routes');
+const passwordResetRoutes = require('./modules/auth/passwordReset.routes');
 const branchRoutes = require('./modules/branch/branch.routes');
 const productRoutes = require('./modules/product/product.routes');
 const userRoutes = require('./modules/users/users.routes');
@@ -30,12 +31,14 @@ app.use(express.json({ limit: '10kb' }));
 app.use(sanitizeRequest);
 
 app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/forgot-password', otpLimiter);
 app.use('/api', apiLimiter);
 app.use('/api/reports/export', exportLimiter);
 
 app.use('/api', trafficMonitor);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', passwordResetRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);

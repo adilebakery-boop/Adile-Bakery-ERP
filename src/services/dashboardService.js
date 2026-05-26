@@ -66,6 +66,7 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
   const opDate = new Date(opDateStr + 'T00:00:00.000Z');
 
+
   let totals;
   let productionCompleted;
   let remainingSubmitted;
@@ -127,6 +128,7 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     productionCompleted = productions.length > 0;
   }
 
+
   const closure = await prisma.dailyClosure.findUnique({
     where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
   });
@@ -154,6 +156,7 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     closedAt: closure?.closedAt || null,
   };
 }
+
 
 async function getAllBranchesStatus(operationalDate) {
   const branches = await prisma.branch.findMany({
