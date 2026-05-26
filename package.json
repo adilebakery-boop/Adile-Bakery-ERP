@@ -6,9 +6,15 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "seed": "node prisma/seed.js",
+    "seed:base": "node prisma/seed.js",
     "seed:products": "node prisma/seed-products.js",
-    "seed:reports": "node prisma/seed-reports.js",
-    "seed:all": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-reports.js"
+    "seed:schedules": "node prisma/seed-schedules.js",
+    "seed:all": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js",
+    "seed:small": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js small",
+    "seed:medium": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js medium",
+    "seed:large": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js large",
+    "seed:reset": "npx prisma migrate reset --force && npm run seed:all",
+    "seed:verify": "node prisma/seed-verify.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

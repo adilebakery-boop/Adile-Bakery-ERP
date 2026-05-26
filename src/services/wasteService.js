@@ -12,6 +12,16 @@ function toDecimal(value) {
   return new Prisma.Decimal(String(value));
 }
 
+function requireBranchAccess(branchId, user) {
+  if (!user?.role) return;
+  if (user.role === 'ADMIN' || user.role === 'MANAGER') return;
+  if (Number(branchId) !== Number(user.branchId)) {
+    const err = new Error('You can only modify waste for your assigned branch');
+    err.status = 403;
+    throw err;
+  }
+}
+
 async function findAll(filters = {}) {
   const { branchId, operationalDate, productId, startDate, endDate } = filters;
   const where = {};
@@ -64,6 +74,8 @@ async function findById(id) {
 
 async function create(data, userId) {
   const { productId, quantity, branchId, operationalDate, reason } = data;
+
+  requireBranchAccess(branchId, userId);
 
   const product = await prisma.product.findFirst({
     where: {
@@ -123,6 +135,8 @@ async function create(data, userId) {
 
 async function update(id, data, userId) {
   const existing = await findById(id);
+
+  requireBranchAccess(existing.branchId, userId);
 
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 

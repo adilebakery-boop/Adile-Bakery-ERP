@@ -113,8 +113,28 @@ model Product {
   remainings    RemainingRecord[]
   wastes        WasteRecord[]
   snapshotItems DailySnapshotItem[]
+  priceHistory  ProductPriceHistory[]
   @@index([category])
   @@index([isActive])
+}
+
+// PRICE HISTORY RANGE RULES:
+//   validFrom — inclusive start of price period
+//   validTo   — exclusive end of price period (null = active/ongoing)
+//   Contiguous ranges: previous.validTo === next.validFrom is VALID, NOT an overlap.
+//   Example: Jan 1 → Apr 15, Apr 15 → null  (Apr 15 starts the new price, old price covers through Apr 14)
+//   Query pattern: validFrom <= operationalDate AND (validTo IS NULL OR validTo > operationalDate)
+model ProductPriceHistory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  price      Decimal  @db.Decimal(12, 2)
+  validFrom  DateTime
+  validTo    DateTime?
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id])
+  @@index([productId, validFrom])
+  @@index([productId, validTo])
+  @@index([productId, validFrom, validTo])
 }
 
 model ProductionRecord {
@@ -229,9 +249,11 @@ model DailySnapshotItem {
   wasteQuantity    Decimal  @db.Decimal(12, 3) @default(0)
   estimatedSold    Decimal  @db.Decimal(12, 3) @default(0)
   estimatedRevenue Decimal  @db.Decimal(12, 2) @default(0)
+  snapshotPrice    Decimal? @db.Decimal(12, 2)
   snapshot         DailySnapshot @relation(fields: [snapshotId], references: [id])
   product          Product       @relation(fields: [productId], references: [id])
   @@unique([snapshotId, productId])
+  @@index([productId])
 }
 
 model ReopenLog {

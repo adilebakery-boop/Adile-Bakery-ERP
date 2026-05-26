@@ -19,7 +19,7 @@ const validate = (schema) => (req, res, next) => {
 
 const validateParams = (schema) => (req, res, next) => {
   try {
-    productIdSchema.parse({ id: req.params.id });
+    schema.parse({ id: req.params.id });
     next();
   } catch (error) {
     return res.status(400).json({

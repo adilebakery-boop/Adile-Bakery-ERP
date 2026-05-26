@@ -26,13 +26,27 @@ const PRODUCTS = [
 async function main() {
   console.log('Seeding products...');
   for (const product of PRODUCTS) {
-    await prisma.product.upsert({
+    const upserted = await prisma.product.upsert({
       where: { name: product.name },
       update: { name_am: product.name_am, category: product.category, price: product.price, unitType: product.unitType, isActive: true, costPrice: product.costPrice, sellingPrice: product.sellingPrice },
       create: { name: product.name, name_am: product.name_am, category: product.category, price: product.price, unitType: product.unitType, isActive: true, costPrice: product.costPrice, sellingPrice: product.sellingPrice },
     });
+
+    const existingHistory = await prisma.productPriceHistory.findFirst({
+      where: { productId: upserted.id, validTo: null },
+    });
+    if (!existingHistory) {
+      await prisma.productPriceHistory.create({
+        data: {
+          productId: upserted.id,
+          price: product.price,
+          validFrom: new Date('2026-04-01'),
+          validTo: null,
+        },
+      });
+    }
   }
-  console.log(`Products seeded: ${PRODUCTS.length}`);
+  console.log(`Products seeded: ${PRODUCTS.length} with initial price history`);
   console.log('Done!');
 }
 
