@@ -8,6 +8,7 @@
     "production": "ምርት",
     "remaining": "የቀረ",
     "reports": "ሪፖርቶች",
+    "waste": "ብክነት",
     "products": "ምርቶች",
     "branches": "ቅርንጫፎች",
     "users": "ተጠቃሚዎች",
@@ -293,5 +294,29 @@
   "units": {
     "piece": "ነገር",
     "kg": "ኪሎ"
+  },
+  "waste": {
+    "title": "የብክነት አስተዳደር",
+    "recordWaste": "ብክነት መዝግብ",
+    "editWaste": "የብክነት መዝገብ አስተካክል",
+    "searchWaste": "የብክነት መዝገቦችን ፈልግ...",
+    "allBranches": "ሁሉም ቅርንጫፎች",
+    "allProducts": "ሁሉም ምርቶች",
+    "product": "ምርት",
+    "branch": "ቅርንጫፍ",
+    "quantity": "ብዛት",
+    "date": "ቀን",
+    "reason": "ምክንያት",
+    "recordedBy": "የመዘገበው",
+    "enterQuantity": "ብዛት አስገባ",
+    "enterReason": "ምክንያት አስገባ (አማራጭ)",
+    "selectProduct": "ምርት ምረጥ",
+    "selectBranch": "ቅርንጫፍ ምረጥ",
+    "operationalDate": "የስራ ቀን",
+    "noWasteRecords": "ምንም የብክነት መዝገብ አልተገኘም",
+    "deleteConfirm": "ይህን የብክነት መዝገብ መሰረዝ ይፈልጋሉ?",
+    "saving": "በማስቀመጥ ላይ...",
+    "showing": "ከ {{total}} መዝገቦች {{from}} እስከ {{to}} ያሳያል",
+    "pageOf": "ገጽ {{current}} ከ {{total}}"
   }
 }
