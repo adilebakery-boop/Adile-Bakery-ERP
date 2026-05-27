@@ -12,27 +12,39 @@ const findAll = asyncHandler(async (req, res) => {
   Object.assign(filters, accessFilter);
 
   const productions = await productionService.findAll(filters, req.user);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
   res.json({
     success: true,
     data: productions,
-    count: productions.length,
+    pagination: {
+      page,
+      limit,
+      total: productions.length,
+      totalPages: Math.ceil(productions.length / limit),
+    },
   });
 });
 
 const findAllGrouped = asyncHandler(async (req, res) => {
-  const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
+  const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = req.query;
   const { role, userId } = req.user;
 
-  const filters = { branchId, operationalDate, shift, productId, startDate, endDate };
+  const filters = { branchId, operationalDate, shift, productId, startDate, endDate, page, limit };
 
   const accessFilter = buildProductionAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const groupedProductions = await productionService.findAllGrouped(filters, req.user);
+  const result = await productionService.findAllGrouped(filters, req.user);
   res.json({
     success: true,
-    data: groupedProductions,
-    count: groupedProductions.length,
+    data: result.data,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    },
   });
 });
 

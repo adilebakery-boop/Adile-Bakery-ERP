@@ -1,14 +1,22 @@
 const prisma = require('../../config/prisma');
+const cache = require('../../utils/cache');
+const auditService = require('../../services/auditService');
 
 const branchService = {
   async findActive() {
-    return prisma.branch.findMany({
+    const cached = cache.get('branches:active');
+    if (cached) return cached;
+
+    const branches = await prisma.branch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
     });
+
+    cache.set('branches:active', branches, 5 * 60 * 1000);
+    return branches;
   },
 
-  async create(data) {
+  async create(data, userId) {
     const existingBranch = await prisma.branch.findUnique({
       where: { name: data.name },
     });
@@ -19,7 +27,7 @@ const branchService = {
       throw error;
     }
 
-    return prisma.branch.create({
+    const branch = await prisma.branch.create({
       data: {
         name: data.name,
         name_am: data.name_am || null,
@@ -28,6 +36,10 @@ const branchService = {
         isActive: true,
       },
     });
+
+    await auditService.logAudit('branch', branch.id, 'CREATE', null, branch, userId);
+    cache.invalidatePrefix('branches:');
+    return branch;
   },
 
   async findAll(options = {}) {
@@ -73,8 +85,8 @@ const branchService = {
     return branch;
   },
 
-  async update(id, data) {
-    await this.findById(id);
+  async update(id, data, userId) {
+    const old = await this.findById(id);
 
     if (data.name) {
       const existingBranch = await prisma.branch.findFirst({
@@ -88,7 +100,7 @@ const branchService = {
       }
     }
 
-    return prisma.branch.update({
+    const branch = await prisma.branch.update({
       where: { id },
       data: {
         name: data.name,
@@ -98,17 +110,25 @@ const branchService = {
         isActive: data.isActive,
       },
     });
+
+    await auditService.logAudit('branch', branch.id, 'UPDATE', old, branch, userId);
+    cache.invalidatePrefix('branches:');
+    return branch;
   },
 
-  async delete(id) {
-    await this.findById(id);
+  async delete(id, userId) {
+    const old = await this.findById(id);
 
-    return prisma.branch.delete({
+    const branch = await prisma.branch.delete({
       where: { id },
     });
+
+    await auditService.logAudit('branch', branch.id, 'DELETE', old, null, userId);
+    cache.invalidatePrefix('branches:');
+    return branch;
   },
 
-  async restore(id) {
+  async restore(id, userId) {
     const branch = await prisma.branch.findUnique({
       where: { id },
     });
@@ -119,10 +139,14 @@ const branchService = {
       throw error;
     }
 
-    return prisma.branch.update({
+    const restored = await prisma.branch.update({
       where: { id },
       data: { isActive: true },
     });
+
+    await auditService.logAudit('branch', restored.id, 'RESTORE', branch, restored, userId);
+    cache.invalidatePrefix('branches:');
+    return restored;
   },
 };
 

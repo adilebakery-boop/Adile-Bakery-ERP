@@ -282,7 +282,7 @@ async function getTodayProductions(branchId, user) {
 }
 
 async function findAllGrouped(filters = {}) {
-  const { branchId, operationalDate, shift, productId, startDate, endDate } = filters;
+  const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -343,7 +343,18 @@ async function findAllGrouped(filters = {}) {
 
   groupedArray.sort((a, b) => a.operationalDate < b.operationalDate ? 1 : a.operationalDate > b.operationalDate ? -1 : 0);
 
-  return groupedArray;
+  const pageNum = parseInt(page) || 1;
+  const limitNum = parseInt(limit) || 10;
+  const start = (pageNum - 1) * limitNum;
+  const paginated = groupedArray.slice(start, start + limitNum);
+
+  return {
+    data: paginated,
+    total: groupedArray.length,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(groupedArray.length / limitNum),
+  };
 }
 
 module.exports = {

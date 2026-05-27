@@ -3,7 +3,7 @@ const branchService = require('./branch.service');
 const branchController = {
   async create(req, res) {
     try {
-      const branch = await branchService.create(req.body);
+      const branch = await branchService.create(req.body, req.user?.userId);
       res.status(201).json({
         success: true,
         message: 'Branch created successfully',
@@ -70,7 +70,7 @@ const branchController = {
 
   async update(req, res) {
     try {
-      const branch = await branchService.update(parseInt(req.params.id), req.body);
+      const branch = await branchService.update(parseInt(req.params.id), req.body, req.user?.userId);
       res.json({
         success: true,
         message: 'Branch updated successfully',
@@ -87,7 +87,7 @@ const branchController = {
 
   async delete(req, res) {
     try {
-      await branchService.delete(parseInt(req.params.id));
+      await branchService.delete(parseInt(req.params.id), req.user?.userId);
       res.json({
         success: true,
         message: 'Branch deleted successfully',

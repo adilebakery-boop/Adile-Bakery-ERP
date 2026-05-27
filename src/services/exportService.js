@@ -2299,6 +2299,7 @@ async function exportYearlyReportComparison(reportData, options = {}) {
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }
+
 module.exports = {
   exportDailyReport,
   exportWeeklyReport,
