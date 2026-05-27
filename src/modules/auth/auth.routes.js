@@ -20,6 +20,7 @@ const resetPasswordSchema = validate(
 const router = express.Router();
 
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.me);
 router.put('/change-password', authenticate, changePasswordSchema, authController.changePassword);

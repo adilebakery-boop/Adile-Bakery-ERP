@@ -1,10 +1,12 @@
 export const AUTH_KEYS = {
   TOKEN: 'token',
+  REFRESH_TOKEN: 'refreshToken',
   USER: 'user',
   ROLE: 'role',
 };
 
 export const getToken = () => localStorage.getItem(AUTH_KEYS.TOKEN);
+export const getRefreshToken = () => localStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
 
 export const getUser = () => {
   const userStr = localStorage.getItem(AUTH_KEYS.USER);
@@ -29,12 +31,13 @@ export const isManagerOrAdmin = () => {
 };
 
 export const getOperationalDate = () => {
-  // Simply use local date - no timezone adjustment
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Addis_Ababa',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
 };
 
 export const formatOperationalDate = (dateStr) => {
@@ -44,14 +47,16 @@ export const formatOperationalDate = (dateStr) => {
   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
 };
 
-export const setAuth = (token, user, role) => {
+export const setAuth = (token, user, role, refreshToken) => {
   localStorage.setItem(AUTH_KEYS.TOKEN, token);
   localStorage.setItem(AUTH_KEYS.USER, JSON.stringify(user));
   if (role) localStorage.setItem(AUTH_KEYS.ROLE, role);
+  if (refreshToken) localStorage.setItem(AUTH_KEYS.REFRESH_TOKEN, refreshToken);
 };
 
 export const clearAuth = () => {
   localStorage.removeItem(AUTH_KEYS.TOKEN);
+  localStorage.removeItem(AUTH_KEYS.REFRESH_TOKEN);
   localStorage.removeItem(AUTH_KEYS.USER);
   localStorage.removeItem(AUTH_KEYS.ROLE);
 };

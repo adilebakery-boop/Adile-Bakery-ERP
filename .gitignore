@@ -32,9 +32,6 @@ Thumbs.db
 server.log
 server.err
 
-# Prisma
-prisma/migrations/
-
 # Temporary files
 *.tmp
 *.temp

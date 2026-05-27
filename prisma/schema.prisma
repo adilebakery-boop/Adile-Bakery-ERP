@@ -84,6 +84,7 @@ model User {
   branch       Branch?  @relation(fields: [branchId], references: [id])
   createdAt    DateTime @default(now())
   passwordResets PasswordReset[]
+  refreshTokens RefreshToken[]
   productions ProductionRecord[] @relation("ProductionCreatedBy")
   productionsUpdated ProductionRecord[] @relation("ProductionUpdatedBy")
   remainings  RemainingRecord[]  @relation("RemainingCreatedBy")
@@ -262,6 +263,18 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([token])
 }
 
 model PasswordReset {
