@@ -12,10 +12,17 @@ const findAll = asyncHandler(async (req, res) => {
   Object.assign(filters, accessFilter);
 
   const remainings = await remainingService.findAll(filters);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
   res.json({
     success: true,
     data: remainings,
-    count: remainings.length,
+    pagination: {
+      page,
+      limit,
+      total: remainings.length,
+      totalPages: Math.ceil(remainings.length / limit),
+    },
   });
 });
 

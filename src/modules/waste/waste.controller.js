@@ -11,10 +11,17 @@ const findAll = asyncHandler(async (req, res) => {
   Object.assign(filters, accessFilter);
 
   const wastes = await wasteService.findAll(filters);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
   res.json({
     success: true,
     data: wastes,
-    count: wastes.length,
+    pagination: {
+      page,
+      limit,
+      total: wastes.length,
+      totalPages: Math.ceil(wastes.length / limit),
+    },
   });
 });
 
