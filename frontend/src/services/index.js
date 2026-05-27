@@ -8,3 +8,4 @@ export { default as reportService } from './reportService';
 export { default as userService } from './userService';
 export { default as closureService } from './closureService';
 export { default as dashboardService } from './dashboardService';
+export { default as wasteService } from './wasteService';

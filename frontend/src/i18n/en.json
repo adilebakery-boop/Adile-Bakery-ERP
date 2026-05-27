@@ -8,6 +8,7 @@
     "production": "Production",
     "remaining": "Remaining",
     "reports": "Reports",
+    "waste": "Waste",
     "products": "Products",
     "branches": "Branches",
     "users": "Users",
@@ -293,5 +294,29 @@
   "units": {
     "piece": "piece",
     "kg": "kg"
+  },
+  "waste": {
+    "title": "Waste Management",
+    "recordWaste": "Record Waste",
+    "editWaste": "Edit Waste Record",
+    "searchWaste": "Search waste records...",
+    "allBranches": "All Branches",
+    "allProducts": "All Products",
+    "product": "Product",
+    "branch": "Branch",
+    "quantity": "Quantity",
+    "date": "Date",
+    "reason": "Reason",
+    "recordedBy": "Recorded By",
+    "enterQuantity": "Enter quantity",
+    "enterReason": "Enter reason (optional)",
+    "selectProduct": "Select product",
+    "selectBranch": "Select branch",
+    "operationalDate": "Operational Date",
+    "noWasteRecords": "No waste records found",
+    "deleteConfirm": "Are you sure you want to delete this waste record?",
+    "saving": "Saving...",
+    "showing": "Showing {{from}} to {{to}} of {{total}} records",
+    "pageOf": "Page {{current}} of {{total}}"
   }
 }
