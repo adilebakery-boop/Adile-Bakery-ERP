@@ -102,22 +102,6 @@ const productController = {
     }
   },
 
-  async delete(req, res) {
-    try {
-      await productService.delete(parseInt(req.params.id));
-      res.json({
-        success: true,
-        message: 'Product deleted successfully',
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Product not found' : error.message,
-      });
-    }
-  },
-
   async getCategories(req, res) {
     try {
       const categories = await productService.getCategories();
@@ -130,23 +114,6 @@ const productController = {
       res.status(500).json({
         success: false,
         message: error.message,
-      });
-    }
-  },
-
-  async restore(req, res) {
-    try {
-      const product = await productService.restore(parseInt(req.params.id));
-      res.json({
-        success: true,
-        message: 'Product restored successfully',
-        data: product,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Product not found' : error.message,
       });
     }
   },
