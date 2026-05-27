@@ -1,6 +1,7 @@
 const prisma = require('../../config/prisma');
 const bcrypt = require('bcrypt');
 const { generateToken } = require('../../utils/jwt');
+const refreshTokenUtil = require('../../utils/refreshToken');
 
 const SALT_ROUNDS = 10;
 
@@ -43,8 +44,41 @@ const login = async (username, password) => {
     isActive: user.isActive,
   });
 
+  const refreshToken = await refreshTokenUtil.create(user.id);
+
   return {
     token,
+    refreshToken: refreshToken.token,
+    user: {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role.name,
+      branchId: user.branchId,
+      branchName: user.branch?.name || null,
+    },
+  };
+};
+
+const refreshAccessToken = async (refreshTokenValue) => {
+  const user = await refreshTokenUtil.verify(refreshTokenValue);
+  if (!user) {
+    throw new Error('Invalid or expired refresh token');
+  }
+
+  const newRefresh = await refreshTokenUtil.rotate(refreshTokenValue, user.id);
+
+  const token = generateToken({
+    userId: user.id,
+    role: user.role.name,
+    branchId: user.branchId,
+    isBlocked: user.isBlocked || false,
+    isActive: user.isActive,
+  });
+
+  return {
+    token,
+    refreshToken: newRefresh.token,
     user: {
       id: user.id,
       name: user.name,
@@ -85,8 +119,14 @@ const resetPassword = async (targetUserId, newPassword) => {
   });
 };
 
+const logout = async (userId) => {
+  await refreshTokenUtil.revokeAll(userId);
+};
+
 module.exports = {
   login,
+  refreshAccessToken,
+  logout,
   hashPassword,
   changePassword,
   resetPassword,

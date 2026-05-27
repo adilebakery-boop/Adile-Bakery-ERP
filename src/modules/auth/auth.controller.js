@@ -20,7 +20,21 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
+  await authService.logout(req.user.userId);
   res.json({ success: true, message: 'Logged out successfully' });
+});
+
+const refresh = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ success: false, message: 'Refresh token is required' });
+  }
+  const result = await authService.refreshAccessToken(refreshToken);
+  res.json({
+    success: true,
+    message: 'Token refreshed successfully',
+    data: result,
+  });
 });
 
 const me = asyncHandler(async (req, res) => {
@@ -72,6 +86,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 module.exports = {
   login,
   logout,
+  refresh,
   me,
   changePassword,
   resetPassword,

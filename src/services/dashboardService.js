@@ -349,9 +349,30 @@ async function getDashboardOverview(branchId, operationalDate, userId, userRole)
   };
 }
 
+async function checkAllProductsHaveRemaining(branchId, operationalDate) {
+  const activeProducts = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { id: true },
+  });
+
+  const submitted = await prisma.remainingRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: new Date(operationalDate),
+      status: 'FINAL',
+    },
+    select: { productId: true },
+  });
+
+  const submittedIds = new Set(submitted.map(p => p.productId));
+  const result = activeProducts.every(p => submittedIds.has(p.id));
+  return result;
+}
+
 module.exports = {
   getTodayMetrics,
   getAllBranchesStatus,
   getRecentActivity,
   getDashboardOverview,
+  checkAllProductsHaveRemaining,
 };

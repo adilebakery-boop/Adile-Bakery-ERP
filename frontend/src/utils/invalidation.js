@@ -42,3 +42,7 @@ export function invalidateAfterRemainingMutation(queryClient, branchId, date) {
   invalidateRemainingBranch(queryClient, branchId, date);
   if (date) invalidateDashboardScope(queryClient, branchId);
 }
+
+export function invalidateWasteScope(queryClient) {
+  queryClient.invalidateQueries({ queryKey: ['waste'] });
+}

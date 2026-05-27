@@ -332,6 +332,7 @@ async function getYearlyReport(branchId, year, category, productId) {
   for (let m = 1; m <= 12; m++) {
     monthProductsMap[m] = {};
   }
+  const snapshotPriceSets = {};
   for (const branch of branches) {
     branchYearlyTotals[branch.id] = {};
     branchProductsMap[branch.id] = {};
@@ -381,6 +382,11 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (pidFilter && item.productId !== pidFilter) continue;
 
         const key = `${item.productId}`;
+        const itemPrice = Number(item.snapshotPrice ?? item.product.price);
+        const priceKey = `${m}-${key}`;
+        if (!snapshotPriceSets[priceKey]) snapshotPriceSets[priceKey] = new Set();
+        snapshotPriceSets[priceKey].add(itemPrice);
+
         const opening = Number(item.openingStock) || 0;
         const dayProd = Number(item.dayProduction) || 0;
         const nightProd = Number(item.nightProduction) || 0;
@@ -601,6 +607,7 @@ async function getYearlyReport(branchId, year, category, productId) {
       });
 
       const monthlyProd = {};
+      const livePriceSets = {};
 
       for (const product of products) {
         const pid = product.id;
@@ -617,18 +624,22 @@ async function getYearlyReport(branchId, year, category, productId) {
 
           const sellable = dayProd + nightProd;
           const dailySold = Math.max(0, sellable - remaining - waste);
-          const opDate = new Date(dk);
+          const lookupDate = dk;
 
           const entries = historyByProduct[pid] || [];
           let histPrice = null;
           for (let i = entries.length - 1; i >= 0; i--) {
             const e = entries[i];
-            if (e.validFrom <= opDate && (!e.validTo || e.validTo > opDate)) {
+            const fromDate = e.validFrom.toISOString().split('T')[0];
+            const toDate = e.validTo ? e.validTo.toISOString().split('T')[0] : null;
+            if (fromDate <= lookupDate && (!toDate || lookupDate < toDate)) {
               histPrice = Number(e.price);
               break;
             }
           }
           const dailyPrice = histPrice ?? (Number(product.price) || 0);
+          if (!livePriceSets[pid]) livePriceSets[pid] = new Set();
+          livePriceSets[pid].add(dailyPrice);
           const dailyRevenue = dailySold * dailyPrice;
 
           mDayProd += dayProd;
@@ -641,10 +652,19 @@ async function getYearlyReport(branchId, year, category, productId) {
 
         const sellable = mDayProd + mNightProd;
 
+        const allPrices = new Set([...(livePriceSets[pid] || [])]);
+        const snapKey = `${m}-${pid}`;
+        if (snapshotPriceSets[snapKey]) {
+          snapshotPriceSets[snapKey].forEach(p => allPrices.add(p));
+        }
+        const sortedPrices = [...allPrices].sort((a, b) => a - b);
+        const displayPrice = sortedPrices.length === 1 ? String(sortedPrices[0]) : sortedPrices.join(' → ');
+
         monthlyProd[pid] = {
           name: product.name,
           category: product.category,
           price: Number(product.price) || 0,
+          displayPrice,
           dayProd: mDayProd,
           nightProd: mNightProd,
           sellable,
@@ -665,6 +685,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productName: prod.name,
             category: prod.category,
             price: prod.price,
+            displayPrice: prod.displayPrice,
             totalDayProduction: 0,
             totalNightProduction: 0,
             totalSellableStock: 0,
@@ -673,6 +694,8 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedSold: 0,
             totalEstimatedRevenue: 0,
           };
+        } else {
+          monthProductsMap[m][key].displayPrice = prod.displayPrice;
         }
         monthProductsMap[m][key].totalDayProduction += prod.dayProd;
         monthProductsMap[m][key].totalNightProduction += prod.nightProd;
@@ -691,6 +714,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productName: prod.name,
             category: prod.category,
             price: prod.price,
+            displayPrice: prod.displayPrice,
             totalDayProduction: 0,
             totalNightProduction: 0,
             totalSellableStock: 0,
@@ -699,6 +723,8 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedSold: 0,
             totalEstimatedRevenue: 0,
           };
+        } else {
+          branchProductsMap[branch.id][m][key].displayPrice = prod.displayPrice;
         }
         branchProductsMap[branch.id][m][key].totalDayProduction += prod.dayProd;
         branchProductsMap[branch.id][m][key].totalNightProduction += prod.nightProd;
@@ -729,6 +755,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             productId: pid,
             productName: prod.name,
             category: prod.category,
+            displayPrice: prod.displayPrice,
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -738,6 +765,8 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedSold: 0,
             totalEstimatedRevenue: 0,
           };
+        } else {
+          productYearlyTotals[key].displayPrice = prod.displayPrice;
         }
         productYearlyTotals[key].totalDayProduction += prod.dayProd;
         productYearlyTotals[key].totalNightProduction += prod.nightProd;
