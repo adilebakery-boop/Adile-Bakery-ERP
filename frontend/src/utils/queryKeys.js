@@ -32,6 +32,11 @@ export const queryKeys = {
     monthly: (branchId, date, filters = {}) => ['reports', 'monthly', branchId, date, filters],
     yearly: (branchId, date, filters = {}) => ['reports', 'yearly', branchId, date, filters],
   },
+  waste: {
+    all: ['waste'],
+    list: (filters = {}) => ['waste', 'list', filters],
+    byId: (id) => ['waste', id],
+  },
   users: {
     list: (filters = {}) => ['users', 'list', filters],
     byId: (id) => ['users', id],

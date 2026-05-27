@@ -1,8 +1,23 @@
 import axios from 'axios';
+import { getToken, getRefreshToken, clearAuth } from '../utils/authUtils';
 
 const DEFAULT_TIMEOUT = 30000;
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
@@ -44,7 +59,7 @@ const retryRequest = async (error) => {
 // preserve the value set by retryRequest() to prevent infinite retry loops.
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -55,6 +70,19 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+const refreshTokenCall = async () => {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error('No refresh token');
+  const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+  if (!data.success || !data.data) throw new Error('Refresh failed');
+  const { token: newToken, refreshToken: newRefresh, user } = data.data;
+  localStorage.setItem('token', newToken);
+  localStorage.setItem('refreshToken', newRefresh);
+  localStorage.setItem('user', JSON.stringify(user));
+  if (user.role) localStorage.setItem('role', user.role);
+  return newToken;
+};
 
 api.interceptors.response.use(
   (response) => response,
@@ -67,19 +95,40 @@ api.interceptors.response.use(
       }
     }
 
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return Promise.reject(error);
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest.__isRetry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest.__isRetry = true;
+      isRefreshing = true;
+
+      try {
+        const newToken = await refreshTokenCall();
+        processQueue(null, newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearAuth();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     if (error.response?.status === 403) {
       const message = error.response?.data?.message || '';
       if (message.toLowerCase().includes('blocked')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('user');
+        clearAuth();
         alert('Your account has been blocked. Contact your manager.');
         window.location.href = '/login';
       }

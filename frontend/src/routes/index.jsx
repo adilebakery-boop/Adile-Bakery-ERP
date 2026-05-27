@@ -7,6 +7,7 @@ import ProductionPage from '../pages/production/ProductionPage';
 import RemainingPage from '../pages/remaining/RemainingPage';
 import ReportsPage from '../pages/reports/ReportsPage';
 import ProductsPage from '../pages/products/ProductsPage';
+import WastePage from '../pages/waste/WastePage';
 import BranchesPage from '../pages/branches/BranchesPage';
 import UsersPage from '../pages/users/UsersPage';
 import ProfilePage from '../pages/profile/ProfilePage';
@@ -87,6 +88,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredPage={PAGES.PRODUCTS}>
             <ProductsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'waste',
+        element: (
+          <ProtectedRoute requiredPage={PAGES.WASTE}>
+            <WastePage />
           </ProtectedRoute>
         ),
       },

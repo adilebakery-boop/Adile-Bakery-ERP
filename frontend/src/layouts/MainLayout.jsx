@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import { getUserRole, getUser } from '../utils/authUtils';
@@ -49,6 +49,7 @@ export default function MainLayout() {
     { path: '/production', labelKey: 'nav.production', icon: Factory, page: PAGES.PRODUCTION },
     { path: '/remaining', labelKey: 'nav.remaining', icon: Package, page: PAGES.REMAINING },
     { path: '/reports', labelKey: 'nav.reports', icon: FileText, page: PAGES.REPORTS },
+    { path: '/waste', labelKey: 'nav.waste', icon: Trash2, page: PAGES.WASTE },
     { path: '/products', labelKey: 'nav.products', icon: ShoppingBag, page: PAGES.PRODUCTS },
     { path: '/branches', labelKey: 'nav.branches', icon: Store, page: PAGES.BRANCHES },
     { path: '/users', labelKey: 'nav.users', icon: Users, page: PAGES.USERS },

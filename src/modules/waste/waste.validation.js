@@ -2,7 +2,7 @@ const z = require('zod');
 
 const createWasteSchema = z.object({
   productId: z.coerce.number().int('Product ID must be an integer').positive('Product ID must be positive'),
-  quantity: z.number({ invalid_type_error: 'Quantity must be a number' })
+  quantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be greater than 0')
     .max(999999.99, 'Quantity must not exceed 999999.99'),
   branchId: z.coerce.number().int('Branch ID must be an integer').positive('Branch ID must be positive'),
@@ -11,7 +11,7 @@ const createWasteSchema = z.object({
 });
 
 const updateWasteSchema = z.object({
-  quantity: z.number({ invalid_type_error: 'Quantity must be a number' })
+  quantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be greater than 0')
     .max(999999.99, 'Quantity must not exceed 999999.99')
     .optional(),

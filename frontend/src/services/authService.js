@@ -1,15 +1,27 @@
 import api from './api';
 import { safeCall } from '../utils/normalizeApiResponse';
-import { setAuth, clearAuth } from '../utils/authUtils';
+import { setAuth, clearAuth, getRefreshToken } from '../utils/authUtils';
 
 export const authService = {
   login: async (credentials) => {
     const response = await safeCall(api.post('/auth/login', credentials));
     if (response.success && response.data) {
-      const { token, user } = response.data;
-      setAuth(token, user, user.role);
+      const { token, refreshToken, user } = response.data;
+      setAuth(token, user, user.role, refreshToken);
     }
     return response;
+  },
+
+  refreshToken: async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+    const response = await safeCall(api.post('/auth/refresh', { refreshToken }));
+    if (response.success && response.data) {
+      const { token, refreshToken: newRefresh, user } = response.data;
+      setAuth(token, user, user.role, newRefresh);
+      return token;
+    }
+    return null;
   },
 
   logout: async () => {
