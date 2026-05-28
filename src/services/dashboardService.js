@@ -63,76 +63,71 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
 
 async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   const isManager = userRole === 'ADMIN' || userRole === 'MANAGER';
-  const userFilter = isManager ? {} : { createdBy: parseInt(userId) };
-  
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
   const opDate = new Date(opDateStr + 'T00:00:00.000Z');
-  
-  const productions = await prisma.productionRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: opDate,
-      ...userFilter
-    },
-    select: { quantity: true, shift: true }
-  });
-  
-  const remainings = await prisma.remainingRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: opDate,
-      ...userFilter
-    },
-    select: { quantity: true, status: true }
-  });
-  
-  const prevDate = new Date(opDate);
-  prevDate.setDate(prevDate.getDate() - 1);
-  const prevDayRemainings = await prisma.remainingRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: prevDate,
-      status: 'FINAL',
-      ...userFilter
-    },
-    select: { quantity: true }
-  });
-  
-  let totalDayProduction = 0;
-  let totalNightProduction = 0;
-  let totalRemainingStock = 0;
-  let totalOpeningStock = 0;
-  
-  for (const r of prevDayRemainings) {
-    totalOpeningStock += Number(r.quantity);
-  }
-  
-  for (const p of productions) {
-    if (p.shift === 'DAY') {
-      totalDayProduction += Number(p.quantity);
-    } else {
-      totalNightProduction += Number(p.quantity);
+
+
+  let totals;
+  let productionCompleted;
+  let remainingSubmitted;
+
+  if (isManager) {
+    const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchId, operationalDate);
+    totals = inventoryFlowService.getTotals(flows);
+    productionCompleted = flows.some(f => f.dayProduction > 0 || f.nightProduction > 0);
+    remainingSubmitted = flows.some(f => f.remainingStock > 0);
+  } else {
+    const userFilter = { createdBy: parseInt(userId) };
+
+    const productions = await prisma.productionRecord.findMany({
+      where: { branchId: parseInt(branchId), operationalDate: opDate, ...userFilter },
+      select: { quantity: true, shift: true },
+    });
+
+    const remainings = await prisma.remainingRecord.findMany({
+      where: { branchId: parseInt(branchId), operationalDate: opDate, ...userFilter },
+      select: { quantity: true, status: true },
+    });
+
+    const prevDay = new Date(Date.UTC(opDate.getUTCFullYear(), opDate.getUTCMonth(), opDate.getUTCDate() - 1));
+    const prevDayRemainings = await prisma.remainingRecord.findMany({
+      where: { branchId: parseInt(branchId), operationalDate: prevDay, status: 'FINAL', ...userFilter },
+      select: { quantity: true },
+    });
+
+    let totalDayProduction = 0;
+    let totalNightProduction = 0;
+    let totalRemainingStock = 0;
+    let totalOpeningStock = 0;
+
+    for (const r of prevDayRemainings) totalOpeningStock += Number(r.quantity);
+    for (const p of productions) {
+      if (p.shift === 'DAY') totalDayProduction += Number(p.quantity);
+      else totalNightProduction += Number(p.quantity);
     }
+
+    const finalRemainings = remainings.filter(r => r.status === 'FINAL');
+    for (const r of finalRemainings) totalRemainingStock += Number(r.quantity);
+    remainingSubmitted = finalRemainings.length > 0;
+
+    const totalProduction = totalDayProduction + totalNightProduction;
+    const sellableStock = totalOpeningStock + totalProduction;
+    const totalEstimatedSold = Math.max(0, sellableStock - totalRemainingStock);
+
+    totals = {
+      totalOpeningStock,
+      totalDayProduction,
+      totalNightProduction,
+      totalSellableStock: sellableStock,
+      totalRemainingStock,
+      totalWasteQuantity: 0,
+      totalEstimatedSold,
+      totalEstimatedRevenue: 0,
+    };
+
+    productionCompleted = productions.length > 0;
   }
-  
-  const finalRemainings = remainings.filter(r => r.status === 'FINAL');
-  for (const r of finalRemainings) {
-    totalRemainingStock += Number(r.quantity);
-  }
-  
-  const totalProduction = totalDayProduction + totalNightProduction;
-  const sellableStock = totalOpeningStock + totalProduction;
-  const totalEstimatedSold = Math.max(0, sellableStock - totalRemainingStock);
-  
-  const totals = {
-    totalDayProduction,
-    totalNightProduction,
-    totalRemainingStock,
-    totalEstimatedSold,
-  };
-  
-  const productionCompleted = productions.length > 0;
-  const remainingSubmitted = finalRemainings.length > 0;
+
 
   const closure = await prisma.dailyClosure.findUnique({
     where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
@@ -141,7 +136,17 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   return {
     branchId: parseInt(branchId),
     operationalDate: toDateString(new Date(operationalDate)),
-    metrics: totals,
+    metrics: {
+      totalOpeningStock: totals.totalOpeningStock || 0,
+      totalDayProduction: totals.totalDayProduction || 0,
+      totalNightProduction: totals.totalNightProduction || 0,
+      totalNightProductionPreparedFor: totals.totalNightProductionPreparedFor || 0,
+      totalSellableStock: totals.totalSellableStock || 0,
+      totalRemainingStock: totals.totalRemainingStock || 0,
+      totalWasteQuantity: totals.totalWasteQuantity || 0,
+      totalEstimatedSold: totals.totalEstimatedSold || 0,
+      totalEstimatedRevenue: totals.totalEstimatedRevenue || 0,
+    },
     productionCompleted,
     remainingSubmitted,
     allProductsHaveRemaining: remainingSubmitted,
@@ -152,25 +157,7 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   };
 }
 
-async function checkAllProductsHaveRemaining(branchId, operationalDate) {
-  const activeProducts = await prisma.product.findMany({
-    where: { isActive: true },
-    select: { id: true },
-  });
 
-  const submitted = await prisma.remainingRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: new Date(operationalDate),
-      status: 'FINAL',
-    },
-    select: { productId: true },
-  });
-
-  const submittedIds = new Set(submitted.map(p => p.productId));
-  const result = activeProducts.every(p => submittedIds.has(p.id));
-  return result;
-}
 
 async function getAllBranchesStatus(operationalDate) {
   const branches = await prisma.branch.findMany({
@@ -180,7 +167,7 @@ async function getAllBranchesStatus(operationalDate) {
 
   const statuses = await Promise.all(
     branches.map(async (branch) => {
-      const metrics = await getTodayMetrics(branch.id, operationalDate);
+      const metrics = await getTodayMetrics(branch.id, operationalDate, null, 'ADMIN');
       return {
         branchId: branch.id,
         branchName: branch.name,
@@ -363,9 +350,30 @@ async function getDashboardOverview(branchId, operationalDate, userId, userRole)
   };
 }
 
+async function checkAllProductsHaveRemaining(branchId, operationalDate) {
+  const activeProducts = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { id: true },
+  });
+
+  const submitted = await prisma.remainingRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: new Date(operationalDate),
+      status: 'FINAL',
+    },
+    select: { productId: true },
+  });
+
+  const submittedIds = new Set(submitted.map(p => p.productId));
+  const result = activeProducts.every(p => submittedIds.has(p.id));
+  return result;
+}
+
 module.exports = {
   getTodayMetrics,
   getAllBranchesStatus,
   getRecentActivity,
   getDashboardOverview,
+  checkAllProductsHaveRemaining,
 };

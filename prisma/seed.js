@@ -4,6 +4,14 @@ const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 const SALT_ROUNDS = 10;
+const PASSWORD = 'password123';
+
+// Branch name → slug mapping for usernames
+const BRANCH_SLUGS = {
+  'Main Branch': 'main',
+  'Branch 2': 'branch2',
+  'Branch 3': 'branch3',
+};
 
 async function main() {
   console.log('Seeding database...');
@@ -50,86 +58,72 @@ async function main() {
   }
   console.log('Branches created');
 
-  const mainBranch = await prisma.branch.findUnique({ where: { name: 'Main Branch' } });
+  const passwordHash = await bcrypt.hash(PASSWORD, SALT_ROUNDS);
 
-  const passwordHash = await bcrypt.hash('password123', SALT_ROUNDS);
-
-  const users = [
+  // ── Global administration (no branchId) ──
+  const globalUsers = [
     {
-      name: 'Admin User',
-      username: 'admin',
+      name: 'System Admin',
+      username: 'system-admin',
       passwordHash,
       roleId: adminRole.id,
-      branchId: mainBranch.id,
+      branchId: null,
       isBlocked: false,
     },
     {
-      name: 'Manager User',
-      username: 'manager',
+      name: 'Operations Manager',
+      username: 'operations-manager',
       passwordHash,
       roleId: managerRole.id,
-      branchId: mainBranch.id,
+      branchId: null,
       isBlocked: false,
-    },
-    {
-      name: 'Baker User',
-      username: 'baker',
-      passwordHash,
-      roleId: bakerRole.id,
-      branchId: mainBranch.id,
-      isBlocked: false,
-    },
-    {
-      name: 'Cake Chef User',
-      username: 'cake_chef',
-      passwordHash,
-      roleId: cakeChefRole.id,
-      branchId: mainBranch.id,
-      isBlocked: false,
-    },
-    {
-      name: 'Cookie Baker User',
-      username: 'cookie_baker',
-      passwordHash,
-      roleId: cookieBakerRole.id,
-      branchId: mainBranch.id,
-      isBlocked: false,
-    },
-    {
-      name: 'Fetir Chef User',
-      username: 'fetir_chef',
-      passwordHash,
-      roleId: fetirChefRole.id,
-      branchId: mainBranch.id,
-      isBlocked: false,
-    },
-    {
-      name: 'Cashier User',
-      username: 'cashier',
-      passwordHash,
-      roleId: cashierRole.id,
-      branchId: mainBranch.id,
-      isBlocked: false,
-    },
-    {
-      name: 'Blocked User',
-      username: 'blocked_user',
-      passwordHash,
-      roleId: bakerRole.id,
-      branchId: mainBranch.id,
-      isBlocked: true,
     },
   ];
 
-  for (const user of users) {
+  for (const user of globalUsers) {
     await prisma.user.upsert({
       where: { username: user.username },
       update: {},
       create: user,
     });
   }
-  console.log('Users created');
+  console.log('Global users created');
 
+  // ── Branch operational staff ──
+  const branchRecords = await prisma.branch.findMany({ orderBy: { id: 'asc' } });
+  let operationalTotal = 0;
+
+  for (const branch of branchRecords) {
+    const slug = BRANCH_SLUGS[branch.name] || branch.name.toLowerCase().replace(/\s+/g, '-');
+    const roleNameMap = [
+      { roleId: bakerRole.id, roleSlug: 'baker' },
+      { roleId: cakeChefRole.id, roleSlug: 'cake-chef' },
+      { roleId: cookieBakerRole.id, roleSlug: 'cookie-baker' },
+      { roleId: fetirChefRole.id, roleSlug: 'fetir-chef' },
+      { roleId: cashierRole.id, roleSlug: 'cashier' },
+    ];
+
+    for (const { roleId, roleSlug } of roleNameMap) {
+      const username = `${slug}-${roleSlug}`;
+      const displayName = `${branch.name} ${roleSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
+
+      await prisma.user.upsert({
+        where: { username },
+        update: {},
+        create: {
+          name: displayName,
+          username,
+          passwordHash,
+          roleId,
+          branchId: branch.id,
+          isBlocked: false,
+        },
+      });
+      operationalTotal++;
+    }
+  }
+
+  console.log(`Operational users created: ${operationalTotal} (${branchRecords.length} branches x 5 roles)`);
   console.log('Database seeded successfully!');
 }
 

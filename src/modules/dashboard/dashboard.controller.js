@@ -5,7 +5,7 @@ const getToday = asyncHandler(async (req, res) => {
   const { operationalDate } = req.query;
   const branchId = req.query.branchId || req.user.branchId;
   const date = operationalDate || new Date().toISOString().split('T')[0];
-  const metrics = await dashboardService.getTodayMetrics(branchId, date);
+  const metrics = await dashboardService.getTodayMetrics(branchId, date, req.user.userId, req.user.role);
   res.json({
     success: true,
     data: metrics,

@@ -9,6 +9,7 @@ const validate = (schema) => (req, res, next) => {
     schema.parse(req.body);
     next();
   } catch (error) {
+    console.error('[REMAINING VALIDATION ERROR] body:', JSON.stringify(req.body), 'errors:', JSON.stringify(error.errors));
     return res.status(400).json({
       success: false,
       message: 'Validation error',
@@ -22,6 +23,7 @@ const validateQuery = (schema) => (req, res, next) => {
     schema.parse(req.query);
     next();
   } catch (error) {
+    console.error('[REMAINING QUERY VALIDATION ERROR] query:', JSON.stringify(req.query), 'errors:', JSON.stringify(error.errors));
     return res.status(400).json({
       success: false,
       message: 'Invalid query parameters',

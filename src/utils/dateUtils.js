@@ -1,4 +1,4 @@
-const { addDays, subDays, format, parseISO, startOfDay, endOfDay, getDay } = require('date-fns');
+const { addDays, subDays, format, parseISO, startOfDay, endOfDay } = require('date-fns');
 const { formatInTimeZone, toZonedTime } = require('date-fns-tz');
 
 const TIMEZONE = 'Africa/Addis_Ababa';
@@ -43,16 +43,15 @@ function getPreviousDay(date) {
 
 function getMonday(date) {
   const d = date instanceof Date ? date : new Date(date);
-  const day = getDay(d);
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diff);
-  return startOfDay(monday);
+  const utcDay = d.getUTCDay();
+  const diff = utcDay === 0 ? -6 : 1 - utcDay;
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  return monday;
 }
 
 function getSunday(date) {
   const monday = getMonday(date);
-  return addDays(monday, 6);
+  return new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
 }
 
 function toDateString(date) {
@@ -110,12 +109,9 @@ function isSameDay(date1, date2) {
 }
 
 function getDateRangeForOperationalDay(operationalDate) {
-  const start = new Date(operationalDate);
-  start.setHours(0, 0, 0, 0);
-  
-  const end = new Date(operationalDate);
-  end.setHours(23, 59, 59, 999);
-  
+  const d = operationalDate instanceof Date ? operationalDate : new Date(operationalDate);
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
   return { start, end };
 }
 

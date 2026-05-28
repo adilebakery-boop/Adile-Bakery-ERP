@@ -2,7 +2,7 @@ const z = require('zod');
 
 const createRemainingSchema = z.object({
   productId: z.coerce.number().int('Product ID must be an integer').positive('Product ID must be positive'),
-  quantity: z.number({ invalid_type_error: 'Quantity must be a number' })
+  quantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be positive')
     .max(999999.99, 'Quantity must not exceed 999999.99'),
   branchId: z.coerce.number().int('Branch ID must be an integer').positive('Branch ID must be positive'),
@@ -12,7 +12,7 @@ const createRemainingSchema = z.object({
 
 const bulkItemSchema = z.object({
   productId: z.coerce.number().int().positive('Product ID must be positive'),
-  remainingQuantity: z.number({ invalid_type_error: 'Quantity must be a number' })
+  remainingQuantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be positive')
     .max(999999.99, 'Quantity must not exceed 999999.99'),
   status: z.enum(['DRAFT', 'FINAL']).optional(),
@@ -25,7 +25,7 @@ const createBulkSchema = z.object({
 });
 
 const updateRemainingSchema = z.object({
-  quantity: z.number({ invalid_type_error: 'Quantity must be a number' })
+  quantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be positive')
     .max(999999.99, 'Quantity must not exceed 999999.99')
     .optional(),
