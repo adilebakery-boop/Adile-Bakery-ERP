@@ -343,17 +343,19 @@ async function findAllGrouped(filters = {}) {
 
   groupedArray.sort((a, b) => a.operationalDate < b.operationalDate ? 1 : a.operationalDate > b.operationalDate ? -1 : 0);
 
-  const pageNum = parseInt(page) || 1;
-  const limitNum = parseInt(limit) || 10;
+  const total = groupedArray.length;
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
+  const totalPages = Math.max(1, Math.ceil(total / limitNum));
   const start = (pageNum - 1) * limitNum;
   const paginated = groupedArray.slice(start, start + limitNum);
 
   return {
     data: paginated,
-    total: groupedArray.length,
+    total,
     page: pageNum,
     limit: limitNum,
-    totalPages: Math.ceil(groupedArray.length / limitNum),
+    totalPages,
   };
 }
 

@@ -73,22 +73,31 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [branchFilter, setBranchFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
 
-  const { data: users = [], isLoading: loading } = useUsersQuery();
+  const { data, isLoading: loading } = useUsersQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+    ...(branchFilter && { branchId: branchFilter }),
+    ...(roleFilter && { roleId: roleFilter }),
+  });
+  const users = data?.users || [];
+  const pagination = data?.pagination || null;
+  const totalPages = pagination?.totalPages || 1;
+  const totalUsers = pagination?.total || 0;
+
   const { data: branches = [] } = useActiveBranchesQuery();
 
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
 
-  const totalPages = Math.ceil(users.length / itemsPerPage);
-  const paginatedUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
   useEffect(() => {
-    if (paginatedUsers.length === 0 && currentPage > 1 && totalPages > 0) {
-      setCurrentPage(totalPages);
+    if (users.length === 0 && currentPage > 1 && totalPages > 0) {
+      setCurrentPage(Math.max(1, Math.min(currentPage - 1, totalPages)));
     }
-  }, [paginatedUsers.length, currentPage, totalPages]);
+  }, [users.length, currentPage, totalPages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -204,6 +213,32 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center gap-4">
+          <select
+            value={branchFilter}
+            onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
+            className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+          >
+            <option value="">{t('users.allBranches')}</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {getLocalizedName(branch, i18n.language)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={roleFilter}
+            onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+            className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+          >
+            <option value="">{t('users.allRoles')}</option>
+            {ALL_ROLES.map((role) => (
+              <option key={role.id} value={role.id}>
+                {t(`roles.${role.labelKey}`)}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
@@ -228,7 +263,7 @@ export default function UsersPage() {
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">{t('users.noUsersFound')}</td>
                 </tr>
               ) : (
-                paginatedUsers.map((user) => (
+                users.map((user) => (
                   <tr key={user.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
                     <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{user.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
@@ -278,7 +313,7 @@ export default function UsersPage() {
         {!loading && users.length > 0 && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, users.length)} of {users.length} users
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
             </div>
             <div className="flex items-center gap-2">
               <button
