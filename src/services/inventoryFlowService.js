@@ -8,6 +8,12 @@ const ZERO = new Prisma.Decimal('0');
 const rolloverCache = new Map();
 const ROLLOVER_TTL = 60_000;
 
+// Normalize any date/time to YYYY-MM-DD for operational-day comparisons.
+// All ProductPriceHistory lookups compare ONLY date strings, never timestamps.
+function toOperationalDateString(date) {
+  return new Date(date).toISOString().split('T')[0];
+}
+
 function isRolloverRecentlyProcessed(branchId, dateKey) {
   const cacheKey = `${branchId}-${dateKey}`;
   const entry = rolloverCache.get(cacheKey);
@@ -121,6 +127,12 @@ async function processRolloverDay(branchId, date, draftCount) {
   const dateStr = toDateString(date);
   const now = new Date();
 
+  const adminUser = await prisma.user.findFirst({
+    where: { role: { name: 'ADMIN' } },
+    select: { id: true },
+  });
+  const rolloverUserId = adminUser?.id;
+
   try {
     await prisma.$transaction(async (tx) => {
     const existing = await tx.dailyClosure.findUnique({
@@ -206,7 +218,7 @@ async function processRolloverDay(branchId, date, draftCount) {
           action: 'AUTO_FINALIZE',
           oldValue: { status: 'DRAFT' },
           newValue: { status: 'FINAL', autoFinalizedAt: now.toISOString() },
-          userId: 0,
+          userId: rolloverUserId,
         },
       });
     }
@@ -218,7 +230,7 @@ async function processRolloverDay(branchId, date, draftCount) {
         action: 'AUTO_CLOSE',
         oldValue: null,
         newValue: { branchId, operationalDate: dateStr, closureType: 'AUTO_FINALIZE', finalizedDrafts: draftRecords.length },
-        userId: 0,
+        userId: rolloverUserId,
       },
     });
 
@@ -276,6 +288,31 @@ async function buildSnapshotItems(tx, branchId, date) {
   const allIds = [...activeProducts.map(p => p.id), ...extraProducts.map(p => p.id)];
   const prevDay = getPreviousDay(date);
 
+  const allPriceHistory = await tx.productPriceHistory.findMany({
+    where: { productId: { in: allIds } },
+    orderBy: { validFrom: 'desc' },
+  });
+  const lookupDate = toOperationalDateString(date);
+  const priceMap = {};
+  for (const ph of allPriceHistory) {
+    if (!priceMap[ph.productId]) {
+      const fromDate = toOperationalDateString(ph.validFrom);
+      const toDate = ph.validTo ? toOperationalDateString(ph.validTo) : null;
+      if (fromDate <= lookupDate && (!toDate || lookupDate < toDate)) {
+        priceMap[ph.productId] = toDecimal(ph.price);
+      }
+    }
+  }
+
+  const fallbackPrices = await tx.product.findMany({
+    where: { id: { in: allIds } },
+    select: { id: true, price: true },
+  });
+  const fallbackMap = {};
+  for (const p of fallbackPrices) {
+    fallbackMap[p.id] = p.price ? toDecimal(p.price) : ZERO;
+  }
+
   const items = [];
 
   for (const productId of allIds) {
@@ -314,11 +351,7 @@ async function buildSnapshotItems(tx, branchId, date) {
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQty);
     if (estimatedSold.lt(ZERO)) estimatedSold = ZERO;
 
-    const prod = await tx.product.findUnique({
-      where: { id: productId },
-      select: { price: true },
-    });
-    const price = prod?.price ? toDecimal(prod.price) : ZERO;
+    const price = priceMap[productId] || fallbackMap[productId] || ZERO;
     const estimatedRevenue = safeMultiply(estimatedSold, price);
 
     items.push({
@@ -394,6 +427,30 @@ async function getWasteQuantity(branchId, operationalDate, productId) {
   return result._sum.quantity ? toDecimal(result._sum.quantity) : ZERO;
 }
 
+// HISTORICAL PRICING INVARIANT — single authoritative lookup
+// All revenue calculations MUST go through this function.
+// The chain is: PriceHistory lookup → null (caller falls back to Product.price).
+// validFrom is INCLUSIVE, validTo is EXCLUSIVE (see schema ProductPriceHistory).
+// NEVER read Product.price directly for historical revenue — it reflects the
+// current price, not the price at the operational date.
+// Comparisons use YYYY-MM-DD strings only — sub-day timestamps are ignored.
+async function getHistoricalPrice(productId, operationalDate) {
+  const lookupDate = toOperationalDateString(operationalDate);
+
+  const records = await prisma.productPriceHistory.findMany({
+    where: { productId: parseInt(productId) },
+    orderBy: { validFrom: 'desc' },
+  });
+
+  const match = records.find(r => {
+    const fromDate = toOperationalDateString(r.validFrom);
+    const toDate = r.validTo ? toOperationalDateString(r.validTo) : null;
+    return fromDate <= lookupDate && (!toDate || lookupDate < toDate);
+  });
+
+  return match?.price ?? null;
+}
+
 async function getEstimatedSold(branchId, operationalDate, productId) {
   const sellable = await getSellableStock(branchId, operationalDate, productId);
   const remaining = await getRemainingStock(branchId, operationalDate, productId);
@@ -405,11 +462,17 @@ async function getEstimatedSold(branchId, operationalDate, productId) {
 
 async function getEstimatedRevenue(branchId, operationalDate, productId) {
   const sold = await getEstimatedSold(branchId, operationalDate, productId);
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
-    select: { price: true },
-  });
-  const price = product?.price ? toDecimal(product.price) : ZERO;
+  const histPrice = await getHistoricalPrice(productId, operationalDate);
+  let price;
+  if (histPrice !== null) {
+    price = toDecimal(histPrice);
+  } else {
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(productId) },
+      select: { price: true },
+    });
+    price = product?.price ? toDecimal(product.price) : ZERO;
+  }
   return safeMultiply(sold, price);
 }
 
@@ -445,12 +508,14 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
     getEstimatedRevenue(branchId, operationalDate, productId),
   ]);
 
+  const histPrice = await getHistoricalPrice(productId, operationalDate);
+
   return {
     productId: product.id,
     productName: product.name,
     category: product.category,
     unitType: product.unitType,
-    price: decimalToNumber(product.price),
+    price: decimalToNumber(histPrice ?? product.price),
     isActive: product.isActive,
     openingStock: decimalToNumber(openingStock),
     dayProduction: decimalToNumber(dayProduction),
@@ -683,6 +748,7 @@ module.exports = {
   getTotals,
   getInventoryFlowReport,
   validateInventoryFlow,
+  getHistoricalPrice,
   toDecimal,
   safePlus,
   safeMinus,
