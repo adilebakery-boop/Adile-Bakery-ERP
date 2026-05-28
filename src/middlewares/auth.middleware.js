@@ -24,15 +24,20 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    req.user = {
-      userId: decoded.userId,
-      role: decoded.role,
-      branchId: decoded.branchId,
-      isBlocked: decoded.isBlocked || false,
-      isActive: decoded.isActive !== false
-    };
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, role: true, branchId: true, isBlocked: true, isActive: true },
+    });
 
-    if (req.user.isBlocked) {
+    if (!dbUser) {
+      return res.status(401).json({
+        success: false,
+        message: 'User no longer exists',
+        errors: []
+      });
+    }
+
+    if (dbUser.isBlocked) {
       return res.status(403).json({
         success: false,
         message: 'Your account has been blocked. Contact your manager.',
@@ -40,13 +45,21 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    if (!req.user.isActive) {
+    if (!dbUser.isActive) {
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Contact your manager.',
         errors: []
       });
     }
+
+    req.user = {
+      userId: dbUser.id,
+      role: dbUser.role.name,
+      branchId: dbUser.branchId,
+      isBlocked: dbUser.isBlocked,
+      isActive: dbUser.isActive,
+    };
 
     next();
   } catch (error) {
@@ -84,14 +97,23 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
-    if (decoded && !decoded.isBlocked && decoded.isActive !== false) {
-      req.user = {
-        userId: decoded.userId,
-        role: decoded.role,
-        branchId: decoded.branchId,
-        isBlocked: decoded.isBlocked || false,
-        isActive: decoded.isActive !== false
-      };
+    if (decoded) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { id: true, role: true, branchId: true, isBlocked: true, isActive: true },
+      });
+
+      if (dbUser && !dbUser.isBlocked && dbUser.isActive) {
+        req.user = {
+          userId: dbUser.id,
+          role: dbUser.role.name,
+          branchId: dbUser.branchId,
+          isBlocked: dbUser.isBlocked,
+          isActive: dbUser.isActive,
+        };
+      } else {
+        req.user = null;
+      }
     } else {
       req.user = null;
     }

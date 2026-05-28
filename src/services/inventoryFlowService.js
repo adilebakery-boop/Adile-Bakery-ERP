@@ -534,6 +534,12 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   // Include ALL products that participate in the operational day — even inactive/archived ones.
   // ERP analytics must preserve historical visibility: archived products are still
   // operationally and financially relevant for the dates they have records.
+  const branchIdNum = parseInt(branchId);
+  const opDate = new Date(operationalDate);
+
+  // Side-effect: resolve stale DRAFT remaining records before reading
+  await resolveRollover(branchIdNum, operationalDate);
+
   const activeProducts = await prisma.product.findMany({
     where: { isActive: true },
     select: { id: true },
@@ -541,39 +547,27 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   });
 
   // Also include inactive products that have operational records for this date+branch.
-  const inactiveProductIds = await prisma.productionRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: new Date(operationalDate),
-      product: { isActive: false },
-    },
+  const inactiveProdIds = await prisma.productionRecord.findMany({
+    where: { branchId: branchIdNum, operationalDate: opDate, product: { isActive: false } },
     select: { productId: true },
     distinct: ['productId'],
   });
 
-  const remainingProductIds = await prisma.remainingRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: new Date(operationalDate),
-      product: { isActive: false },
-    },
+  const inactiveRemIds = await prisma.remainingRecord.findMany({
+    where: { branchId: branchIdNum, operationalDate: opDate, product: { isActive: false } },
     select: { productId: true },
     distinct: ['productId'],
   });
 
-  const wasteProductIds = await prisma.wasteRecord.findMany({
-    where: {
-      branchId: parseInt(branchId),
-      operationalDate: new Date(operationalDate),
-      product: { isActive: false },
-    },
+  const inactiveWasteIds = await prisma.wasteRecord.findMany({
+    where: { branchId: branchIdNum, operationalDate: opDate, product: { isActive: false } },
     select: { productId: true },
     distinct: ['productId'],
   });
 
   const seen = new Set(activeProducts.map(p => p.id));
   const extraIds = [];
-  for (const r of [...inactiveProductIds, ...remainingProductIds, ...wasteProductIds]) {
+  for (const r of [...inactiveProdIds, ...inactiveRemIds, ...inactiveWasteIds]) {
     if (!seen.has(r.productId)) {
       seen.add(r.productId);
       extraIds.push(r.productId);
@@ -588,11 +582,128 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     });
   }
 
-  const allProducts = [...activeProducts, ...extraProducts];
+  const allProductIds = [...activeProducts.map(p => p.id), ...extraProducts.map(p => p.id)];
 
-  const flows = await Promise.all(
-    allProducts.map(p => getFullInventoryFlow(branchId, operationalDate, p.id))
-  );
+  // ── BATCH 1: Production data (single groupBy instead of N per-product aggregates) ──
+  const productionData = await prisma.productionRecord.groupBy({
+    by: ['productId', 'shift'],
+    where: { branchId: branchIdNum, operationalDate: opDate, productId: { in: allProductIds } },
+    _sum: { quantity: true },
+  });
+
+  // ── BATCH 2: Remaining data ──
+  const remainingData = await prisma.remainingRecord.groupBy({
+    by: ['productId'],
+    where: { branchId: branchIdNum, operationalDate: opDate, productId: { in: allProductIds }, status: 'FINAL' },
+    _sum: { quantity: true },
+  });
+
+  // ── BATCH 3: Waste data ──
+  const wasteData = await prisma.wasteRecord.groupBy({
+    by: ['productId'],
+    where: { branchId: branchIdNum, operationalDate: opDate, productId: { in: allProductIds } },
+    _sum: { quantity: true },
+  });
+
+  // ── BATCH 4: Opening stock — previous day remaining for ALL products ──
+  const prevDay = getPreviousDay(opDate);
+  const prevRemaining = await prisma.remainingRecord.findMany({
+    where: { branchId: branchIdNum, operationalDate: prevDay, productId: { in: allProductIds }, status: 'FINAL' },
+    select: { productId: true, quantity: true },
+  });
+
+  // ── BATCH 5: Product metadata ──
+  const products = await prisma.product.findMany({
+    where: { id: { in: allProductIds } },
+    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+  });
+
+  // ── BATCH 6: Price history — single batch load instead of per-product lookups ──
+  const lookupDate = toOperationalDateString(operationalDate);
+  const priceHistory = await prisma.productPriceHistory.findMany({
+    where: { productId: { in: allProductIds } },
+    orderBy: { validFrom: 'desc' },
+  });
+
+  // ── IN-MEMORY COMPUTATION — NO DB CALLS BELOW ──
+
+  // Build production map: productId → { day: Decimal, night: Decimal }
+  const prodMap = {};
+  for (const r of productionData) {
+    if (!prodMap[r.productId]) prodMap[r.productId] = { day: ZERO, night: ZERO };
+    if (r.shift === 'DAY') prodMap[r.productId].day = toDecimal(r._sum.quantity);
+    else if (r.shift === 'NIGHT') prodMap[r.productId].night = toDecimal(r._sum.quantity);
+  }
+
+  // Build remaining map: productId → Decimal
+  const remainingMap = {};
+  for (const r of remainingData) {
+    remainingMap[r.productId] = toDecimal(r._sum.quantity);
+  }
+
+  // Build waste map: productId → Decimal
+  const wasteMap = {};
+  for (const r of wasteData) {
+    wasteMap[r.productId] = toDecimal(r._sum.quantity);
+  }
+
+  // Build opening stock map from previous day's remaining
+  const openingMap = {};
+  for (const r of prevRemaining) {
+    openingMap[r.productId] = toDecimal(r.quantity);
+  }
+
+  // Build price map — first matching history entry wins (most recent validFrom first)
+  const priceMap = {};
+  for (const ph of priceHistory) {
+    if (!(ph.productId in priceMap)) {
+      const fromDate = toOperationalDateString(ph.validFrom);
+      const toDate = ph.validTo ? toOperationalDateString(ph.validTo) : null;
+      if (fromDate <= lookupDate && (!toDate || lookupDate < toDate)) {
+        priceMap[ph.productId] = toDecimal(ph.price);
+      }
+    }
+  }
+
+  // Fallback prices for products without matching history
+  const fallbackPrices = {};
+  for (const p of products) {
+    fallbackPrices[p.id] = p.price ? toDecimal(p.price) : ZERO;
+  }
+
+  // Compute all product flows in pure JS (NO DATABASE CALLS)
+  const flows = products.map(product => {
+    const pid = product.id;
+    const openingStock = openingMap[pid] || ZERO;
+    const dayProduction = prodMap[pid]?.day || ZERO;
+    const nightProduction = prodMap[pid]?.night || ZERO;
+    const sellableStock = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+    const remainingStock = remainingMap[pid] || ZERO;
+    const wasteQuantity = wasteMap[pid] || ZERO;
+    let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQuantity);
+    if (estimatedSold.lt(ZERO)) estimatedSold = ZERO;
+    const price = priceMap[pid] || fallbackPrices[pid] || ZERO;
+    const estimatedRevenue = safeMultiply(estimatedSold, price);
+
+    return {
+      productId: pid,
+      productName: product.name,
+      category: product.category,
+      unitType: product.unitType,
+      price: decimalToNumber(price),
+      isActive: product.isActive,
+      openingStock: decimalToNumber(openingStock),
+      dayProduction: decimalToNumber(dayProduction),
+      nightProduction: decimalToNumber(nightProduction),
+      nightProductionPreparedFor: 0,
+      sellableStock: decimalToNumber(sellableStock),
+      remainingStock: decimalToNumber(remainingStock),
+      wasteQuantity: decimalToNumber(wasteQuantity),
+      estimatedSold: decimalToNumber(estimatedSold),
+      estimatedRevenue: decimalToNumber(estimatedRevenue),
+      operationalDate: toDateString(new Date(operationalDate)),
+    };
+  });
 
   return flows;
 }
