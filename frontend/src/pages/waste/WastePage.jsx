@@ -9,6 +9,7 @@ import { useDeleteWasteMutation } from '../../features/waste/hooks/mutations/use
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { getUser } from '../../utils/authUtils';
+import { getCategoriesForRole } from '../../utils/permissions';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
 
@@ -16,6 +17,7 @@ export default function WastePage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
+  const userBranchId = user?.branchId;
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,6 +56,8 @@ export default function WastePage() {
   const { data: branches = [] } = useActiveBranchesQuery();
   const { data: productsData } = useProductsQuery({ isActive: true, limit: 500 });
   const products = productsData?.data || [];
+  const allowedCategories = getCategoriesForRole(user?.role);
+  const filteredProducts = canManage ? products : products.filter((p) => allowedCategories.includes(p.category));
 
   const createWaste = useCreateWasteMutation();
   const updateWaste = useUpdateWasteMutation();
@@ -73,7 +77,7 @@ export default function WastePage() {
   }, [searchTerm, selectedBranch, selectedProduct, startDate, endDate]);
 
   const resetForm = () => {
-    setFormData({ productId: '', branchId: '', operationalDate: '', quantity: '', reason: '' });
+    setFormData({ productId: '', branchId: userBranchId ? String(userBranchId) : '', operationalDate: '', quantity: '', reason: '' });
   };
 
   const handleCreate = async (e) => {
@@ -145,7 +149,6 @@ export default function WastePage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('waste.title')}</h1>
-        {canManage && (
           <button
             onClick={() => { setIsCreateOpen(true); resetForm(); }}
             className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
@@ -153,7 +156,6 @@ export default function WastePage() {
             <Plus className="w-4 h-4" />
             {t('waste.recordWaste')}
           </button>
-        )}
       </div>
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
@@ -330,24 +332,30 @@ export default function WastePage() {
               required
             >
               <option value="">{t('waste.selectProduct')}</option>
-              {(Array.isArray(products) ? products : []).map((p) => (
+              {(Array.isArray(filteredProducts) ? filteredProducts : []).map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">{t('waste.branch')}</label>
-            <select
-              value={formData.branchId}
-              onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
-              required
-            >
-              <option value="">{t('waste.selectBranch')}</option>
-              {(Array.isArray(branches) ? branches : []).map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+            {canManage ? (
+              <select
+                value={formData.branchId}
+                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+                required
+              >
+                <option value="">{t('waste.selectBranch')}</option>
+                {(Array.isArray(branches) ? branches : []).map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="px-4 py-3.5 bg-[#F9F7F2] rounded-xl text-sm text-gray-700">
+                {(Array.isArray(branches) ? branches : []).find((b) => b.id === Number(userBranchId))?.name || '-'}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">{t('waste.operationalDate')}</label>
