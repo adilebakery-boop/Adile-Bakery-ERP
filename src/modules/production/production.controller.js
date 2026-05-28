@@ -6,22 +6,23 @@ const findAll = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
   const { role, userId } = req.user;
 
-  const filters = { branchId, operationalDate, shift, productId, startDate, endDate };
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
+
+  const filters = { branchId, operationalDate, shift, productId, startDate, endDate, page, limit };
 
   const accessFilter = buildProductionAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const productions = await productionService.findAll(filters, req.user);
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const { data, total } = await productionService.findAll(filters, req.user);
   res.json({
     success: true,
-    data: productions,
+    data,
     pagination: {
       page,
       limit,
-      total: productions.length,
-      totalPages: Math.ceil(productions.length / limit),
+      total,
+      totalPages: Math.ceil(total / limit),
     },
   });
 });

@@ -5,22 +5,23 @@ const { buildWasteAccessFilter } = require('../../utils/accessFilters');
 const findAll = asyncHandler(async (req, res) => {
   const { role, userId } = req.user;
 
-  const filters = { ...req.query };
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
+
+  const filters = { ...req.query, page, limit };
 
   const accessFilter = buildWasteAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const wastes = await wasteService.findAll(filters);
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const { data, total } = await wasteService.findAll(filters);
   res.json({
     success: true,
-    data: wastes,
+    data,
     pagination: {
       page,
       limit,
-      total: wastes.length,
-      totalPages: Math.ceil(wastes.length / limit),
+      total,
+      totalPages: Math.ceil(total / limit),
     },
   });
 });
