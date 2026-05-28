@@ -24,7 +24,7 @@ function requireBranchAccess(branchId, user) {
 }
 
 async function findAll(filters = {}) {
-  const { branchId, operationalDate, productId, startDate, endDate } = filters;
+  const { branchId, operationalDate, productId, startDate, endDate, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -41,17 +41,26 @@ async function findAll(filters = {}) {
     };
   }
 
-  const wastes = await prisma.wasteRecord.findMany({
-    where,
-    include: {
-      product: { select: { id: true, name: true, category: true, unitType: true, isActive: true } },
-      branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
 
-  return wastes;
+  const [data, total] = await Promise.all([
+    prisma.wasteRecord.findMany({
+      where,
+      skip,
+      take: limitNum,
+      include: {
+        product: { select: { id: true, name: true, category: true, unitType: true, isActive: true } },
+        branch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.wasteRecord.count({ where }),
+  ]);
+
+  return { data, total };
 }
 
 async function findById(id) {

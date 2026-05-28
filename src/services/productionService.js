@@ -15,7 +15,7 @@ function toDecimal(value) {
 }
 
 async function findAll(filters = {}) {
-  const { branchId, operationalDate, shift, productId, startDate, endDate } = filters;
+  const { branchId, operationalDate, shift, productId, startDate, endDate, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -35,17 +35,26 @@ async function findAll(filters = {}) {
 
   if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
 
-  const productions = await prisma.productionRecord.findMany({
-    where,
-    include: {
-      product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
-      branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
 
-  return productions;
+  const [data, total] = await Promise.all([
+    prisma.productionRecord.findMany({
+      where,
+      skip,
+      take: limitNum,
+      include: {
+        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        branch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.productionRecord.count({ where }),
+  ]);
+
+  return { data, total };
 }
 
 async function findById(id) {
@@ -302,8 +311,36 @@ async function findAllGrouped(filters = {}) {
 
   if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
 
-  const productions = await prisma.productionRecord.findMany({
-    where,
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  const [allGroups, total] = await Promise.all([
+    prisma.productionRecord.groupBy({
+      by: ['productId', 'branchId', 'operationalDate'],
+      where,
+      orderBy: { operationalDate: 'desc' },
+      skip,
+      take: limitNum,
+    }),
+    prisma.productionRecord.groupBy({
+      by: ['productId', 'branchId', 'operationalDate'],
+      where,
+    }).then(results => results.length),
+  ]);
+
+  if (allGroups.length === 0) {
+    return { data: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
+  }
+
+  const records = await prisma.productionRecord.findMany({
+    where: {
+      OR: allGroups.map(g => ({
+        productId: g.productId,
+        branchId: g.branchId,
+        operationalDate: g.operationalDate,
+      })),
+    },
     include: {
       product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
       branch: { select: { id: true, name: true } },
@@ -313,11 +350,11 @@ async function findAllGrouped(filters = {}) {
   });
 
   const grouped = {};
-  
-  for (const prod of productions) {
+
+  for (const prod of records) {
     const opDateStr = prod.operationalDate.toISOString().split('T')[0];
     const key = `${prod.productId}-${prod.branchId}-${opDateStr}`;
-    
+
     if (!grouped[key]) {
       grouped[key] = {
         productId: prod.productId,
@@ -330,30 +367,23 @@ async function findAllGrouped(filters = {}) {
         totalQuantity: new Prisma.Decimal('0'),
       };
     }
-    
+
     grouped[key].entries.push(prod);
     grouped[key].totalQuantity = grouped[key].totalQuantity.add(toDecimal(prod.quantity));
   }
 
   const groupedArray = Object.values(grouped);
 
-  groupedArray.forEach(group => {
+  for (const group of groupedArray) {
     group.entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  });
-
-  groupedArray.sort((a, b) => a.operationalDate < b.operationalDate ? 1 : a.operationalDate > b.operationalDate ? -1 : 0);
-
-  const pageNum = parseInt(page) || 1;
-  const limitNum = parseInt(limit) || 10;
-  const start = (pageNum - 1) * limitNum;
-  const paginated = groupedArray.slice(start, start + limitNum);
+  }
 
   return {
-    data: paginated,
-    total: groupedArray.length,
+    data: groupedArray,
+    total,
     page: pageNum,
     limit: limitNum,
-    totalPages: Math.ceil(groupedArray.length / limitNum),
+    totalPages: Math.ceil(total / limitNum),
   };
 }
 
