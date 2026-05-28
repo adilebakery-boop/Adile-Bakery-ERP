@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
+const { canCreateForCategory } = require('../utils/accessFilters');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -72,6 +73,17 @@ async function findById(id) {
   return waste;
 }
 
+function requireBranchAccess(branchId, user) {
+  if (!user?.role) return;
+  const privilegedRoles = ['ADMIN', 'MANAGER'];
+  if (privilegedRoles.includes(user.role)) return;
+  if (Number(branchId) !== Number(user.branchId)) {
+    const err = new Error('You can only record waste for your assigned branch');
+    err.status = 403;
+    throw err;
+  }
+}
+
 async function create(data, userId) {
   const { productId, quantity, branchId, operationalDate, reason } = data;
 
@@ -98,6 +110,12 @@ async function create(data, userId) {
 
     const error = new Error('Product not found');
     error.status = 404;
+    throw error;
+  }
+
+  if (!canCreateForCategory(userId, product.category)) {
+    const error = new Error('You can only record waste for products in your category');
+    error.status = 403;
     throw error;
   }
 
@@ -180,6 +198,8 @@ async function remove(id, userId) {
   }
 
   const existing = await findById(id);
+
+  requireBranchAccess(existing.branchId, userId);
 
   await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
