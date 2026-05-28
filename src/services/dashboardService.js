@@ -158,6 +158,7 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
 }
 
 
+
 async function getAllBranchesStatus(operationalDate) {
   const branches = await prisma.branch.findMany({
     where: { isActive: true },

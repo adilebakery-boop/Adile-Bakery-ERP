@@ -287,6 +287,18 @@ model AuditLog {
   @@index([createdAt])
 }
 
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([token])
+}
+
 model PasswordReset {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -299,16 +311,4 @@ model PasswordReset {
 
   @@index([userId])
   @@index([expiresAt])
-}
-
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  expiresAt DateTime
-  revoked   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  @@index([userId])
-  @@index([token])
 }
