@@ -119,11 +119,12 @@ const branchService = {
   async delete(id, userId) {
     const old = await this.findById(id);
 
-    const branch = await prisma.branch.delete({
+    const branch = await prisma.branch.update({
       where: { id },
+      data: { isActive: false },
     });
 
-    await auditService.logAudit('branch', branch.id, 'DELETE', old, null, userId);
+    await auditService.logAudit('branch', branch.id, 'DELETE', old, branch, userId);
     cache.invalidatePrefix('branches:');
     return branch;
   },
