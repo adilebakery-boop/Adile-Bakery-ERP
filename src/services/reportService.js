@@ -103,53 +103,54 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
 
   const inputDate = new Date(weekStartDate);
   const startDate = getMonday(inputDate);
+
+  // Build all 7 date strings for the week
+  const dateStrs = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    return toDateString(d);
+  });
+
+  // Fetch ALL day×branch reports in parallel — eliminates sequential 7-day loop
+  const dayResults = await Promise.all(dateStrs.map(async (dateStr) => {
+    const branchResults = await Promise.all(
+      branches.map(b => inventoryFlowService.getInventoryFlowReport(b.id, dateStr))
+    );
+    return { dateStr, branchResults };
+  }));
+
   const weekData = [];
   let allProducts = [];
 
-  for (let i = 0; i < 7; i++) {
-    const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
-    const dateStr = toDateString(currentDate);
-
+  for (const { dateStr, branchResults } of dayResults) {
     const dailyTotals = { totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0, totalNightProductionPreparedFor: 0, totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0, totalEstimatedSold: 0, totalEstimatedRevenue: 0 };
     let isClosed = false;
     let source = 'live';
     let dayProducts = [];
     let dayBranchesData = [];
 
-    if (!branchId) {
-      for (const b of branches) {
-        const r = await inventoryFlowService.getInventoryFlowReport(b.id, dateStr);
-        const filteredProducts = filterProducts(r.products, category, productId);
-        const dayTotals = inventoryFlowService.getTotals(filteredProducts);
-        for (const key of Object.keys(dailyTotals)) {
-          dailyTotals[key] += dayTotals[key] || 0;
-        }
-        if (r.isClosed) isClosed = true;
-        if (r.source === 'snapshot') source = 'snapshot';
-        dayProducts = dayProducts.concat(filteredProducts);
-        dayBranchesData.push({
-          branchId: r.branchId,
-          branchName: r.branchName,
-          products: filteredProducts,
-          totals: dayTotals,
-        });
-      }
-    } else {
-      const r = await inventoryFlowService.getInventoryFlowReport(branchId, dateStr);
+    for (const r of branchResults) {
       const filteredProducts = filterProducts(r.products, category, productId);
       const dayTotals = inventoryFlowService.getTotals(filteredProducts);
-      Object.assign(dailyTotals, dayTotals);
-      isClosed = r.isClosed;
-      source = r.source;
-      dayProducts = filteredProducts;
+      for (const key of Object.keys(dailyTotals)) {
+        dailyTotals[key] += dayTotals[key] || 0;
+      }
+      if (r.isClosed) isClosed = true;
+      if (r.source === 'snapshot') source = 'snapshot';
+      dayProducts = dayProducts.concat(filteredProducts);
+      dayBranchesData.push({
+        branchId: r.branchId,
+        branchName: r.branchName,
+        products: filteredProducts,
+        totals: dayTotals,
+      });
     }
 
     allProducts = allProducts.concat(dayProducts);
 
     weekData.push({
       date: dateStr,
-      dayName: currentDate.toLocaleDateString('en-US', { weekday: 'long' }),
+      dayName: new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long' }),
       totals: dailyTotals,
       products: dayProducts,
       branchesData: !branchId ? dayBranchesData : null,
@@ -205,6 +206,9 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   const firstDayOfWeek = startDate.getDay();
   let currentWeekStart = new Date(startDate);
 
+  // Collect all week start dates FIRST (no DB calls)
+  const weekSpecs = [];
+
   if (firstDayOfWeek !== 1) {
     const daysToSunday = (7 - firstDayOfWeek) % 7;
     if (daysToSunday > 0) {
@@ -213,15 +217,10 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
       if (partialWeekEnd > endDate) {
         partialWeekEnd.setTime(endDate.getTime());
       }
-
-      const weekStartStr = toDateString(currentWeekStart);
-      const weekEndStr = toDateString(partialWeekEnd);
-
-      const weekReport = await getWeeklyReport(branchId, weekStartStr, category, productId);
-      weekReport.weekStartDate = weekStartStr;
-      weekReport.weekEndDate = weekEndStr;
-      weeks.push(weekReport);
-
+      weekSpecs.push({
+        weekStartStr: toDateString(currentWeekStart),
+        weekEndStr: toDateString(partialWeekEnd),
+      });
       currentWeekStart = new Date(partialWeekEnd);
       currentWeekStart.setDate(currentWeekStart.getDate() + 1);
     }
@@ -230,22 +229,29 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   while (currentWeekStart <= endDate) {
     const weekEnd = new Date(currentWeekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-
     if (weekEnd > endDate) {
       weekEnd.setTime(endDate.getTime());
     }
-
-    const weekStartStr = toDateString(currentWeekStart);
-    const weekEndStr = toDateString(weekEnd);
-
-    const weekReport = await getWeeklyReport(branchId, weekStartStr, category, productId);
-    weekReport.weekStartDate = weekStartStr;
-    weekReport.weekEndDate = weekEndStr;
-    weeks.push(weekReport);
-
+    weekSpecs.push({
+      weekStartStr: toDateString(currentWeekStart),
+      weekEndStr: toDateString(weekEnd),
+    });
     currentWeekStart = new Date(weekEnd);
     currentWeekStart.setDate(currentWeekStart.getDate() + 1);
   }
+
+  // Fetch ALL weeks in parallel — eliminates sequential 4-5 week loop
+  const weekReports = await Promise.all(
+    weekSpecs.map(spec =>
+      getWeeklyReport(branchId, spec.weekStartStr, category, productId)
+        .then(report => {
+          report.weekStartDate = spec.weekStartStr;
+          report.weekEndDate = spec.weekEndStr;
+          return report;
+        })
+    )
+  );
+  weeks.push(...weekReports);
 
   const aggregatedTotals = weeks.reduce(
     (acc, week) => ({
