@@ -192,6 +192,7 @@
     "selectRole": "Select role",
     "selectBranch": "Select branch",
     "allBranches": "All Branches",
+    "allRoles": "All Roles",
     "newPasswordHint": "New Password (leave blank to keep current)",
     "enterNewPassword": "Enter new password",
     "noUsersFound": "No users found",
