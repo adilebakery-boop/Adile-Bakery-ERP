@@ -205,12 +205,12 @@ export default function ReportsPage() {
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="p-6 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-[50px] p-1 w-fit">
+            <div className="flex bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-[50px] p-1 w-full sm:w-fit">
               {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all ${
+                  className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all flex-1 sm:flex-none ${
                     activeTab === tab ? 'bg-white dark:bg-[#1a1a2e] text-[#001F3F] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
@@ -219,23 +219,23 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+              <div className="relative w-full sm:w-auto">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm w-40 dark:text-white"
+                  className="pl-10 pr-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm w-full sm:w-40 dark:text-white"
                 />
               </div>
 
               {canManageAll && (
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={branchId}
                     onChange={(e) => setBranchId(e.target.value)}
-                    className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
+                    className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[160px] dark:text-white"
                   >
                     <option value="">{t('reports.allBranches')}</option>
                     {branches.map((b) => (
@@ -246,11 +246,11 @@ export default function ReportsPage() {
                 </div>
               )}
 
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <select
                   value={category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[160px] dark:text-white"
+                  className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[160px] dark:text-white"
                 >
                   <option value="">{t('reports.allCategories')}</option>
                   {categories.map((cat) => (
@@ -261,12 +261,12 @@ export default function ReportsPage() {
               </div>
 
               {(activeTab === 'weekly' || activeTab === 'monthly' || activeTab === 'yearly') && (
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
                     disabled={!category && productList.length === 0}
-                    className="px-4 py-2.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 min-w-[180px] disabled:opacity-50"
+                    className="px-4 py-2.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[180px] disabled:opacity-50"
                   >
                     <option value="">All Products</option>
                     {productList.map((p) => (
