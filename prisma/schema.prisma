@@ -299,6 +299,13 @@ model RefreshToken {
   @@index([token])
 }
 
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
 model PasswordReset {
   id         Int      @id @default(autoincrement())
   userId     Int

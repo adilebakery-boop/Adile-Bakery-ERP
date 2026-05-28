@@ -14,7 +14,7 @@ function toDecimal(value) {
 }
 
 async function findAll(filters = {}) {
-  const { branchId, operationalDate, status, startDate, endDate, categories } = filters;
+  const { branchId, operationalDate, status, startDate, endDate, categories, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -35,17 +35,26 @@ async function findAll(filters = {}) {
     where.product = { category: { in: categories } };
   }
 
-  const remainings = await prisma.remainingRecord.findMany({
-    where,
-    include: {
-      product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
-      branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-    },
-    orderBy: { operationalDate: 'desc' },
-  });
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
 
-  return remainings;
+  const [data, total] = await Promise.all([
+    prisma.remainingRecord.findMany({
+      where,
+      skip,
+      take: limitNum,
+      include: {
+        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        branch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
+      },
+      orderBy: { operationalDate: 'desc' },
+    }),
+    prisma.remainingRecord.count({ where }),
+  ]);
+
+  return { data, total };
 }
 
 async function findById(id) {
