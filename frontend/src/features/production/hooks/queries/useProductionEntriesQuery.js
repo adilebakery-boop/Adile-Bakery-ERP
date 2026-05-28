@@ -16,7 +16,10 @@ export function useProductionEntriesQuery(branchId, filters = {}) {
         err.status = result.status || 0;
         throw err;
       }
-      return result.data || [];
+      return {
+        data: result.data || [],
+        pagination: result.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
+      };
     },
     staleTime: 10 * 1000,
     refetchInterval: false,

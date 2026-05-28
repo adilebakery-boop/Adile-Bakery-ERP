@@ -72,19 +72,24 @@ export default function ProductionPage() {
   const { data: branches = [], isLoading: isLoadingBranches } = useActiveBranchesQuery();
 
   const {
-    data: groupedEntries = [],
+    data: response,
     isLoading: isLoadingEntries,
     isError: entriesError,
     error: entriesErrorObj,
     refetch: refetchEntries,
-  } = useProductionEntriesQuery(entriesBranchId);
+  } = useProductionEntriesQuery(entriesBranchId, { page: currentPage, limit: itemsPerPage });
+
+  const groupedEntries = response?.data || [];
+  const pagination = response?.pagination || {};
+  const totalPages = pagination.totalPages || 1;
+  const totalGroups = pagination.total || 0;
 
   const createMutation = useCreateProductionMutation();
   const updateMutation = useUpdateProductionMutation();
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [groupedEntries.length, branch]);
+  }, [branch]);
 
   const toggleGroupExpand = (groupKey) => {
     setExpandedGroups(prev => ({
@@ -96,10 +101,6 @@ export default function ProductionPage() {
   const getGroupKey = (group) => {
     return `${group.productId}-${group.branchId}-${group.operationalDate}`;
   };
-
-  const totalPages = Math.ceil(groupedEntries.length / itemsPerPage);
-  const paginatedGroups = groupedEntries;
-
 
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -445,7 +446,7 @@ export default function ProductionPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
-              {paginatedGroups.map((group) => {
+              {groupedEntries.map((group) => {
                 const groupKey = getGroupKey(group);
                 const isExpanded = expandedGroups[groupKey];
                 const [y, m, d] = group.operationalDate.split('-');
@@ -558,13 +559,13 @@ export default function ProductionPage() {
           <EmptyState type="production" message={t('production.noRecords')} />
         )}
 
-        {!isLoadingEntries && !entriesError && groupedEntries.length > 0 && totalPages > 1 && (
+        {!isLoadingEntries && !entriesError && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('production.showing', {
                 from: ((currentPage - 1) * itemsPerPage) + 1,
-                to: Math.min(currentPage * itemsPerPage, groupedEntries.length),
-                total: groupedEntries.length
+                to: Math.min(currentPage * itemsPerPage, totalGroups),
+                total: totalGroups
               })}
             </div>
             <div className="flex items-center gap-2">

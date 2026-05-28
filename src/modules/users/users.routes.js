@@ -4,29 +4,50 @@ const { asyncHandler } = require('../../middlewares/errorHandler');
 const { allowRoles } = require('../../middlewares/role.middleware');
 const prisma = require('../../config/prisma');
 const bcrypt = require('bcrypt');
+const { createUserSchema, updateUserSchema } = require('../../utils/validations/user.validation');
 
 const SALT_ROUNDS = 10;
 
 const router = express.Router();
+
+const validate = (schema) => (req, res, next) => {
+  try {
+    schema.parse(req.body);
+    next();
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: error.errors,
+    });
+  }
+};
 
 router.get(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const { page: pageQ, limit: limitQ, branchId, roleId } = req.query;
+    const page = parseInt(pageQ) || 1;
+    const limit = parseInt(limitQ) || 10;
     const skip = (page - 1) * limit;
+
+    const where = {
+      isActive: true,
+      ...(branchId && { branchId: Number(branchId) }),
+      ...(roleId && { roleId: Number(roleId) }),
+    };
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
-        where: { isActive: true },
+        where,
         include: { role: true, branch: true },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      prisma.user.count({ where: { isActive: true } }),
+      prisma.user.count({ where }),
     ]);
 
     res.json({
@@ -118,6 +139,7 @@ router.post(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  validate(createUserSchema),
   asyncHandler(async (req, res) => {
     const { name, username, password, roleId, branchId, email } = req.body;
     const currentUserRole = req.user.role;
@@ -192,6 +214,7 @@ router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  validate(updateUserSchema),
   asyncHandler(async (req, res) => {
     const targetUserId = parseInt(req.params.id);
     const { name, roleId, branchId, isBlocked, email } = req.body;
