@@ -20,7 +20,10 @@ export const queryKeys = {
   },
   inventory: {
     production: {
-      grouped: (branchId, filters = {}) => ['inventory', 'production', branchId, 'grouped', filters],
+      grouped: (branchId, filters = {}) => {
+        const { page, limit, startDate, endDate, operationalDate } = filters;
+        return ['inventory', 'production', branchId, 'grouped', { page, limit, startDate, endDate, operationalDate }];
+      },
     },
     remaining: {
       entries: (branchId, date, filters = {}) => ['inventory', 'remaining', branchId, date, filters],

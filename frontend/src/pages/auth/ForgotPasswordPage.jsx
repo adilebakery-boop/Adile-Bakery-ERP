@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import api from '../../services/api';
-import { safeCall } from '../../utils/normalizeApiResponse';
+import { authService } from '../../services/authService';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1);
@@ -69,7 +68,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    const result = await safeCall(api.post('/auth/forgot-password', { email }));
+    const result = await authService.forgotPassword(email);
     setIsLoading(false);
     if (result.success) {
       setStep(2);
@@ -82,7 +81,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    const result = await safeCall(api.post('/auth/verify-otp', { email, otp }));
+    const result = await authService.verifyOtp(email, otp);
     setIsLoading(false);
     if (result.success) {
       setStep(3);
@@ -95,7 +94,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setResendSuccess('');
     setIsLoading(true);
-    const result = await safeCall(api.post('/auth/forgot-password', { email }));
+    const result = await authService.forgotPassword(email);
     setIsLoading(false);
     if (result.success) {
       setResendSuccess('A new OTP has been sent');
@@ -136,7 +135,7 @@ export default function ForgotPasswordPage() {
     }
 
     setIsLoading(true);
-    const result = await safeCall(api.post('/auth/reset-password', { email, otp, newPassword }));
+    const result = await authService.resetPassword(email, otp, newPassword);
     setIsLoading(false);
     if (result.success) {
       setSuccessMessage('Password reset successfully! Redirecting to login...');

@@ -3,6 +3,18 @@ const { formatInTimeZone, toZonedTime } = require('date-fns-tz');
 
 const TIMEZONE = 'Africa/Addis_Ababa';
 
+function toOperationalDate(value) {
+  if (value instanceof Date) {
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-');
+    return new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
+  }
+  const d = new Date(value);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
 function calculateOperationalDate(productionDate, shift) {
   if (!productionDate) {
     throw new Error('productionDate is required');
@@ -18,13 +30,15 @@ function calculateOperationalDate(productionDate, shift) {
     date = new Date(productionDate);
   }
 
+  let result;
   if (shift === 'NIGHT') {
-    const nextDay = new Date(date);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-    return nextDay;
+    result = new Date(date);
+    result.setUTCDate(result.getUTCDate() + 1);
+  } else {
+    result = new Date(date);
   }
 
-  return date;
+  return toOperationalDate(result);
 }
 
 function addOneDay(date) {
@@ -142,6 +156,7 @@ function getEditWindowDeadline(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
 
 module.exports = {
   TIMEZONE,
+  toOperationalDate,
   calculateOperationalDate,
   addOneDay,
   getPreviousDay,

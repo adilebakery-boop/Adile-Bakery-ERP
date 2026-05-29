@@ -3,11 +3,11 @@ import { unwrap } from '../../../../utils/safeQuery';
 import { productionService } from '../../../../services/productionService';
 import { invalidateAfterProductionMutation } from '../../../../utils/invalidation';
 
-export function useUpdateProductionMutation() {
+export function useDeleteProductionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data, branchId }) => unwrap(productionService.updateProduction(id, data)),
+    mutationFn: ({ id }) => unwrap(productionService.deleteProduction(id)),
     onSuccess: (_, variables) => {
       invalidateAfterProductionMutation(queryClient, variables.branchId);
     },

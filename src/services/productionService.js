@@ -1,61 +1,12 @@
-const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisAbabaDate, startOfDay } = require('../utils/dateUtils');
+const { addDays, subDays } = require('date-fns');
+const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-
-const ZERO = new Prisma.Decimal('0');
-
-function toDecimal(value) {
-  if (value instanceof Prisma.Decimal) return value;
-  if (value === null || value === undefined) return ZERO;
-  return new Prisma.Decimal(String(value));
-}
-
-async function findAll(filters = {}) {
-  const { branchId, operationalDate, shift, productId, startDate, endDate, page = 1, limit = 20 } = filters;
-  const where = {};
-
-  if (branchId) where.branchId = parseInt(branchId);
-  if (productId) where.productId = parseInt(productId);
-  if (shift) where.shift = shift;
-
-  if (operationalDate) {
-    where.operationalDate = new Date(operationalDate);
-  }
-
-  if (startDate && endDate) {
-    where.operationalDate = {
-      gte: new Date(startDate),
-      lte: new Date(endDate),
-    };
-  }
-
-  if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
-
-  const pageNum = Math.max(1, parseInt(page) || 1);
-  const limitNum = Math.min(100, parseInt(limit) || 20);
-  const skip = (pageNum - 1) * limitNum;
-
-  const [data, total] = await Promise.all([
-    prisma.productionRecord.findMany({
-      where,
-      skip,
-      take: limitNum,
-      include: {
-        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
-        branch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.productionRecord.count({ where }),
-  ]);
-
-  return { data, total };
-}
+const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function findById(id) {
   const production = await prisma.productionRecord.findUnique({
@@ -164,7 +115,7 @@ async function create(data, user) {
 
   const opDate = calculateOperationalDate(prodDate, shift);
 
-  await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
+  await inventoryFlowService.assertDayEditable(assignedBranchId, opDate);
 
   const production = await prisma.productionRecord.create({
     data: {
@@ -173,7 +124,7 @@ async function create(data, user) {
       productionDate: prodDate,
       operationalDate: opDate,
       shift,
-      quantity: new Prisma.Decimal(String(quantity)),
+      quantity: toDecimal(String(quantity)),
       createdBy: user.userId,
     },
     include: {
@@ -197,7 +148,7 @@ async function update(id, data, user) {
     throw error;
   }
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   const updateData = {
     updatedBy: user.userId,
@@ -210,7 +161,7 @@ async function update(id, data, user) {
       error.status = 400;
       throw error;
     }
-    updateData.quantity = new Prisma.Decimal(String(data.quantity));
+    updateData.quantity = toDecimal(String(data.quantity));
   }
 
   if (data.shift !== undefined && data.shift !== existing.shift) {
@@ -250,7 +201,7 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   await prisma.productionRecord.delete({
     where: { id: parseInt(id) },
@@ -262,8 +213,8 @@ async function remove(id, user) {
 }
 
 async function getTodayProductions(branchId, user) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const addisNow = getAddisAbabaDate();
+  const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
 
   const where = {
     operationalDate: today,
@@ -311,84 +262,111 @@ async function findAllGrouped(filters = {}) {
 
   if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
 
+  if (!operationalDate && !startDate && !endDate) {
+    const addisNow = getAddisAbabaDate();
+    const todayUtcMidnight = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+    where.operationalDate = {
+      gte: subDays(todayUtcMidnight, DEFAULT_PAST_OPERATIONAL_DAYS),
+      lte: addDays(todayUtcMidnight, DEFAULT_FUTURE_OPERATIONAL_DAYS),
+    };
+  }
+
   const pageNum = Math.max(1, parseInt(page) || 1);
-  const limitNum = Math.min(100, parseInt(limit) || 10);
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
   const skip = (pageNum - 1) * limitNum;
 
-  const [allGroups, total] = await Promise.all([
+  const [groupKeys, allGroups] = await Promise.all([
     prisma.productionRecord.groupBy({
       by: ['productId', 'branchId', 'operationalDate'],
       where,
-      orderBy: { operationalDate: 'desc' },
+      _sum: { quantity: true },
+      _count: { id: true },
+      orderBy: [
+        { operationalDate: 'desc' },
+        { productId: 'asc' },
+        { branchId: 'asc' },
+      ],
       skip,
       take: limitNum,
     }),
     prisma.productionRecord.groupBy({
       by: ['productId', 'branchId', 'operationalDate'],
       where,
-    }).then(results => results.length),
+    }),
   ]);
 
-  if (allGroups.length === 0) {
-    return { data: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
+  const total = allGroups.length;
+  const totalPages = Math.max(1, Math.ceil(total / limitNum));
+
+  if (groupKeys.length === 0) {
+    return { data: [], total, page: pageNum, limit: limitNum, totalPages };
   }
 
-  const records = await prisma.productionRecord.findMany({
-    where: {
-      OR: allGroups.map(g => ({
-        productId: g.productId,
-        branchId: g.branchId,
-        operationalDate: g.operationalDate,
-      })),
-    },
+  const conditions = groupKeys.map(g => ({
+    productId: g.productId,
+    branchId: g.branchId,
+    operationalDate: g.operationalDate,
+  }));
+
+  const productions = await prisma.productionRecord.findMany({
+    where: { OR: conditions },
     include: {
       product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true, username: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [
+      { operationalDate: 'desc' },
+      { productId: 'asc' },
+      { branchId: 'asc' },
+      { createdAt: 'desc' },
+      { id: 'desc' },
+    ],
   });
 
-  const grouped = {};
-
-  for (const prod of records) {
+  const productionsByGroupKey = {};
+  for (const prod of productions) {
     const opDateStr = prod.operationalDate.toISOString().split('T')[0];
     const key = `${prod.productId}-${prod.branchId}-${opDateStr}`;
-
-    if (!grouped[key]) {
-      grouped[key] = {
-        productId: prod.productId,
-        product: prod.product,
-        branchId: prod.branchId,
-        branch: prod.branch,
-        shift: prod.shift,
-        operationalDate: opDateStr,
-        entries: [],
-        totalQuantity: new Prisma.Decimal('0'),
-      };
+    if (!productionsByGroupKey[key]) {
+      productionsByGroupKey[key] = [];
     }
-
-    grouped[key].entries.push(prod);
-    grouped[key].totalQuantity = grouped[key].totalQuantity.add(toDecimal(prod.quantity));
+    productionsByGroupKey[key].push(prod);
   }
 
-  const groupedArray = Object.values(grouped);
+  const groupedArray = groupKeys.map(gk => {
+    const opDateStr = gk.operationalDate.toISOString().split('T')[0];
+    const key = `${gk.productId}-${gk.branchId}-${opDateStr}`;
+    const entries = productionsByGroupKey[key] || [];
 
-  for (const group of groupedArray) {
-    group.entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }
+    entries.sort((a, b) => {
+      const dateCmp = new Date(b.createdAt) - new Date(a.createdAt);
+      if (dateCmp !== 0) return dateCmp;
+      return b.id - a.id;
+    });
+
+    return {
+      productId: gk.productId,
+      product: entries[0]?.product || null,
+      branchId: gk.branchId,
+      branch: entries[0]?.branch || null,
+      shift: entries[0]?.shift || null,
+      operationalDate: opDateStr,
+      entries,
+      totalQuantity: toDecimal(gk._sum.quantity),
+    };
+  });
 
   return {
     data: groupedArray,
     total,
     page: pageNum,
     limit: limitNum,
-    totalPages: Math.ceil(total / limitNum),
+    totalPages,
   };
 }
 
 module.exports = {
-  findAll,
   findAllGrouped,
   findById,
   findByOperationalDate,
