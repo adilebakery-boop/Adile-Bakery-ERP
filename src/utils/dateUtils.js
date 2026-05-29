@@ -95,6 +95,10 @@ function getAddisAbabaDate(date = new Date()) {
   return toZonedTime(date, TIMEZONE);
 }
 
+function getAddisDateString(date = new Date()) {
+  return formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd');
+}
+
 function getAddisAbabaStartOfDay(date = new Date()) {
   return startOfDay(getAddisAbabaDate(date));
 }
@@ -167,6 +171,7 @@ module.exports = {
   getStartOfDayUTC,
   getEndOfDayUTC,
   getAddisAbabaDate,
+  getAddisDateString,
   getAddisAbabaStartOfDay,
   toUTCString,
   parseDate,

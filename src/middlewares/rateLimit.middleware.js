@@ -1,40 +1,49 @@
 const rateLimit = require('express-rate-limit');
+const prisma = require('../config/prisma');
 
-const loginAttempts = new Map();
-
-const loginLimiter = (req, res, next) => {
+const loginLimiter = async (req, res, next) => {
   const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
-  const now = Date.now();
+  const now = new Date();
   const windowMs = 1 * 60 * 1000;
-  const max = 5;
 
-  if (!loginAttempts.has(ip)) {
-    loginAttempts.set(ip, { count: 0, resetTime: now + windowMs });
+  try {
+    let record = await prisma.rateLimit.findUnique({ where: { key: ip } });
+
+    if (!record) {
+      record = await prisma.rateLimit.create({
+        data: { key: ip, count: 0, expiresAt: new Date(now.getTime() + windowMs) },
+      });
+    }
+
+    if (now > record.expiresAt) {
+      record = await prisma.rateLimit.update({
+        where: { key: ip },
+        data: { count: 0, expiresAt: new Date(now.getTime() + windowMs) },
+      });
+    }
+
+    if (record.count >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many login attempts. Please try again after 1 minute.',
+        errors: [],
+      });
+    }
+
+    next();
+  } catch {
+    next();
   }
-
-  const record = loginAttempts.get(ip);
-
-  if (now > record.resetTime) {
-    record.count = 0;
-    record.resetTime = now + windowMs;
-  }
-
-  if (record.count >= max) {
-    return res.status(429).json({
-      success: false,
-      message: 'Too many login attempts. Please try again after 1 minute.',
-      errors: [],
-    });
-  }
-
-  next();
 };
 
-const incrementLoginAttempts = (ip) => {
-  const record = loginAttempts.get(ip);
-  if (record) {
-    record.count++;
-    loginAttempts.set(ip, record);
+const incrementLoginAttempts = async (ip) => {
+  try {
+    await prisma.rateLimit.upsert({
+      where: { key: ip },
+      create: { key: ip, count: 1, expiresAt: new Date(Date.now() + 60 * 1000) },
+      update: { count: { increment: 1 } },
+    });
+  } catch {
   }
 };
 

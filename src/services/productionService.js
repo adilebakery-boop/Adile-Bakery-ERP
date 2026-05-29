@@ -1,12 +1,65 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
-const { calculateOperationalDate, canEditOperationalRecord, getAddisAbabaDate, startOfDay } = require('../utils/dateUtils');
 const { addDays, subDays } = require('date-fns');
-const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
+const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
+
+const ZERO = new Prisma.Decimal('0');
+
+function toDecimal(value) {
+  if (value instanceof Prisma.Decimal) return value;
+  if (value === null || value === undefined) return ZERO;
+  return new Prisma.Decimal(String(value));
+}
+
+async function findAll(filters = {}, user) {
+  const { branchId, operationalDate, shift, productId, startDate, endDate, page = 1, limit = 20 } = filters;
+  const where = {};
+
+  if (user) {
+    Object.assign(where, buildProductionAccessFilter(user));
+  }
+
+  if (branchId) where.branchId = parseInt(branchId);
+  if (productId) where.productId = parseInt(productId);
+  if (shift) where.shift = shift;
+
+  if (operationalDate) {
+    where.operationalDate = new Date(operationalDate);
+  }
+
+  if (startDate && endDate) {
+    where.operationalDate = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  }
+
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
+
+  const [data, total] = await Promise.all([
+    prisma.productionRecord.findMany({
+      where,
+      skip,
+      take: limitNum,
+      include: {
+        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        branch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.productionRecord.count({ where }),
+  ]);
+
+  return { data, total };
+}
 
 async function findById(id) {
   const production = await prisma.productionRecord.findUnique({
@@ -103,8 +156,9 @@ async function create(data, user) {
   const [y, m, d] = productionDate.split('-');
   const prodDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
 
-  const addisNow = getAddisAbabaDate();
-  const todayUTC = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+  const todayStr = getAddisDateString();
+  const [yNow, mNow, dNow] = todayStr.split('-').map(Number);
+  const todayUTC = new Date(Date.UTC(yNow, mNow - 1, dNow));
   const minDateUTC = new Date(todayUTC);
   minDateUTC.setUTCDate(minDateUTC.getUTCDate() - 2);
   if (prodDate < minDateUTC || prodDate > todayUTC) {
@@ -115,7 +169,7 @@ async function create(data, user) {
 
   const opDate = calculateOperationalDate(prodDate, shift);
 
-  await inventoryFlowService.assertDayEditable(assignedBranchId, opDate);
+  await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
 
   const production = await prisma.productionRecord.create({
     data: {
@@ -124,7 +178,7 @@ async function create(data, user) {
       productionDate: prodDate,
       operationalDate: opDate,
       shift,
-      quantity: toDecimal(String(quantity)),
+      quantity: new Prisma.Decimal(String(quantity)),
       createdBy: user.userId,
     },
     include: {
@@ -148,7 +202,7 @@ async function update(id, data, user) {
     throw error;
   }
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   const updateData = {
     updatedBy: user.userId,
@@ -161,7 +215,7 @@ async function update(id, data, user) {
       error.status = 400;
       throw error;
     }
-    updateData.quantity = toDecimal(String(data.quantity));
+    updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 
   if (data.shift !== undefined && data.shift !== existing.shift) {
@@ -201,7 +255,7 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   await prisma.productionRecord.delete({
     where: { id: parseInt(id) },
@@ -213,8 +267,8 @@ async function remove(id, user) {
 }
 
 async function getTodayProductions(branchId, user) {
-  const addisNow = getAddisAbabaDate();
-  const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const where = {
     operationalDate: today,
@@ -241,9 +295,13 @@ async function getTodayProductions(branchId, user) {
   return productions;
 }
 
-async function findAllGrouped(filters = {}) {
+async function findAllGrouped(filters = {}, user) {
   const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = filters;
   const where = {};
+
+  if (user) {
+    Object.assign(where, buildProductionAccessFilter(user));
+  }
 
   if (branchId) where.branchId = parseInt(branchId);
   if (productId) where.productId = parseInt(productId);
@@ -260,14 +318,13 @@ async function findAllGrouped(filters = {}) {
     };
   }
 
-  if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
-
   if (!operationalDate && !startDate && !endDate) {
-    const addisNow = getAddisAbabaDate();
-    const todayUtcMidnight = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+    const todayStr = getAddisDateString();
+    const [yNow, mNow, dNow] = todayStr.split('-').map(Number);
+    const todayUTC = new Date(Date.UTC(yNow, mNow - 1, dNow));
     where.operationalDate = {
-      gte: subDays(todayUtcMidnight, DEFAULT_PAST_OPERATIONAL_DAYS),
-      lte: addDays(todayUtcMidnight, DEFAULT_FUTURE_OPERATIONAL_DAYS),
+      gte: subDays(todayUTC, DEFAULT_PAST_OPERATIONAL_DAYS),
+      lte: addDays(todayUTC, DEFAULT_FUTURE_OPERATIONAL_DAYS),
     };
   }
 
@@ -367,6 +424,7 @@ async function findAllGrouped(filters = {}) {
 }
 
 module.exports = {
+  findAll,
   findAllGrouped,
   findById,
   findByOperationalDate,

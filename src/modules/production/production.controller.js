@@ -2,6 +2,31 @@ const productionService = require('../../services/productionService');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { buildProductionAccessFilter } = require('../../utils/accessFilters');
 
+const findAll = asyncHandler(async (req, res) => {
+  const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
+  const { role, userId, branchId: userBranchId } = req.user;
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
+
+  const filters = { branchId, operationalDate, shift, productId, startDate, endDate, page, limit };
+
+  const accessFilter = buildProductionAccessFilter({ role, userId, branchId: userBranchId });
+  Object.assign(filters, accessFilter);
+
+  const { data, total } = await productionService.findAll(filters, req.user);
+  res.json({
+    success: true,
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
+});
+
 const findAllGrouped = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = req.query;
   const { role, userId, branchId: userBranchId } = req.user;
@@ -82,6 +107,7 @@ const getToday = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  findAll,
   findAllGrouped,
   findById,
   findByOperationalDate,
