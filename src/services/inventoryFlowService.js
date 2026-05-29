@@ -4,16 +4,19 @@ const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString, canEd
 const { logAudit } = require('./auditService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
-const rolloverCache = new Map();
 const ROLLOVER_TTL = 60_000;
 
-function isRolloverRecentlyProcessed(branchId, dateKey) {
-  const cacheKey = `${branchId}-${dateKey}`;
-  const entry = rolloverCache.get(cacheKey);
-  if (entry && Date.now() - entry < ROLLOVER_TTL) {
+async function isRolloverRecentlyProcessed(branchId, dateKey) {
+  const key = `${branchId}-${dateKey}`;
+  const entry = await prisma.rolloverCache.findUnique({ where: { key } });
+  if (entry && Date.now() - entry.processedAt.getTime() < ROLLOVER_TTL) {
     return true;
   }
-  rolloverCache.set(cacheKey, Date.now());
+  await prisma.rolloverCache.upsert({
+    where: { key },
+    create: { key, processedAt: new Date() },
+    update: { processedAt: new Date() },
+  });
   return false;
 }
 
@@ -105,7 +108,7 @@ async function resolveRollover(branchId, operationalDate) {
   const currentDate = new Date(operationalDate);
   const currentStr = toDateString(currentDate);
 
-  if (isRolloverRecentlyProcessed(branchId, currentStr)) {
+  if (await isRolloverRecentlyProcessed(branchId, currentStr)) {
     return;
   }
 

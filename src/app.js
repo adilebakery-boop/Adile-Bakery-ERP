@@ -2,11 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('./middlewares/helmet.middleware');
 const sanitizeRequest = require('./middlewares/sanitize.middleware');
+const prisma = require('./config/prisma');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const { loginLimiter, apiLimiter, exportLimiter, otpLimiter } = require('./middlewares/rateLimit.middleware');
 const trafficMonitor = require('./middlewares/trafficMonitor.middleware');
 
 const app = express();
+
+function healthCheck(req, res) {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+}
 
 const authRoutes = require('./modules/auth/auth.routes');
 const passwordResetRoutes = require('./modules/auth/passwordReset.routes');
@@ -29,6 +38,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10kb' }));
 app.use(sanitizeRequest);
+
+app.get('/health', healthCheck);
+app.get('/api/health', healthCheck);
 
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/forgot-password', otpLimiter);

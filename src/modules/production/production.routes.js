@@ -33,6 +33,13 @@ const validateIdParam = (req, res, next) => {
 const router = express.Router();
 
 router.get(
+  '/',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  productionController.findAll
+);
+
+router.get(
   '/grouped',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
