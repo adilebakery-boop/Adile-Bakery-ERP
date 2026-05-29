@@ -1,10 +1,12 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
-<<<<<<< HEAD
+const { addDays, subDays } = require('date-fns');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
+const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -58,14 +60,6 @@ async function findAll(filters = {}, user) {
 
   return { data, total };
 }
-=======
-const { calculateOperationalDate, canEditOperationalRecord, getAddisAbabaDate, startOfDay } = require('../utils/dateUtils');
-const { addDays, subDays } = require('date-fns');
-const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
-const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
-const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-const { ZERO, toDecimal } = require('../utils/decimalUtils');
->>>>>>> 58ff9f0e3f90cda009f7c548bc8f3dc4b957d667
 
 async function findById(id) {
   const production = await prisma.productionRecord.findUnique({
@@ -175,7 +169,7 @@ async function create(data, user) {
 
   const opDate = calculateOperationalDate(prodDate, shift);
 
-  await inventoryFlowService.assertDayEditable(assignedBranchId, opDate);
+  await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
 
   const production = await prisma.productionRecord.create({
     data: {
@@ -184,7 +178,7 @@ async function create(data, user) {
       productionDate: prodDate,
       operationalDate: opDate,
       shift,
-      quantity: toDecimal(String(quantity)),
+      quantity: new Prisma.Decimal(String(quantity)),
       createdBy: user.userId,
     },
     include: {
@@ -208,7 +202,7 @@ async function update(id, data, user) {
     throw error;
   }
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   const updateData = {
     updatedBy: user.userId,
@@ -221,7 +215,7 @@ async function update(id, data, user) {
       error.status = 400;
       throw error;
     }
-    updateData.quantity = toDecimal(String(data.quantity));
+    updateData.quantity = new Prisma.Decimal(String(data.quantity));
   }
 
   if (data.shift !== undefined && data.shift !== existing.shift) {
@@ -261,7 +255,7 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   await prisma.productionRecord.delete({
     where: { id: parseInt(id) },
@@ -273,8 +267,8 @@ async function remove(id, user) {
 }
 
 async function getTodayProductions(branchId, user) {
-  const addisNow = getAddisAbabaDate();
-  const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const where = {
     operationalDate: today,
@@ -324,20 +318,16 @@ async function findAllGrouped(filters = {}, user) {
     };
   }
 
-<<<<<<< HEAD
-=======
-  if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
-
   if (!operationalDate && !startDate && !endDate) {
-    const addisNow = getAddisAbabaDate();
-    const todayUtcMidnight = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
+    const todayStr = getAddisDateString();
+    const [yNow, mNow, dNow] = todayStr.split('-').map(Number);
+    const todayUTC = new Date(Date.UTC(yNow, mNow - 1, dNow));
     where.operationalDate = {
-      gte: subDays(todayUtcMidnight, DEFAULT_PAST_OPERATIONAL_DAYS),
-      lte: addDays(todayUtcMidnight, DEFAULT_FUTURE_OPERATIONAL_DAYS),
+      gte: subDays(todayUTC, DEFAULT_PAST_OPERATIONAL_DAYS),
+      lte: addDays(todayUTC, DEFAULT_FUTURE_OPERATIONAL_DAYS),
     };
   }
 
->>>>>>> 58ff9f0e3f90cda009f7c548bc8f3dc4b957d667
   const pageNum = Math.max(1, parseInt(page) || 1);
   const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
   const skip = (pageNum - 1) * limitNum;
@@ -434,6 +424,7 @@ async function findAllGrouped(filters = {}, user) {
 }
 
 module.exports = {
+  findAll,
   findAllGrouped,
   findById,
   findByOperationalDate,
