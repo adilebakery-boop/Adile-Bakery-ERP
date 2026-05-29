@@ -1,105 +1,65 @@
 const branchService = require('./branch.service');
+const { asyncHandler } = require('../../middlewares/errorHandler');
 
-const branchController = {
-  async create(req, res) {
-    try {
-      const branch = await branchService.create(req.body, req.user?.userId);
-      res.status(201).json({
-        success: true,
-        message: 'Branch created successfully',
-        data: branch,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2002' ? 409 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2002' ? 'Branch name already exists' : error.message,
-      });
-    }
-  },
+const create = asyncHandler(async (req, res) => {
+  const branch = await branchService.create(req.body, req.user?.userId);
+  res.status(201).json({
+    success: true,
+    message: 'Branch created successfully',
+    data: branch,
+  });
+});
 
-  async findActive(req, res) {
-    try {
-      const branches = await branchService.findActive();
-      res.json({
-        success: true,
-        message: 'Active branches retrieved successfully',
-        data: branches,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
+const findActive = asyncHandler(async (req, res) => {
+  const branches = await branchService.findActive();
+  res.json({
+    success: true,
+    message: 'Active branches retrieved successfully',
+    data: branches,
+  });
+});
 
-  async findAll(req, res) {
-    try {
-      const result = await branchService.findAll(req.query);
-      res.json({
-        success: true,
-        message: 'Branches retrieved successfully',
-        data: result.data,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
+const findAll = asyncHandler(async (req, res) => {
+  const result = await branchService.findAll(req.query);
+  res.json({
+    success: true,
+    message: 'Branches retrieved successfully',
+    data: result.data,
+    pagination: result.pagination,
+  });
+});
 
-  async findById(req, res) {
-    try {
-      const branch = await branchService.findById(parseInt(req.params.id));
-      res.json({
-        success: true,
-        message: 'Branch retrieved successfully',
-        data: branch,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Branch not found' : error.message,
-      });
-    }
-  },
+const findById = asyncHandler(async (req, res) => {
+  const branch = await branchService.findById(parseInt(req.params.id));
+  res.json({
+    success: true,
+    message: 'Branch retrieved successfully',
+    data: branch,
+  });
+});
 
-  async update(req, res) {
-    try {
-      const branch = await branchService.update(parseInt(req.params.id), req.body, req.user?.userId);
-      res.json({
-        success: true,
-        message: 'Branch updated successfully',
-        data: branch,
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : error.code === 'P2002' ? 409 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Branch not found' : error.code === 'P2002' ? 'Branch name already exists' : error.message,
-      });
-    }
-  },
+const update = asyncHandler(async (req, res) => {
+  const branch = await branchService.update(parseInt(req.params.id), req.body, req.user?.userId);
+  res.json({
+    success: true,
+    message: 'Branch updated successfully',
+    data: branch,
+  });
+});
 
-  async delete(req, res) {
-    try {
-      await branchService.delete(parseInt(req.params.id), req.user?.userId);
-      res.json({
-        success: true,
-        message: 'Branch deleted successfully',
-      });
-    } catch (error) {
-      const statusCode = error.code === 'P2025' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: error.code === 'P2025' ? 'Branch not found' : error.message,
-      });
-    }
-  },
+const deleteBranch = asyncHandler(async (req, res) => {
+  await branchService.delete(parseInt(req.params.id), req.user?.userId);
+  res.json({
+    success: true,
+    message: 'Branch deleted successfully',
+  });
+});
+
+module.exports = {
+  create,
+  findActive,
+  findAll,
+  findById,
+  update,
+  delete: deleteBranch,
 };
-
-module.exports = branchController;

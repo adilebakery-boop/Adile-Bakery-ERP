@@ -1,6 +1,7 @@
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString, getMonday, getSunday } = require('../utils/dateUtils');
 const prisma = require('../config/prisma');
+const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./inventoryFlowService');
 
 function filterProducts(products, category, productId) {
   let filtered = products;
@@ -55,14 +56,14 @@ async function getCombinedBranchReport(branchId, operationalDate) {
       const key = `${p.productId}`;
       if (allProducts.has(key)) {
         const existing = allProducts.get(key);
-        existing.openingStock += p.openingStock;
-        existing.dayProduction += p.dayProduction;
-        existing.nightProduction += p.nightProduction;
-        existing.sellableStock += p.sellableStock;
-        existing.remainingStock += p.remainingStock;
-        existing.wasteQuantity += p.wasteQuantity;
-        existing.estimatedSold += p.estimatedSold;
-        existing.estimatedRevenue += p.estimatedRevenue;
+        existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
+        existing.dayProduction = decimalToNumber(safePlus(existing.dayProduction, p.dayProduction));
+        existing.nightProduction = decimalToNumber(safePlus(existing.nightProduction, p.nightProduction));
+        existing.sellableStock = decimalToNumber(safePlus(existing.sellableStock, p.sellableStock));
+        existing.remainingStock = decimalToNumber(safePlus(existing.remainingStock, p.remainingStock));
+        existing.wasteQuantity = decimalToNumber(safePlus(existing.wasteQuantity, p.wasteQuantity));
+        existing.estimatedSold = decimalToNumber(safePlus(existing.estimatedSold, p.estimatedSold));
+        existing.estimatedRevenue = decimalToNumber(safePlus(existing.estimatedRevenue, p.estimatedRevenue));
         existing.branchNames.push(r.branchName);
       } else {
         allProducts.set(key, {
@@ -120,7 +121,7 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
   }));
 
   const weekData = [];
-  let allProducts = [];
+  const allProductsMap = new Map();
 
   for (const { dateStr, branchResults } of dayResults) {
     const dailyTotals = { totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0, totalNightProductionPreparedFor: 0, totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0, totalEstimatedSold: 0, totalEstimatedRevenue: 0 };
@@ -133,7 +134,7 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
       const filteredProducts = filterProducts(r.products, category, productId);
       const dayTotals = inventoryFlowService.getTotals(filteredProducts);
       for (const key of Object.keys(dailyTotals)) {
-        dailyTotals[key] += dayTotals[key] || 0;
+        dailyTotals[key] = decimalToNumber(safePlus(dailyTotals[key], dayTotals[key]));
       }
       if (r.isClosed) isClosed = true;
       if (r.source === 'snapshot') source = 'snapshot';
@@ -146,7 +147,22 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
       });
     }
 
-    allProducts = allProducts.concat(dayProducts);
+    for (const p of dayProducts) {
+      const key = `${p.productId}`;
+      if (allProductsMap.has(key)) {
+        const existing = allProductsMap.get(key);
+        existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
+        existing.dayProduction = decimalToNumber(safePlus(existing.dayProduction, p.dayProduction));
+        existing.nightProduction = decimalToNumber(safePlus(existing.nightProduction, p.nightProduction));
+        existing.sellableStock = decimalToNumber(safePlus(existing.sellableStock, p.sellableStock));
+        existing.remainingStock = decimalToNumber(safePlus(existing.remainingStock, p.remainingStock));
+        existing.wasteQuantity = decimalToNumber(safePlus(existing.wasteQuantity, p.wasteQuantity));
+        existing.estimatedSold = decimalToNumber(safePlus(existing.estimatedSold, p.estimatedSold));
+        existing.estimatedRevenue = decimalToNumber(safePlus(existing.estimatedRevenue, p.estimatedRevenue));
+      } else {
+        allProductsMap.set(key, { ...p });
+      }
+    }
 
     weekData.push({
       date: dateStr,
@@ -159,17 +175,19 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
     });
   }
 
+  const allProducts = Array.from(allProductsMap.values());
+
   const aggregatedTotals = weekData.reduce(
     (acc, day) => ({
-      totalOpeningStock: acc.totalOpeningStock + (day.totals?.totalOpeningStock || 0),
-      totalDayProduction: acc.totalDayProduction + (day.totals?.totalDayProduction || 0),
-      totalNightProduction: acc.totalNightProduction + (day.totals?.totalNightProduction || 0),
-      totalNightProductionPreparedFor: acc.totalNightProductionPreparedFor + (day.totals?.totalNightProductionPreparedFor || 0),
-      totalSellableStock: acc.totalSellableStock + (day.totals?.totalSellableStock || 0),
-      totalRemainingStock: acc.totalRemainingStock + (day.totals?.totalRemainingStock || 0),
-      totalWasteQuantity: acc.totalWasteQuantity + (day.totals?.totalWasteQuantity || 0),
-      totalEstimatedSold: acc.totalEstimatedSold + (day.totals?.totalEstimatedSold || 0),
-      totalEstimatedRevenue: acc.totalEstimatedRevenue + (day.totals?.totalEstimatedRevenue || 0),
+      totalOpeningStock: decimalToNumber(safePlus(acc.totalOpeningStock, day.totals?.totalOpeningStock)),
+      totalDayProduction: decimalToNumber(safePlus(acc.totalDayProduction, day.totals?.totalDayProduction)),
+      totalNightProduction: decimalToNumber(safePlus(acc.totalNightProduction, day.totals?.totalNightProduction)),
+      totalNightProductionPreparedFor: decimalToNumber(safePlus(acc.totalNightProductionPreparedFor, day.totals?.totalNightProductionPreparedFor)),
+      totalSellableStock: decimalToNumber(safePlus(acc.totalSellableStock, day.totals?.totalSellableStock)),
+      totalRemainingStock: decimalToNumber(safePlus(acc.totalRemainingStock, day.totals?.totalRemainingStock)),
+      totalWasteQuantity: decimalToNumber(safePlus(acc.totalWasteQuantity, day.totals?.totalWasteQuantity)),
+      totalEstimatedSold: decimalToNumber(safePlus(acc.totalEstimatedSold, day.totals?.totalEstimatedSold)),
+      totalEstimatedRevenue: decimalToNumber(safePlus(acc.totalEstimatedRevenue, day.totals?.totalEstimatedRevenue)),
     }),
     { totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0, totalNightProductionPreparedFor: 0, totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0, totalEstimatedSold: 0, totalEstimatedRevenue: 0 }
   );
@@ -255,15 +273,15 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
 
   const aggregatedTotals = weeks.reduce(
     (acc, week) => ({
-      totalOpeningStock: acc.totalOpeningStock + (week.totals?.totalOpeningStock || 0),
-      totalDayProduction: acc.totalDayProduction + (week.totals?.totalDayProduction || 0),
-      totalNightProduction: acc.totalNightProduction + (week.totals?.totalNightProduction || 0),
-      totalNightProductionPreparedFor: acc.totalNightProductionPreparedFor + (week.totals?.totalNightProductionPreparedFor || 0),
-      totalSellableStock: acc.totalSellableStock + (week.totals?.totalSellableStock || 0),
-      totalRemainingStock: acc.totalRemainingStock + (week.totals?.totalRemainingStock || 0),
-      totalWasteQuantity: acc.totalWasteQuantity + (week.totals?.totalWasteQuantity || 0),
-      totalEstimatedSold: acc.totalEstimatedSold + (week.totals?.totalEstimatedSold || 0),
-      totalEstimatedRevenue: acc.totalEstimatedRevenue + (week.totals?.totalEstimatedRevenue || 0),
+      totalOpeningStock: decimalToNumber(safePlus(acc.totalOpeningStock, week.totals?.totalOpeningStock)),
+      totalDayProduction: decimalToNumber(safePlus(acc.totalDayProduction, week.totals?.totalDayProduction)),
+      totalNightProduction: decimalToNumber(safePlus(acc.totalNightProduction, week.totals?.totalNightProduction)),
+      totalNightProductionPreparedFor: decimalToNumber(safePlus(acc.totalNightProductionPreparedFor, week.totals?.totalNightProductionPreparedFor)),
+      totalSellableStock: decimalToNumber(safePlus(acc.totalSellableStock, week.totals?.totalSellableStock)),
+      totalRemainingStock: decimalToNumber(safePlus(acc.totalRemainingStock, week.totals?.totalRemainingStock)),
+      totalWasteQuantity: decimalToNumber(safePlus(acc.totalWasteQuantity, week.totals?.totalWasteQuantity)),
+      totalEstimatedSold: decimalToNumber(safePlus(acc.totalEstimatedSold, week.totals?.totalEstimatedSold)),
+      totalEstimatedRevenue: decimalToNumber(safePlus(acc.totalEstimatedRevenue, week.totals?.totalEstimatedRevenue)),
     }),
     {
       totalOpeningStock: 0,
@@ -278,7 +296,26 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
     }
   );
 
-  const allProducts = weeks.flatMap(w => w.products || []);
+  const allProductsMap = new Map();
+  for (const week of weeks) {
+    for (const p of (week.products || [])) {
+      const key = `${p.productId}`;
+      if (allProductsMap.has(key)) {
+        const existing = allProductsMap.get(key);
+        existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
+        existing.dayProduction = decimalToNumber(safePlus(existing.dayProduction, p.dayProduction));
+        existing.nightProduction = decimalToNumber(safePlus(existing.nightProduction, p.nightProduction));
+        existing.sellableStock = decimalToNumber(safePlus(existing.sellableStock, p.sellableStock));
+        existing.remainingStock = decimalToNumber(safePlus(existing.remainingStock, p.remainingStock));
+        existing.wasteQuantity = decimalToNumber(safePlus(existing.wasteQuantity, p.wasteQuantity));
+        existing.estimatedSold = decimalToNumber(safePlus(existing.estimatedSold, p.estimatedSold));
+        existing.estimatedRevenue = decimalToNumber(safePlus(existing.estimatedRevenue, p.estimatedRevenue));
+      } else {
+        allProductsMap.set(key, { ...p });
+      }
+    }
+  }
+  const allProducts = Array.from(allProductsMap.values());
 
   let branchName = 'All Branches';
   if (branchId) {
@@ -388,7 +425,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (pidFilter && item.productId !== pidFilter) continue;
 
         const key = `${item.productId}`;
-        const itemPrice = Number(item.snapshotPrice ?? item.product.price);
+        const itemPrice = Number(item.snapshotPrice ?? 0);
         const priceKey = `${m}-${key}`;
         if (!snapshotPriceSets[priceKey]) snapshotPriceSets[priceKey] = new Set();
         snapshotPriceSets[priceKey].add(itemPrice);
@@ -402,29 +439,30 @@ async function getYearlyReport(branchId, year, category, productId) {
         const sold = Number(item.estimatedSold) || 0;
         const revenue = Number(item.estimatedRevenue) || 0;
 
-        monthTotalsMap[m].totalOpeningStock += opening;
-        monthTotalsMap[m].totalDayProduction += dayProd;
-        monthTotalsMap[m].totalNightProduction += nightProd;
-        monthTotalsMap[m].totalSellableStock += sellable;
-        monthTotalsMap[m].totalRemainingStock += remaining;
-        monthTotalsMap[m].totalWasteQuantity += waste;
-        monthTotalsMap[m].totalEstimatedSold += sold;
-        monthTotalsMap[m].totalEstimatedRevenue += revenue;
+        monthTotalsMap[m].totalOpeningStock = decimalToNumber(safePlus(monthTotalsMap[m].totalOpeningStock, opening));
+        monthTotalsMap[m].totalDayProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalDayProduction, dayProd));
+        monthTotalsMap[m].totalNightProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalNightProduction, nightProd));
+        monthTotalsMap[m].totalSellableStock = decimalToNumber(safePlus(monthTotalsMap[m].totalSellableStock, sellable));
+        monthTotalsMap[m].totalRemainingStock = decimalToNumber(safePlus(monthTotalsMap[m].totalRemainingStock, remaining));
+        monthTotalsMap[m].totalWasteQuantity = decimalToNumber(safePlus(monthTotalsMap[m].totalWasteQuantity, waste));
+        monthTotalsMap[m].totalEstimatedSold = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedSold, sold));
+        monthTotalsMap[m].totalEstimatedRevenue = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedRevenue, revenue));
 
-        branchYearlyTotals[branch.id][m].totalDayProduction += dayProd;
-        branchYearlyTotals[branch.id][m].totalNightProduction += nightProd;
-        branchYearlyTotals[branch.id][m].totalSellableStock += sellable;
-        branchYearlyTotals[branch.id][m].totalRemainingStock += remaining;
-        branchYearlyTotals[branch.id][m].totalWasteQuantity += waste;
-        branchYearlyTotals[branch.id][m].totalEstimatedSold += sold;
-        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += revenue;
+        branchYearlyTotals[branch.id][m].totalDayProduction = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalDayProduction, dayProd));
+        branchYearlyTotals[branch.id][m].totalNightProduction = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalNightProduction, nightProd));
+        branchYearlyTotals[branch.id][m].totalSellableStock = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalSellableStock, sellable));
+        branchYearlyTotals[branch.id][m].totalRemainingStock = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalRemainingStock, remaining));
+        branchYearlyTotals[branch.id][m].totalWasteQuantity = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalWasteQuantity, waste));
+        branchYearlyTotals[branch.id][m].totalEstimatedSold = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalEstimatedSold, sold));
+        branchYearlyTotals[branch.id][m].totalEstimatedRevenue = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalEstimatedRevenue, revenue));
 
         if (!monthProductsMap[m][key]) {
           monthProductsMap[m][key] = {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.snapshotPrice ?? item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? 0) || 0,
+            displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -435,14 +473,14 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        monthProductsMap[m][key].totalOpeningStock += opening;
-        monthProductsMap[m][key].totalDayProduction += dayProd;
-        monthProductsMap[m][key].totalNightProduction += nightProd;
-        monthProductsMap[m][key].totalSellableStock += sellable;
-        monthProductsMap[m][key].totalRemainingStock += remaining;
-        monthProductsMap[m][key].totalWasteQuantity += waste;
-        monthProductsMap[m][key].totalEstimatedSold += sold;
-        monthProductsMap[m][key].totalEstimatedRevenue += revenue;
+        monthProductsMap[m][key].totalOpeningStock = decimalToNumber(safePlus(monthProductsMap[m][key].totalOpeningStock, opening));
+        monthProductsMap[m][key].totalDayProduction = decimalToNumber(safePlus(monthProductsMap[m][key].totalDayProduction, dayProd));
+        monthProductsMap[m][key].totalNightProduction = decimalToNumber(safePlus(monthProductsMap[m][key].totalNightProduction, nightProd));
+        monthProductsMap[m][key].totalSellableStock = decimalToNumber(safePlus(monthProductsMap[m][key].totalSellableStock, sellable));
+        monthProductsMap[m][key].totalRemainingStock = decimalToNumber(safePlus(monthProductsMap[m][key].totalRemainingStock, remaining));
+        monthProductsMap[m][key].totalWasteQuantity = decimalToNumber(safePlus(monthProductsMap[m][key].totalWasteQuantity, waste));
+        monthProductsMap[m][key].totalEstimatedSold = decimalToNumber(safePlus(monthProductsMap[m][key].totalEstimatedSold, sold));
+        monthProductsMap[m][key].totalEstimatedRevenue = decimalToNumber(safePlus(monthProductsMap[m][key].totalEstimatedRevenue, revenue));
 
         if (!branchProductsMap[branch.id][m]) {
           branchProductsMap[branch.id][m] = {};
@@ -452,7 +490,8 @@ async function getYearlyReport(branchId, year, category, productId) {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.snapshotPrice ?? item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? 0) || 0,
+            displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -463,21 +502,22 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        branchProductsMap[branch.id][m][key].totalOpeningStock += opening;
-        branchProductsMap[branch.id][m][key].totalDayProduction += dayProd;
-        branchProductsMap[branch.id][m][key].totalNightProduction += nightProd;
-        branchProductsMap[branch.id][m][key].totalSellableStock += sellable;
-        branchProductsMap[branch.id][m][key].totalRemainingStock += remaining;
-        branchProductsMap[branch.id][m][key].totalWasteQuantity += waste;
-        branchProductsMap[branch.id][m][key].totalEstimatedSold += sold;
-        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += revenue;
+        branchProductsMap[branch.id][m][key].totalOpeningStock = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalOpeningStock, opening));
+        branchProductsMap[branch.id][m][key].totalDayProduction = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalDayProduction, dayProd));
+        branchProductsMap[branch.id][m][key].totalNightProduction = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalNightProduction, nightProd));
+        branchProductsMap[branch.id][m][key].totalSellableStock = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalSellableStock, sellable));
+        branchProductsMap[branch.id][m][key].totalRemainingStock = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalRemainingStock, remaining));
+        branchProductsMap[branch.id][m][key].totalWasteQuantity = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalWasteQuantity, waste));
+        branchProductsMap[branch.id][m][key].totalEstimatedSold = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalEstimatedSold, sold));
+        branchProductsMap[branch.id][m][key].totalEstimatedRevenue = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalEstimatedRevenue, revenue));
 
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
             productId: item.productId,
             productName: item.product.name,
             category: item.product.category,
-            price: Number(item.snapshotPrice ?? item.product.price) || 0,
+            price: Number(item.snapshotPrice ?? 0) || 0,
+            displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0,
             totalDayProduction: 0,
             totalNightProduction: 0,
@@ -488,14 +528,14 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalEstimatedRevenue: 0,
           };
         }
-        productYearlyTotals[key].totalOpeningStock += opening;
-        productYearlyTotals[key].totalDayProduction += dayProd;
-        productYearlyTotals[key].totalNightProduction += nightProd;
-        productYearlyTotals[key].totalSellableStock += sellable;
-        productYearlyTotals[key].totalRemainingStock += remaining;
-        productYearlyTotals[key].totalWasteQuantity += waste;
-        productYearlyTotals[key].totalEstimatedSold += sold;
-        productYearlyTotals[key].totalEstimatedRevenue += revenue;
+        productYearlyTotals[key].totalOpeningStock = decimalToNumber(safePlus(productYearlyTotals[key].totalOpeningStock, opening));
+        productYearlyTotals[key].totalDayProduction = decimalToNumber(safePlus(productYearlyTotals[key].totalDayProduction, dayProd));
+        productYearlyTotals[key].totalNightProduction = decimalToNumber(safePlus(productYearlyTotals[key].totalNightProduction, nightProd));
+        productYearlyTotals[key].totalSellableStock = decimalToNumber(safePlus(productYearlyTotals[key].totalSellableStock, sellable));
+        productYearlyTotals[key].totalRemainingStock = decimalToNumber(safePlus(productYearlyTotals[key].totalRemainingStock, remaining));
+        productYearlyTotals[key].totalWasteQuantity = decimalToNumber(safePlus(productYearlyTotals[key].totalWasteQuantity, waste));
+        productYearlyTotals[key].totalEstimatedSold = decimalToNumber(safePlus(productYearlyTotals[key].totalEstimatedSold, sold));
+        productYearlyTotals[key].totalEstimatedRevenue = decimalToNumber(safePlus(productYearlyTotals[key].totalEstimatedRevenue, revenue));
       }
     }
 
@@ -628,8 +668,8 @@ async function getYearlyReport(branchId, year, category, productId) {
 
           if (dayProd === 0 && nightProd === 0 && remaining === 0 && waste === 0) continue;
 
-          const sellable = dayProd + nightProd;
-          const dailySold = Math.max(0, sellable - remaining - waste);
+          const sellable = decimalToNumber(safePlus(dayProd, nightProd));
+          const dailySold = Math.max(0, decimalToNumber(safeMinus(sellable, decimalToNumber(safePlus(remaining, waste)))));
           const lookupDate = dk;
 
           const entries = historyByProduct[pid] || [];
@@ -643,20 +683,20 @@ async function getYearlyReport(branchId, year, category, productId) {
               break;
             }
           }
-          const dailyPrice = histPrice ?? (Number(product.price) || 0);
+          const dailyPrice = histPrice ?? 0;
           if (!livePriceSets[pid]) livePriceSets[pid] = new Set();
           livePriceSets[pid].add(dailyPrice);
-          const dailyRevenue = dailySold * dailyPrice;
+          const dailyRevenue = decimalToNumber(safeMultiply(dailySold, dailyPrice));
 
-          mDayProd += dayProd;
-          mNightProd += nightProd;
-          mRemaining += remaining;
-          mWaste += waste;
-          mEstimatedSold += dailySold;
-          mEstimatedRevenue += dailyRevenue;
+          mDayProd = decimalToNumber(safePlus(mDayProd, dayProd));
+          mNightProd = decimalToNumber(safePlus(mNightProd, nightProd));
+          mRemaining = decimalToNumber(safePlus(mRemaining, remaining));
+          mWaste = decimalToNumber(safePlus(mWaste, waste));
+          mEstimatedSold = decimalToNumber(safePlus(mEstimatedSold, dailySold));
+          mEstimatedRevenue = decimalToNumber(safePlus(mEstimatedRevenue, dailyRevenue));
         }
 
-        const sellable = mDayProd + mNightProd;
+        const sellable = decimalToNumber(safePlus(mDayProd, mNightProd));
 
         const allPrices = new Set([...(livePriceSets[pid] || [])]);
         const snapKey = `${m}-${pid}`;
@@ -664,12 +704,16 @@ async function getYearlyReport(branchId, year, category, productId) {
           snapshotPriceSets[snapKey].forEach(p => allPrices.add(p));
         }
         const sortedPrices = [...allPrices].sort((a, b) => a - b);
-        const displayPrice = sortedPrices.length === 1 ? String(sortedPrices[0]) : sortedPrices.join(' → ');
+        const displayPrice = sortedPrices.length === 1
+          ? String(sortedPrices[0])
+          : sortedPrices.length > 1
+            ? `${sortedPrices[0]} – ${sortedPrices[sortedPrices.length - 1]}`
+            : '0';
 
         monthlyProd[pid] = {
           name: product.name,
           category: product.category,
-          price: Number(product.price) || 0,
+          price: 0,
           displayPrice,
           dayProd: mDayProd,
           nightProd: mNightProd,
@@ -703,13 +747,13 @@ async function getYearlyReport(branchId, year, category, productId) {
         } else {
           monthProductsMap[m][key].displayPrice = prod.displayPrice;
         }
-        monthProductsMap[m][key].totalDayProduction += prod.dayProd;
-        monthProductsMap[m][key].totalNightProduction += prod.nightProd;
-        monthProductsMap[m][key].totalSellableStock += prod.sellable;
-        monthProductsMap[m][key].totalRemainingStock += prod.remaining;
-        monthProductsMap[m][key].totalWasteQuantity += prod.waste;
-        monthProductsMap[m][key].totalEstimatedSold += prod.estimatedSold;
-        monthProductsMap[m][key].totalEstimatedRevenue += prod.estimatedRevenue;
+        monthProductsMap[m][key].totalDayProduction = decimalToNumber(safePlus(monthProductsMap[m][key].totalDayProduction, prod.dayProd));
+        monthProductsMap[m][key].totalNightProduction = decimalToNumber(safePlus(monthProductsMap[m][key].totalNightProduction, prod.nightProd));
+        monthProductsMap[m][key].totalSellableStock = decimalToNumber(safePlus(monthProductsMap[m][key].totalSellableStock, prod.sellable));
+        monthProductsMap[m][key].totalRemainingStock = decimalToNumber(safePlus(monthProductsMap[m][key].totalRemainingStock, prod.remaining));
+        monthProductsMap[m][key].totalWasteQuantity = decimalToNumber(safePlus(monthProductsMap[m][key].totalWasteQuantity, prod.waste));
+        monthProductsMap[m][key].totalEstimatedSold = decimalToNumber(safePlus(monthProductsMap[m][key].totalEstimatedSold, prod.estimatedSold));
+        monthProductsMap[m][key].totalEstimatedRevenue = decimalToNumber(safePlus(monthProductsMap[m][key].totalEstimatedRevenue, prod.estimatedRevenue));
 
         if (!branchProductsMap[branch.id][m]) {
           branchProductsMap[branch.id][m] = {};
@@ -732,29 +776,29 @@ async function getYearlyReport(branchId, year, category, productId) {
         } else {
           branchProductsMap[branch.id][m][key].displayPrice = prod.displayPrice;
         }
-        branchProductsMap[branch.id][m][key].totalDayProduction += prod.dayProd;
-        branchProductsMap[branch.id][m][key].totalNightProduction += prod.nightProd;
-        branchProductsMap[branch.id][m][key].totalSellableStock += prod.sellable;
-        branchProductsMap[branch.id][m][key].totalRemainingStock += prod.remaining;
-        branchProductsMap[branch.id][m][key].totalWasteQuantity += prod.waste;
-        branchProductsMap[branch.id][m][key].totalEstimatedSold += prod.estimatedSold;
-        branchProductsMap[branch.id][m][key].totalEstimatedRevenue += prod.estimatedRevenue;
+        branchProductsMap[branch.id][m][key].totalDayProduction = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalDayProduction, prod.dayProd));
+        branchProductsMap[branch.id][m][key].totalNightProduction = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalNightProduction, prod.nightProd));
+        branchProductsMap[branch.id][m][key].totalSellableStock = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalSellableStock, prod.sellable));
+        branchProductsMap[branch.id][m][key].totalRemainingStock = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalRemainingStock, prod.remaining));
+        branchProductsMap[branch.id][m][key].totalWasteQuantity = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalWasteQuantity, prod.waste));
+        branchProductsMap[branch.id][m][key].totalEstimatedSold = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalEstimatedSold, prod.estimatedSold));
+        branchProductsMap[branch.id][m][key].totalEstimatedRevenue = decimalToNumber(safePlus(branchProductsMap[branch.id][m][key].totalEstimatedRevenue, prod.estimatedRevenue));
 
-        monthTotalsMap[m].totalDayProduction += prod.dayProd;
-        monthTotalsMap[m].totalNightProduction += prod.nightProd;
-        monthTotalsMap[m].totalSellableStock += prod.sellable;
-        monthTotalsMap[m].totalRemainingStock += prod.remaining;
-        monthTotalsMap[m].totalWasteQuantity += prod.waste;
-        monthTotalsMap[m].totalEstimatedSold += prod.estimatedSold;
-        monthTotalsMap[m].totalEstimatedRevenue += prod.estimatedRevenue;
+        monthTotalsMap[m].totalDayProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalDayProduction, prod.dayProd));
+        monthTotalsMap[m].totalNightProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalNightProduction, prod.nightProd));
+        monthTotalsMap[m].totalSellableStock = decimalToNumber(safePlus(monthTotalsMap[m].totalSellableStock, prod.sellable));
+        monthTotalsMap[m].totalRemainingStock = decimalToNumber(safePlus(monthTotalsMap[m].totalRemainingStock, prod.remaining));
+        monthTotalsMap[m].totalWasteQuantity = decimalToNumber(safePlus(monthTotalsMap[m].totalWasteQuantity, prod.waste));
+        monthTotalsMap[m].totalEstimatedSold = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedSold, prod.estimatedSold));
+        monthTotalsMap[m].totalEstimatedRevenue = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedRevenue, prod.estimatedRevenue));
 
-        branchYearlyTotals[branch.id][m].totalDayProduction += prod.dayProd;
-        branchYearlyTotals[branch.id][m].totalNightProduction += prod.nightProd;
-        branchYearlyTotals[branch.id][m].totalSellableStock += prod.sellable;
-        branchYearlyTotals[branch.id][m].totalRemainingStock += prod.remaining;
-        branchYearlyTotals[branch.id][m].totalWasteQuantity += prod.waste;
-        branchYearlyTotals[branch.id][m].totalEstimatedSold += prod.estimatedSold;
-        branchYearlyTotals[branch.id][m].totalEstimatedRevenue += prod.estimatedRevenue;
+        branchYearlyTotals[branch.id][m].totalDayProduction = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalDayProduction, prod.dayProd));
+        branchYearlyTotals[branch.id][m].totalNightProduction = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalNightProduction, prod.nightProd));
+        branchYearlyTotals[branch.id][m].totalSellableStock = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalSellableStock, prod.sellable));
+        branchYearlyTotals[branch.id][m].totalRemainingStock = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalRemainingStock, prod.remaining));
+        branchYearlyTotals[branch.id][m].totalWasteQuantity = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalWasteQuantity, prod.waste));
+        branchYearlyTotals[branch.id][m].totalEstimatedSold = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalEstimatedSold, prod.estimatedSold));
+        branchYearlyTotals[branch.id][m].totalEstimatedRevenue = decimalToNumber(safePlus(branchYearlyTotals[branch.id][m].totalEstimatedRevenue, prod.estimatedRevenue));
 
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
@@ -774,13 +818,13 @@ async function getYearlyReport(branchId, year, category, productId) {
         } else {
           productYearlyTotals[key].displayPrice = prod.displayPrice;
         }
-        productYearlyTotals[key].totalDayProduction += prod.dayProd;
-        productYearlyTotals[key].totalNightProduction += prod.nightProd;
-        productYearlyTotals[key].totalSellableStock += prod.sellable;
-        productYearlyTotals[key].totalRemainingStock += prod.remaining;
-        productYearlyTotals[key].totalWasteQuantity += prod.waste;
-        productYearlyTotals[key].totalEstimatedSold += prod.estimatedSold;
-        productYearlyTotals[key].totalEstimatedRevenue += prod.estimatedRevenue;
+        productYearlyTotals[key].totalDayProduction = decimalToNumber(safePlus(productYearlyTotals[key].totalDayProduction, prod.dayProd));
+        productYearlyTotals[key].totalNightProduction = decimalToNumber(safePlus(productYearlyTotals[key].totalNightProduction, prod.nightProd));
+        productYearlyTotals[key].totalSellableStock = decimalToNumber(safePlus(productYearlyTotals[key].totalSellableStock, prod.sellable));
+        productYearlyTotals[key].totalRemainingStock = decimalToNumber(safePlus(productYearlyTotals[key].totalRemainingStock, prod.remaining));
+        productYearlyTotals[key].totalWasteQuantity = decimalToNumber(safePlus(productYearlyTotals[key].totalWasteQuantity, prod.waste));
+        productYearlyTotals[key].totalEstimatedSold = decimalToNumber(safePlus(productYearlyTotals[key].totalEstimatedSold, prod.estimatedSold));
+        productYearlyTotals[key].totalEstimatedRevenue = decimalToNumber(safePlus(productYearlyTotals[key].totalEstimatedRevenue, prod.estimatedRevenue));
       }
     }
   }
@@ -813,15 +857,15 @@ async function getYearlyReport(branchId, year, category, productId) {
 
   const aggregatedTotals = Object.values(monthTotalsMap).reduce(
     (acc, mTotals) => ({
-      totalOpeningStock: acc.totalOpeningStock + (mTotals.totalOpeningStock || 0),
-      totalDayProduction: acc.totalDayProduction + (mTotals.totalDayProduction || 0),
-      totalNightProduction: acc.totalNightProduction + (mTotals.totalNightProduction || 0),
-      totalNightProductionPreparedFor: acc.totalNightProductionPreparedFor + (mTotals.totalNightProductionPreparedFor || 0),
-      totalSellableStock: acc.totalSellableStock + (mTotals.totalSellableStock || 0),
-      totalRemainingStock: acc.totalRemainingStock + (mTotals.totalRemainingStock || 0),
-      totalWasteQuantity: acc.totalWasteQuantity + (mTotals.totalWasteQuantity || 0),
-      totalEstimatedSold: acc.totalEstimatedSold + (mTotals.totalEstimatedSold || 0),
-      totalEstimatedRevenue: acc.totalEstimatedRevenue + (mTotals.totalEstimatedRevenue || 0),
+      totalOpeningStock: decimalToNumber(safePlus(acc.totalOpeningStock, mTotals.totalOpeningStock)),
+      totalDayProduction: decimalToNumber(safePlus(acc.totalDayProduction, mTotals.totalDayProduction)),
+      totalNightProduction: decimalToNumber(safePlus(acc.totalNightProduction, mTotals.totalNightProduction)),
+      totalNightProductionPreparedFor: decimalToNumber(safePlus(acc.totalNightProductionPreparedFor, mTotals.totalNightProductionPreparedFor)),
+      totalSellableStock: decimalToNumber(safePlus(acc.totalSellableStock, mTotals.totalSellableStock)),
+      totalRemainingStock: decimalToNumber(safePlus(acc.totalRemainingStock, mTotals.totalRemainingStock)),
+      totalWasteQuantity: decimalToNumber(safePlus(acc.totalWasteQuantity, mTotals.totalWasteQuantity)),
+      totalEstimatedSold: decimalToNumber(safePlus(acc.totalEstimatedSold, mTotals.totalEstimatedSold)),
+      totalEstimatedRevenue: decimalToNumber(safePlus(acc.totalEstimatedRevenue, mTotals.totalEstimatedRevenue)),
     }),
     {
       totalOpeningStock: 0,
@@ -894,8 +938,12 @@ function exportToCSV(reportData) {
     remainingStock: p.remainingStock ?? p.totalRemainingStock ?? 0,
     wasteQuantity: p.wasteQuantity ?? p.totalWasteQuantity ?? 0,
     estimatedSold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
-    estimatedRevenue: p.estimatedRevenue ?? p.totalEstimatedRevenue ?? 0,
-  }));
+    estimatedRevenue: p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0,
+  })).filter(p => p.dayProduction !== 0 || p.nightProduction !== 0 || p.sellableStock !== 0 || p.remainingStock !== 0 || p.wasteQuantity !== 0 || p.estimatedSold !== 0 || p.estimatedRevenue !== 0);
+
+  if (normalizedProducts.length === 0) {
+    return [headers.map(escapeCSV).join(','), escapeCSV('No operational activity recorded.')].join('\n');
+  }
 
   const rows = normalizedProducts.map(p => [
     escapeCSV(p.productName),

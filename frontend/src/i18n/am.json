@@ -123,7 +123,9 @@
     "action": "እርምጃ",
     "noRecords": "ምንም የምርት መዝገቦች የሉም",
     "showing": "ከ {{total}} የምርት ቡድኖች {{from}} እስከ {{to}} ያሳያል",
-    "pageOf": "ገጽ {{current}} ከ {{total}}"
+    "pageOf": "ገጽ {{current}} ከ {{total}}",
+    "deleteConfirm": "ይህን የምርት መዝገብ መሰረዝ ይፈልጋሉ?",
+    "deleted": "የምርት መዝገብ በተሳካ ሁኔታ ተሰርዟል!"
   },
   "remaining": {
     "title": "የቀረ ክምችት",
@@ -318,6 +320,7 @@
     "deleteConfirm": "ይህን የብክነት መዝገብ መሰረዝ ይፈልጋሉ?",
     "saving": "በማስቀመጥ ላይ...",
     "showing": "ከ {{total}} መዝገቦች {{from}} እስከ {{to}} ያሳያል",
-    "pageOf": "ገጽ {{current}} ከ {{total}}"
+    "pageOf": "ገጽ {{current}} ከ {{total}}",
+    "cannotEditOlderThan3Days": "ከ3 ቀናት በላይ የሆነ ብክነት መፍጠር/ማስተካከል አይቻልም"
   }
 }
