@@ -190,7 +190,7 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
 
   if (!branchId || branchId === 'all') {
 
-    const [recentProductions, recentRemainings] = await Promise.all([
+    const [recentProductions, recentRemainings, recentWastes, recentClosures] = await Promise.all([
       prisma.productionRecord.findMany({
         where: { 
           operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
@@ -217,6 +217,30 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
         orderBy: { createdAt: 'desc' },
         take: parseInt(limit),
       }),
+      prisma.wasteRecord.findMany({
+        where: {
+          operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
+          ...userFilter
+        },
+        include: {
+          product: { select: { name: true } },
+          creator: { select: { name: true } },
+          branch: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit),
+      }),
+      prisma.dailyClosure.findMany({
+        where: {
+          operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
+        },
+        include: {
+          branch: { select: { name: true } },
+          closedByUser: { select: { name: true } },
+        },
+        orderBy: { closedAt: 'desc' },
+        take: parseInt(limit),
+      }),
     ]);
 
     const activities = [
@@ -240,12 +264,31 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
         user: r.creator.name,
         time: r.createdAt,
       })),
+      ...recentWastes.map(w => ({
+        type: 'WASTE',
+        id: w.id,
+        product: w.product.name,
+        branchName: w.branch?.name || '',
+        quantity: Number(w.quantity),
+        reason: w.reason,
+        user: w.creator.name,
+        time: w.createdAt,
+      })),
+      ...recentClosures.map(c => ({
+        type: 'CLOSURE',
+        id: c.id,
+        branchName: c.branch?.name || '',
+        closureType: c.closureType,
+        isClosed: c.isClosed,
+        user: c.closedByUser?.name || 'System',
+        time: c.closedAt || c.createdAt,
+      })),
     ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, parseInt(limit));
 
     return activities;
   }
 
-  const [recentProductions, recentRemainings] = await Promise.all([
+  const [recentProductions, recentRemainings, recentWastes, recentClosures] = await Promise.all([
     prisma.productionRecord.findMany({
       where: { 
         branchId: parseInt(branchId), 
@@ -272,6 +315,30 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       orderBy: { createdAt: 'desc' },
       take: parseInt(limit),
     }),
+    prisma.wasteRecord.findMany({
+      where: {
+        branchId: parseInt(branchId),
+        operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
+        ...userFilter
+      },
+      include: {
+        product: { select: { name: true } },
+        creator: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit),
+    }),
+    prisma.dailyClosure.findMany({
+      where: {
+        branchId: parseInt(branchId),
+        operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
+      },
+      include: {
+        closedByUser: { select: { name: true } },
+      },
+      orderBy: { closedAt: 'desc' },
+      take: parseInt(limit),
+    }),
   ]);
 
   const activities = [
@@ -292,6 +359,23 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       status: r.status,
       user: r.creator.name,
       time: r.createdAt,
+    })),
+    ...recentWastes.map(w => ({
+      type: 'WASTE',
+      id: w.id,
+      product: w.product.name,
+      quantity: Number(w.quantity),
+      reason: w.reason,
+      user: w.creator.name,
+      time: w.createdAt,
+    })),
+    ...recentClosures.map(c => ({
+      type: 'CLOSURE',
+      id: c.id,
+      closureType: c.closureType,
+      isClosed: c.isClosed,
+      user: c.closedByUser?.name || 'System',
+      time: c.closedAt || c.createdAt,
     })),
   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, parseInt(limit));
 
