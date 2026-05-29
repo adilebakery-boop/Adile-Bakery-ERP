@@ -6,22 +6,23 @@ const findAll = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, status, startDate, endDate } = req.query;
   const { role, userId } = req.user;
 
-  const filters = { branchId, operationalDate, status, startDate, endDate };
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
+
+  const filters = { branchId, operationalDate, status, startDate, endDate, page, limit };
 
   const accessFilter = buildRemainingAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const remainings = await remainingService.findAll(filters);
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const { data, total } = await remainingService.findAll(filters);
   res.json({
     success: true,
-    data: remainings,
+    data,
     pagination: {
       page,
       limit,
-      total: remainings.length,
-      totalPages: Math.ceil(remainings.length / limit),
+      total,
+      totalPages: Math.ceil(total / limit),
     },
   });
 });

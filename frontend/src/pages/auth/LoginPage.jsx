@@ -54,9 +54,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Side - Hero Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-cover bg-center" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80")' }}>
+      <div className="hidden md:flex md:w-1/3 bg-cover bg-center bg-[#F9F7F2]" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80")' }}>
         <div className="w-full bg-black/40 flex items-center justify-center">
           <div className="text-white text-center p-8">
             <h2 className="text-3xl font-bold mb-2">Adile Bakery</h2>

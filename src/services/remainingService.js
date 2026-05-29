@@ -4,9 +4,10 @@ const auditService = require('./auditService');
 const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { requireBranchAccess } = require('../utils/accessFilters');
 
 async function findAll(filters = {}) {
-  const { branchId, operationalDate, status, startDate, endDate, categories } = filters;
+  const { branchId, operationalDate, status, startDate, endDate, categories, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -27,17 +28,26 @@ async function findAll(filters = {}) {
     where.product = { category: { in: categories } };
   }
 
-  const remainings = await prisma.remainingRecord.findMany({
-    where,
-    include: {
-      product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
-      branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-    },
-    orderBy: { operationalDate: 'desc' },
-  });
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
 
-  return remainings;
+  const [data, total] = await Promise.all([
+    prisma.remainingRecord.findMany({
+      where,
+      skip,
+      take: limitNum,
+      include: {
+        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        branch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
+      },
+      orderBy: { operationalDate: 'desc' },
+    }),
+    prisma.remainingRecord.count({ where }),
+  ]);
+
+  return { data, total };
 }
 
 async function findById(id) {
@@ -83,7 +93,7 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
 async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
-  requireBranchAccess(branchId, user);
+  requireBranchAccess(branchId, user, 'inventory');
 
   // Validate quantity is positive
   if (quantity === undefined || quantity === null || Number(quantity) <= 0) {
@@ -180,7 +190,7 @@ async function createBulk(data, user) {
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
-  requireBranchAccess(branchId, user);
+  requireBranchAccess(branchId, user, 'inventory');
 
   await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
 
@@ -317,7 +327,7 @@ async function createBulk(data, user) {
 async function update(id, data, user) {
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, user);
+  requireBranchAccess(existing.branchId, user, 'inventory');
 
   if (!canEditOperationalRecord(existing.operationalDate)) {
     const error = new Error('Remaining records can only be edited within 3 operational days');
@@ -371,7 +381,7 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, user);
+  requireBranchAccess(existing.branchId, user, 'inventory');
 
   await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
@@ -420,22 +430,6 @@ async function getPendingRemainings(branchId) {
   const missingProducts = activeProducts.filter(p => !submittedIds.has(p.id));
 
   return missingProducts;
-}
-
-function requireBranchAccess(branchId, user) {
-  if (!user?.role) return;
-
-  const privilegedRoles = ['ADMIN', 'MANAGER'];
-
-  if (privilegedRoles.includes(user.role)) {
-    return;
-  }
-
-  if (Number(branchId) !== Number(user.branchId)) {
-    const err = new Error('You can only modify inventory for your assigned branch');
-    err.status = 403;
-    throw err;
-  }
 }
 
 module.exports = {

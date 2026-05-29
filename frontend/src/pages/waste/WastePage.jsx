@@ -9,6 +9,7 @@ import { useDeleteWasteMutation } from '../../features/waste/hooks/mutations/use
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { getUser, canEditOperationalRecord } from '../../utils/authUtils';
+import { getCategoriesForRole } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { GroupedTable, OperationalPagination } from '../../components/operational';
 
@@ -16,6 +17,7 @@ export default function WastePage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
+  const userBranchId = user?.branchId;
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,6 +59,8 @@ export default function WastePage() {
   const { data: branches = [] } = useActiveBranchesQuery();
   const { data: productsData } = useProductsQuery({ isActive: true, limit: 500 });
   const products = productsData?.data || [];
+  const allowedCategories = getCategoriesForRole(user?.role);
+  const filteredProducts = canManage ? products : products.filter((p) => allowedCategories.includes(p.category));
 
   const today = new Date();
   const maxCreateDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -237,7 +241,7 @@ export default function WastePage() {
                 disabled={createWaste.isPending}
               >
                 <option value="">{t('waste.selectProduct')}</option>
-                {(Array.isArray(products) ? products : []).map((p) => (
+                {(Array.isArray(filteredProducts) ? filteredProducts : []).map((p) => (
                   <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
                 ))}
               </select>

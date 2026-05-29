@@ -1,5 +1,5 @@
 const prisma = require('../config/prisma');
-const inventoryFlowService = require('./inventoryFlowService');
+const inventoryFlowService = require('../services/inventoryFlowService');
 
 async function verifyBakeryScenario() {
   console.log('=== Bakery Verification Scenario ===\n');
