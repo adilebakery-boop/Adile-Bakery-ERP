@@ -4,11 +4,11 @@ const { buildProductionAccessFilter } = require('../../utils/accessFilters');
 
 const findAllGrouped = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = req.query;
-  const { role, userId } = req.user;
+  const { role, userId, branchId: userBranchId } = req.user;
 
   const filters = { branchId, operationalDate, shift, productId, startDate, endDate, page, limit };
 
-  const accessFilter = buildProductionAccessFilter({ role, userId });
+  const accessFilter = buildProductionAccessFilter({ role, userId, branchId: userBranchId });
   Object.assign(filters, accessFilter);
 
   const result = await productionService.findAllGrouped(filters, req.user);

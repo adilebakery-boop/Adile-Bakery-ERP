@@ -12,6 +12,8 @@ async function findAll(filters = {}) {
 
   if (branchId) where.branchId = parseInt(branchId);
   if (productId) where.productId = parseInt(productId);
+  if (filters.createdBy !== undefined) where.createdBy = filters.createdBy;
+  if (filters.product) where.product = filters.product;
 
   if (operationalDate) {
     where.operationalDate = new Date(operationalDate);
