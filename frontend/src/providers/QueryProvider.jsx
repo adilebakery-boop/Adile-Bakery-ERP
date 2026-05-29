@@ -21,7 +21,7 @@ const queryClient = new QueryClient({
 });
 
 // Enable dev-only logging: uncomment to trace cache events and refetch storms
-// if (process.env.NODE_ENV !== 'production') {
+// if (import.meta.env.DEV) {
 //   const { registerQueryLogger, logRefetchStorm } = require('../utils/rqLogger');
 //   registerQueryLogger(queryClient);
 //   logRefetchStorm(queryClient);
@@ -31,7 +31,7 @@ export default function QueryProvider({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {process.env.NODE_ENV !== 'production' && (
+      {import.meta.env.DEV && (
         <ReactQueryDevtools
           initialIsOpen={false}
           position="bottom-right"

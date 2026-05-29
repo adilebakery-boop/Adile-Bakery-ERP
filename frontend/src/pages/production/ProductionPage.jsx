@@ -304,7 +304,7 @@ export default function ProductionPage() {
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
-          <div className="w-44">
+          <div className="w-full md:w-44">
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.productionDate')}</label>
             <input
               type="date"
@@ -318,8 +318,8 @@ export default function ProductionPage() {
             />
           </div>
 
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
+            <div className="w-full md:flex-1 md:min-w-[180px]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
             {isLoadingProducts ? (
               <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-xl">
                 <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-500" />
@@ -349,7 +349,7 @@ export default function ProductionPage() {
           </div>
 
           {canManageAll && (
-            <div className="flex-1 min-w-[180px]">
+            <div className="w-full md:flex-1 md:min-w-[180px]">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.branch')}</label>
               <select
                 value={branch}
@@ -366,8 +366,8 @@ export default function ProductionPage() {
             </div>
           )}
 
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
+            <div className="w-full md:flex-1 md:min-w-[180px]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
@@ -382,8 +382,8 @@ export default function ProductionPage() {
             </select>
           </div>
 
-          <div className="w-40">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
+            <div className="w-full md:w-40">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
             <input
               type="number"
               value={quantity}
@@ -400,7 +400,7 @@ export default function ProductionPage() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full md:w-auto px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center justify-center md:justify-start gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {createMutation.isPending ? (
               <>
@@ -436,12 +436,13 @@ export default function ProductionPage() {
         ) : entriesError ? (
           <ApiErrorState error={entriesErrorObj} onRetry={() => refetchEntries()} />
         ) : groupedEntries.length > 0 ? (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead className="bg-[#F9F7F2]/50">
               <tr>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider w-10"></th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.product')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider sticky left-0 bg-white dark:bg-[#1a1a2e] z-10">{t('production.product')}</th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.totalProduced')}</th>
                 {canManageAll && (
@@ -470,7 +471,7 @@ export default function ProductionPage() {
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300 font-medium">
                         {formattedDate}
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-semibold text-[#001F3F] dark:text-white">
+                      <td className="px-6 py-3.5 text-sm font-semibold text-[#001F3F] dark:text-white sticky left-0 bg-white dark:bg-[#1a1a2e] z-10">
                         {getLocalizedName(group.product, i18n.language) || group.product?.name || t('common.na')}
                       </td>
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
@@ -568,6 +569,7 @@ export default function ProductionPage() {
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <EmptyState type="production" message={t('production.noRecords')} />
         )}

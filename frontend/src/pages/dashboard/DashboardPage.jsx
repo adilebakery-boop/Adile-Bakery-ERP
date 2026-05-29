@@ -70,7 +70,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div>
+    <div className="px-4 sm:px-6 md:px-8 lg:px-10 max-w-screen-2xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('dashboard.title')}</h1>

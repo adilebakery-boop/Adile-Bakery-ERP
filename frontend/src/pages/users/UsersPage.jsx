@@ -197,8 +197,8 @@ export default function UsersPage() {
 
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="px-4 sm:px-6 md:px-8 lg:px-10 max-w-screen-2xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('users.title')}</h1>
         {canManage && (
           <button onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsModalOpen(true); }} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
@@ -311,7 +311,7 @@ export default function UsersPage() {
         </div>
 
         {!loading && users.length > 0 && totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
             </div>

@@ -3,20 +3,11 @@ const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { canEditOperationalRecord } = require('../utils/dateUtils');
+const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
-function requireBranchAccess(branchId, user) {
-  if (!user?.role) return;
-  if (user.role === 'ADMIN' || user.role === 'MANAGER') return;
-  if (Number(branchId) !== Number(user.branchId)) {
-    const err = new Error('You can only modify waste for your assigned branch');
-    err.status = 403;
-    throw err;
-  }
-}
-
 async function findAll(filters = {}) {
-  const { branchId, operationalDate, productId, startDate, endDate, page, limit } = filters;
+  const { branchId, operationalDate, productId, startDate, endDate, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (branchId) where.branchId = parseInt(branchId);
@@ -33,15 +24,15 @@ async function findAll(filters = {}) {
     };
   }
 
-  const currentPage = Math.max(1, parseInt(page) || 1);
-  const pageSize = Math.max(1, parseInt(limit) || 20);
-  const skip = (currentPage - 1) * pageSize;
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const skip = (pageNum - 1) * limitNum;
 
-  const [wastes, total] = await Promise.all([
+  const [data, total] = await Promise.all([
     prisma.wasteRecord.findMany({
       where,
       skip,
-      take: pageSize,
+      take: limitNum,
       include: {
         product: { select: { id: true, name: true, category: true, unitType: true, isActive: true } },
         branch: { select: { id: true, name: true } },
@@ -52,7 +43,7 @@ async function findAll(filters = {}) {
     prisma.wasteRecord.count({ where }),
   ]);
 
-  return { data: wastes, total };
+  return { data, total };
 }
 
 async function findById(id) {
@@ -77,7 +68,7 @@ async function findById(id) {
 async function create(data, userId) {
   const { productId, quantity, branchId, operationalDate, reason } = data;
 
-  requireBranchAccess(branchId, userId);
+  requireBranchAccess(branchId, userId, 'waste');
 
   const product = await prisma.product.findFirst({
     where: {
@@ -100,6 +91,12 @@ async function create(data, userId) {
 
     const error = new Error('Product not found');
     error.status = 404;
+    throw error;
+  }
+
+  if (!canCreateForCategory(userId, product.category)) {
+    const error = new Error('You can only record waste for products in your category');
+    error.status = 403;
     throw error;
   }
 
@@ -138,7 +135,7 @@ async function create(data, userId) {
 async function update(id, data, userId) {
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, userId);
+  requireBranchAccess(existing.branchId, userId, 'waste');
 
   if (!canEditOperationalRecord(existing.operationalDate)) {
     const error = new Error('Waste records can only be edited within 3 operational days');
@@ -188,6 +185,8 @@ async function remove(id, userId) {
   }
 
   const existing = await findById(id);
+
+  requireBranchAccess(existing.branchId, userId, 'waste');
 
   await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
