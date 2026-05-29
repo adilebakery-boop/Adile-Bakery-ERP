@@ -75,6 +75,17 @@ function canCreateForCategory(user, category) {
   return allowed.includes(category);
 }
 
+function requireBranchAccess(branchId, user, resourceName = 'records') {
+  if (!user?.role) return;
+  const privilegedRoles = ['ADMIN', 'MANAGER'];
+  if (privilegedRoles.includes(user.role)) return;
+  if (Number(branchId) !== Number(user.branchId)) {
+    const err = new Error(`You can only modify ${resourceName} for your assigned branch`);
+    err.status = 403;
+    throw err;
+  }
+}
+
 module.exports = {
   CATEGORIES,
   ROLE_CATEGORIES,
@@ -85,4 +96,5 @@ module.exports = {
   buildRemainingAccessFilter,
   buildWasteAccessFilter,
   canCreateForCategory,
+  requireBranchAccess,
 };

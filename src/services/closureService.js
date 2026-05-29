@@ -28,13 +28,11 @@
 //    generated.  Reports reading from snapshot items must use snapshotPrice,
 //    NOT re-look-up the price from PriceHistory.
 
-const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString } = require('../utils/dateUtils');
-
-const ZERO = new Prisma.Decimal('0');
+const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function getStatus(branchId, operationalDate) {
   const closure = await prisma.dailyClosure.findUnique({
@@ -266,15 +264,15 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
     const snapshotItems = flows.map(flow => ({
       snapshotId: snapshot.id,
       productId: flow.productId,
-      openingStock: new Prisma.Decimal(String(flow.openingStock)),
-      dayProduction: new Prisma.Decimal(String(flow.dayProduction)),
-      nightProduction: new Prisma.Decimal(String(flow.nightProduction)),
-      sellableStock: new Prisma.Decimal(String(flow.sellableStock)),
-      remainingStock: new Prisma.Decimal(String(flow.remainingStock)),
-      wasteQuantity: new Prisma.Decimal(String(flow.wasteQuantity)),
-      estimatedSold: new Prisma.Decimal(String(flow.estimatedSold)),
-      estimatedRevenue: new Prisma.Decimal(String(flow.estimatedRevenue)),
-      snapshotPrice: new Prisma.Decimal(String(flow.price)),
+      openingStock: toDecimal(String(flow.openingStock)),
+      dayProduction: toDecimal(String(flow.dayProduction)),
+      nightProduction: toDecimal(String(flow.nightProduction)),
+      sellableStock: toDecimal(String(flow.sellableStock)),
+      remainingStock: toDecimal(String(flow.remainingStock)),
+      wasteQuantity: toDecimal(String(flow.wasteQuantity)),
+      estimatedSold: toDecimal(String(flow.estimatedSold)),
+      estimatedRevenue: toDecimal(String(flow.estimatedRevenue)),
+      snapshotPrice: toDecimal(String(flow.price)),
     }));
 
     await tx.dailySnapshotItem.createMany({ data: snapshotItems });

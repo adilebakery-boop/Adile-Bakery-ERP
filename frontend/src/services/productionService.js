@@ -2,10 +2,6 @@ import api from './api';
 import { safeCall } from '../utils/normalizeApiResponse';
 
 export const productionService = {
-  getProductions: async (params = {}) => {
-    return safeCall(api.get('/productions', { params }));
-  },
-
   getProductionsGrouped: async (params = {}) => {
     return safeCall(api.get('/productions/grouped', { params }));
   },

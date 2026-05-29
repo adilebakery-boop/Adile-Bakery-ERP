@@ -1,9 +1,9 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Loader2, RefreshCw, Edit2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
-import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
+import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
+import { getCategoriesForRole } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
@@ -12,6 +12,7 @@ import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/us
 import { useProductionEntriesQuery } from '../../features/production/hooks/queries/useProductionEntriesQuery';
 import { useCreateProductionMutation } from '../../features/production/hooks/mutations/useCreateProductionMutation';
 import { useUpdateProductionMutation } from '../../features/production/hooks/mutations/useUpdateProductionMutation';
+import { useDeleteProductionMutation } from '../../features/production/hooks/mutations/useDeleteProductionMutation';
 
 const SHIFTS = [
   { value: 'DAY', labelKey: 'shifts.day' },
@@ -69,7 +70,7 @@ export default function ProductionPage() {
   const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
   const fullProductList = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
 
-  const { data: branches = [], isLoading: isLoadingBranches } = useActiveBranchesQuery();
+  const { data: branches = [] } = useActiveBranchesQuery();
 
   const {
     data: response,
@@ -86,6 +87,7 @@ export default function ProductionPage() {
 
   const createMutation = useCreateProductionMutation();
   const updateMutation = useUpdateProductionMutation();
+  const deleteMutation = useDeleteProductionMutation();
 
   useEffect(() => {
     setCurrentPage(1);
@@ -162,16 +164,6 @@ export default function ProductionPage() {
     return t(`productCategories.${category}`) || category;
   };
 
-  const isEditable = (operationalDateStr) => {
-    if (!operationalDateStr) return false;
-    const [y, m, d] = operationalDateStr.split('-');
-    const opDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays < 3;
-  };
-
   const handleEditClick = (entry) => {
     setEditingEntry(entry);
     setEditFormData({
@@ -213,6 +205,20 @@ export default function ProductionPage() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to update production');
+    }
+  };
+
+  const handleDelete = async (id, branchId) => {
+    if (window.confirm(t('production.deleteConfirm'))) {
+      setError('');
+      setSuccess('');
+      try {
+        await deleteMutation.mutateAsync({ id, branchId });
+        setSuccess(t('production.deleted'));
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (err) {
+        setError(err.message || 'Failed to delete production');
+      }
     }
   };
 
@@ -525,18 +531,27 @@ export default function ProductionPage() {
                                         {entry.creator?.name || entry.creator?.username || '-'}
                                       </td>
                                       <td className="px-6 py-2.5">
-                                        {isEditable(group.operationalDate) ? (
-                                          <button
-                                            onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
-                                          >
+                                        {canEditOperationalRecord(group.operationalDate) ? (
+                                          <div className="flex items-center gap-1">
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
+                                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
+                                            >
+                                              <Edit2 className="w-3 h-3" />
+                                              {t('common.edit')}
+                                            </button>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleDelete(entry.id, group.branchId); }}
+                                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                              {t('common.delete')}
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
                                             <Edit2 className="w-3 h-3" />
                                             {t('common.edit')}
-                                          </button>
-                                        ) : (
-                                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Editing allowed only within 3 operational days">
-                                            <Lock className="w-3 h-3" />
-                                            {t('common.locked')}
                                           </span>
                                         )}
                                       </td>

@@ -1,17 +1,10 @@
-const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-const { canCreateForCategory } = require('../utils/accessFilters');
-
-const ZERO = new Prisma.Decimal('0');
-
-function toDecimal(value) {
-  if (value instanceof Prisma.Decimal) return value;
-  if (value === null || value === undefined) return ZERO;
-  return new Prisma.Decimal(String(value));
-}
+const { canEditOperationalRecord } = require('../utils/dateUtils');
+const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
+const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function findAll(filters = {}) {
   const { branchId, operationalDate, productId, startDate, endDate, page = 1, limit = 20 } = filters;
@@ -72,21 +65,10 @@ async function findById(id) {
   return waste;
 }
 
-function requireBranchAccess(branchId, user) {
-  if (!user?.role) return;
-  const privilegedRoles = ['ADMIN', 'MANAGER'];
-  if (privilegedRoles.includes(user.role)) return;
-  if (Number(branchId) !== Number(user.branchId)) {
-    const err = new Error('You can only record waste for your assigned branch');
-    err.status = 403;
-    throw err;
-  }
-}
-
 async function create(data, userId) {
   const { productId, quantity, branchId, operationalDate, reason } = data;
 
-  requireBranchAccess(branchId, userId);
+  requireBranchAccess(branchId, userId, 'waste');
 
   const product = await prisma.product.findFirst({
     where: {
@@ -127,14 +109,14 @@ async function create(data, userId) {
 
   const opDate = new Date(operationalDate);
 
-  await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
+  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
 
   const waste = await prisma.wasteRecord.create({
     data: {
       productId: parseInt(productId),
       branchId: parseInt(branchId),
       operationalDate: opDate,
-      quantity: new Prisma.Decimal(String(quantity)),
+      quantity: toDecimal(String(quantity)),
       reason: reason || null,
       createdBy: userId.userId,
     },
@@ -153,9 +135,15 @@ async function create(data, userId) {
 async function update(id, data, userId) {
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, userId);
+  requireBranchAccess(existing.branchId, userId, 'waste');
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  if (!canEditOperationalRecord(existing.operationalDate)) {
+    const error = new Error('Waste records can only be edited within 3 operational days');
+    error.status = 403;
+    throw error;
+  }
+
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   const updateData = {};
 
@@ -166,7 +154,7 @@ async function update(id, data, userId) {
       error.status = 400;
       throw error;
     }
-    updateData.quantity = new Prisma.Decimal(String(data.quantity));
+    updateData.quantity = toDecimal(String(data.quantity));
   }
 
   if (data.reason !== undefined) {
@@ -198,9 +186,9 @@ async function remove(id, userId) {
 
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, userId);
+  requireBranchAccess(existing.branchId, userId, 'waste');
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   await prisma.wasteRecord.delete({
     where: { id: parseInt(id) },

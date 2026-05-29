@@ -1,6 +1,7 @@
 const productionService = require('../../services/productionService');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
+<<<<<<< HEAD
 const findAll = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, shift, productId, startDate, endDate } = req.query;
 
@@ -22,6 +23,8 @@ const findAll = asyncHandler(async (req, res) => {
   });
 });
 
+=======
+>>>>>>> 58ff9f0e3f90cda009f7c548bc8f3dc4b957d667
 const findAllGrouped = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = req.query;
 
@@ -98,7 +101,6 @@ const getToday = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  findAll,
   findAllGrouped,
   findById,
   findByOperationalDate,

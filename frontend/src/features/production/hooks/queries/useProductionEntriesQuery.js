@@ -21,7 +21,7 @@ export function useProductionEntriesQuery(branchId, filters = {}) {
         pagination: result.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
       };
     },
-    staleTime: 10 * 1000,
-    refetchInterval: false,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 }
