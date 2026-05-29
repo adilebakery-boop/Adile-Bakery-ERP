@@ -17,6 +17,15 @@ function formatDisplayCurrency(value) {
   return value ? Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ETB' : '-';
 }
 
+function sortProductsAlphabetically(products) {
+  if (!products || !Array.isArray(products)) return [];
+  return products.sort((a, b) => {
+    const nameA = (a.product?.name || a.productName || '').toLowerCase();
+    const nameB = (b.product?.name || b.productName || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+}
+
 function getCategoryTotals(products) {
   const categoryMap = {};
   for (const p of products) {
@@ -30,23 +39,23 @@ function getCategoryTotals(products) {
         totalEstimatedRevenue: 0,
       };
     }
-    categoryMap[cat].totalProduction += p.dayProduction || 0;
-    categoryMap[cat].totalRemaining += p.remainingStock || 0;
-    categoryMap[cat].totalWaste += p.wasteQuantity || 0;
-    categoryMap[cat].totalEstimatedSold += p.estimatedSold || 0;
-    categoryMap[cat].totalEstimatedRevenue += p.estimatedRevenue || 0;
+    categoryMap[cat].totalProduction += p.dayProduction ?? p.totalDayProduction ?? 0;
+    categoryMap[cat].totalRemaining += p.remainingStock ?? p.totalRemainingStock ?? 0;
+    categoryMap[cat].totalWaste += p.wasteQuantity ?? p.totalWasteQuantity ?? 0;
+    categoryMap[cat].totalEstimatedSold += p.estimatedSold ?? p.totalEstimatedSold ?? 0;
+    categoryMap[cat].totalEstimatedRevenue += p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0;
   }
   return categoryMap;
 }
 
 function getTopProducts(products, count = 5) {
   return [...products]
-    .sort((a, b) => (b.estimatedRevenue || 0) - (a.estimatedRevenue || 0))
+    .sort((a, b) => ((b.totalEstimatedRevenue ?? b.estimatedRevenue ?? 0) - (a.totalEstimatedRevenue ?? a.estimatedRevenue ?? 0)))
     .slice(0, count)
     .map(p => ({
       name: p.productName,
-      revenue: p.estimatedRevenue || 0,
-      sold: p.estimatedSold || 0,
+      revenue: p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0,
+      sold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
     }));
 }
 
@@ -130,7 +139,18 @@ function addKPISection(worksheet, kpis, startRow) {
   return row + 1;
 }
 
+function isZeroProduct(p) {
+  return (p.totalDayProduction ?? p.dayProduction ?? 0) === 0
+    && (p.totalNightProduction ?? p.nightProduction ?? 0) === 0
+    && (p.totalSellableStock ?? p.sellableStock ?? 0) === 0
+    && (p.totalRemainingStock ?? p.remainingStock ?? 0) === 0
+    && (p.totalWasteQuantity ?? p.wasteQuantity ?? 0) === 0
+    && (p.totalEstimatedSold ?? p.estimatedSold ?? 0) === 0
+    && (p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0) === 0;
+}
+
 function addDataTable(worksheet, products, startRow, includeNightProduction = true) {
+  products = sortProductsAlphabetically(products).filter(p => !isZeroProduct(p));
   const headers = [
     'Product',
     'Category',
@@ -168,6 +188,16 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     };
   }
   row++;
+
+  if (products.length === 0) {
+    worksheet.mergeCells(row, 1, row, headers.length);
+    worksheet.getCell(row, 1).value = 'No operational activity recorded.';
+    worksheet.getCell(row, 1).alignment = { horizontal: 'center' };
+    worksheet.getCell(row, 1).font = { italic: true, color: { argb: '999999' } };
+    row++;
+    row++;
+    return row;
+  }
 
   for (const p of products) {
     const numericCols = [
@@ -444,6 +474,7 @@ async function exportDailyReport(reportData, options = {}) {
       currentRow = addKPISection(worksheet, kpis, currentRow);
       currentRow = addDataTable(worksheet, branch.products, currentRow, true);
       currentRow++;
+
     }
 
     worksheet.mergeCells(currentRow, 1, currentRow, 8);

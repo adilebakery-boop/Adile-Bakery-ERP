@@ -1,1 +1,224 @@
 Server running on port 3000
+[ROLLOVER] start branchId=2 currentDate=2026-05-29
+[ROLLOVER] start branchId=3 currentDate=2026-05-29
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] finalized_drafts branchId=3 date=2026-05-28 count=2
+[ROLLOVER] auto_closed branchId=3 date=2026-05-28 closureId=65 snapshotId=64 items=12
+[ROLLOVER] success branchId=3 days=1 duration=87ms
+[TRAFFIC] 15min-window counts (log interval: 60s):
+  other               5  (100.0%)
+  dashboard           0  (0.0%)
+  remaining           0  (0.0%)
+  production          0  (0.0%)
+  products            0  (0.0%)
+  branches            0  (0.0%)
+  reports             0  (0.0%)
+  users               0  (0.0%)
+  auth                0  (0.0%)
+  waste               0  (0.0%)
+  closure             0  (0.0%)
+  TOTAL               5
+[ROLLOVER] start branchId=2 currentDate=2026-05-25
+[ROLLOVER] start branchId=3 currentDate=2026-05-25
+[ROLLOVER] start branchId=1 currentDate=2026-05-25
+[ROLLOVER] start branchId=3 currentDate=2026-05-26
+[ROLLOVER] start branchId=1 currentDate=2026-05-26
+[ROLLOVER] start branchId=1 currentDate=2026-05-27
+[ROLLOVER] start branchId=1 currentDate=2026-05-28
+[ROLLOVER] start branchId=2 currentDate=2026-05-30
+[ROLLOVER] start branchId=3 currentDate=2026-05-30
+[ROLLOVER] start branchId=1 currentDate=2026-05-30
+[ROLLOVER] start branchId=2 currentDate=2026-05-31
+[ROLLOVER] start branchId=3 currentDate=2026-05-31
+[ROLLOVER] start branchId=1 currentDate=2026-05-31
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] finalized_drafts branchId=3 date=2026-05-29 count=1
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] auto_closed branchId=3 date=2026-05-29 closureId=66 snapshotId=65 items=12
+[ROLLOVER] success branchId=3 days=1 duration=137ms
+[ROLLOVER] finalized_drafts branchId=3 date=2026-05-29 count=1
+[ROLLOVER] skipped branchId=3 date=2026-05-29 concurrent tx won (unique constraint)
+[ROLLOVER] skipped branchId=3 date=2026-05-29 concurrent tx handled this day
+[ROLLOVER] success branchId=3 days=1 duration=144ms
+[ROLLOVER] start branchId=2 currentDate=2026-05-18
+[ROLLOVER] start branchId=3 currentDate=2026-05-18
+[ROLLOVER] start branchId=1 currentDate=2026-05-18
+[ROLLOVER] start branchId=2 currentDate=2026-05-19
+[ROLLOVER] start branchId=3 currentDate=2026-05-19
+[ROLLOVER] start branchId=1 currentDate=2026-05-19
+[ROLLOVER] start branchId=2 currentDate=2026-05-20
+[ROLLOVER] start branchId=3 currentDate=2026-05-20
+[ROLLOVER] start branchId=1 currentDate=2026-05-20
+[ROLLOVER] start branchId=2 currentDate=2026-05-21
+[ROLLOVER] start branchId=3 currentDate=2026-05-21
+[ROLLOVER] start branchId=1 currentDate=2026-05-21
+[ROLLOVER] start branchId=2 currentDate=2026-05-22
+[ROLLOVER] start branchId=3 currentDate=2026-05-22
+[ROLLOVER] start branchId=1 currentDate=2026-05-22
+[ROLLOVER] start branchId=2 currentDate=2026-05-23
+[ROLLOVER] start branchId=3 currentDate=2026-05-23
+[ROLLOVER] start branchId=1 currentDate=2026-05-23
+[ROLLOVER] start branchId=2 currentDate=2026-05-24
+[ROLLOVER] start branchId=3 currentDate=2026-05-24
+[ROLLOVER] start branchId=1 currentDate=2026-05-24
+[ROLLOVER] start branchId=2 currentDate=2026-04-27
+[ROLLOVER] start branchId=3 currentDate=2026-04-27
+[ROLLOVER] start branchId=1 currentDate=2026-04-27
+[ROLLOVER] start branchId=2 currentDate=2026-04-28
+[ROLLOVER] start branchId=3 currentDate=2026-04-28
+[ROLLOVER] start branchId=1 currentDate=2026-04-28
+[ROLLOVER] start branchId=2 currentDate=2026-04-29
+[ROLLOVER] start branchId=3 currentDate=2026-04-29
+[ROLLOVER] start branchId=1 currentDate=2026-04-29
+[ROLLOVER] start branchId=2 currentDate=2026-04-30
+[ROLLOVER] start branchId=3 currentDate=2026-04-30
+[ROLLOVER] start branchId=1 currentDate=2026-04-30
+[ROLLOVER] start branchId=2 currentDate=2026-05-01
+[ROLLOVER] start branchId=3 currentDate=2026-05-01
+[ROLLOVER] start branchId=1 currentDate=2026-05-01
+[ROLLOVER] start branchId=2 currentDate=2026-05-02
+[ROLLOVER] start branchId=3 currentDate=2026-05-02
+[ROLLOVER] start branchId=1 currentDate=2026-05-02
+[ROLLOVER] start branchId=2 currentDate=2026-05-03
+[ROLLOVER] start branchId=3 currentDate=2026-05-03
+[ROLLOVER] start branchId=1 currentDate=2026-05-03
+[ROLLOVER] start branchId=2 currentDate=2026-05-11
+[ROLLOVER] start branchId=3 currentDate=2026-05-11
+[ROLLOVER] start branchId=1 currentDate=2026-05-11
+[ROLLOVER] start branchId=2 currentDate=2026-05-12
+[ROLLOVER] start branchId=3 currentDate=2026-05-12
+[ROLLOVER] start branchId=1 currentDate=2026-05-12
+[ROLLOVER] start branchId=2 currentDate=2026-05-13
+[ROLLOVER] start branchId=3 currentDate=2026-05-13
+[ROLLOVER] start branchId=1 currentDate=2026-05-13
+[ROLLOVER] start branchId=2 currentDate=2026-05-14
+[ROLLOVER] start branchId=3 currentDate=2026-05-14
+[ROLLOVER] start branchId=1 currentDate=2026-05-14
+[ROLLOVER] start branchId=2 currentDate=2026-05-15
+[ROLLOVER] start branchId=3 currentDate=2026-05-15
+[ROLLOVER] start branchId=2 currentDate=2026-05-17
+[ROLLOVER] start branchId=3 currentDate=2026-05-17
+[ROLLOVER] start branchId=1 currentDate=2026-05-17
+[ROLLOVER] start branchId=2 currentDate=2026-05-04
+[ROLLOVER] start branchId=3 currentDate=2026-05-04
+[ROLLOVER] start branchId=1 currentDate=2026-05-04
+[ROLLOVER] start branchId=2 currentDate=2026-05-05
+[ROLLOVER] start branchId=3 currentDate=2026-05-05
+[ROLLOVER] start branchId=1 currentDate=2026-05-05
+[ROLLOVER] start branchId=2 currentDate=2026-05-06
+[ROLLOVER] start branchId=3 currentDate=2026-05-06
+[ROLLOVER] start branchId=1 currentDate=2026-05-06
+[ROLLOVER] start branchId=2 currentDate=2026-05-07
+[ROLLOVER] start branchId=3 currentDate=2026-05-07
+[ROLLOVER] start branchId=1 currentDate=2026-05-07
+[ROLLOVER] start branchId=2 currentDate=2026-05-08
+[ROLLOVER] start branchId=3 currentDate=2026-05-08
+[ROLLOVER] start branchId=1 currentDate=2026-05-08
+[ROLLOVER] start branchId=2 currentDate=2026-05-09
+[ROLLOVER] start branchId=3 currentDate=2026-05-09
+[ROLLOVER] start branchId=1 currentDate=2026-05-09
+[ROLLOVER] start branchId=2 currentDate=2026-05-10
+[ROLLOVER] start branchId=3 currentDate=2026-05-10
+[ROLLOVER] start branchId=1 currentDate=2026-05-10
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=1 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=3 no unresolved DRAFT days
+[ROLLOVER] skipped branchId=2 no unresolved DRAFT days
+[TRAFFIC] 15min-window counts (log interval: 60s):
+  other               6  (100.0%)
+  dashboard           0  (0.0%)
+  remaining           0  (0.0%)
+  production          0  (0.0%)
+  products            0  (0.0%)
+  branches            0  (0.0%)
+  reports             0  (0.0%)
+  users               0  (0.0%)
+  auth                0  (0.0%)
+  waste               0  (0.0%)
+  closure             0  (0.0%)
+  TOTAL               6

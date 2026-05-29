@@ -62,3 +62,19 @@ export const clearAuth = () => {
 };
 
 export const isAuthenticated = () => !!getToken();
+
+const EDIT_WINDOW_DAYS = 3;
+export const canEditOperationalRecord = (operationalDate, maxDays = EDIT_WINDOW_DAYS) => {
+  if (!operationalDate) return false;
+  const [y, m, d] = operationalDate.split('-');
+  const opDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
+  const addisFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Addis_Ababa',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const todayStr = addisFormatter.format(new Date());
+  const [ty, tm, td] = todayStr.split('-');
+  const today = new Date(Date.UTC(parseInt(ty), parseInt(tm) - 1, parseInt(td)));
+  const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays < maxDays;
+};

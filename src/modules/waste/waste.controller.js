@@ -10,17 +10,17 @@ const findAll = asyncHandler(async (req, res) => {
   const accessFilter = buildWasteAccessFilter({ role, userId });
   Object.assign(filters, accessFilter);
 
-  const wastes = await wasteService.findAll(filters);
+  const result = await wasteService.findAll(filters);
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   res.json({
     success: true,
-    data: wastes,
+    data: result.data,
     pagination: {
       page,
       limit,
-      total: wastes.length,
-      totalPages: Math.ceil(wastes.length / limit),
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit),
     },
   });
 });

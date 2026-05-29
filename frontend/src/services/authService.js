@@ -37,6 +37,18 @@ export const authService = {
   changePassword: async (data) => {
     return safeCall(api.put('/auth/change-password', data));
   },
+
+  forgotPassword: async (email) => {
+    return safeCall(api.post('/auth/forgot-password', { email }));
+  },
+
+  verifyOtp: async (email, otp) => {
+    return safeCall(api.post('/auth/verify-otp', { email, otp }));
+  },
+
+  resetPassword: async (email, otp, newPassword) => {
+    return safeCall(api.post('/auth/reset-password', { email, otp, newPassword }));
+  },
 };
 
 export default authService;
