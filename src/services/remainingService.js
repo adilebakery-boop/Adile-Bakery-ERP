@@ -1,17 +1,10 @@
-const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
-const { toDateString } = require('../utils/dateUtils');
+const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-
-const ZERO = new Prisma.Decimal('0');
-
-function toDecimal(value) {
-  if (value instanceof Prisma.Decimal) return value;
-  if (value === null || value === undefined) return ZERO;
-  return new Prisma.Decimal(String(value));
-}
+const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { requireBranchAccess } = require('../utils/accessFilters');
 
 async function findAll(filters = {}) {
   const { branchId, operationalDate, status, startDate, endDate, categories, page = 1, limit = 20 } = filters;
@@ -100,7 +93,7 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
 async function create(data, user) {
   const { productId, quantity, branchId, operationalDate, status = 'FINAL' } = data;
 
-  requireBranchAccess(branchId, user);
+  requireBranchAccess(branchId, user, 'inventory');
 
   // Validate quantity is positive
   if (quantity === undefined || quantity === null || Number(quantity) <= 0) {
@@ -140,7 +133,7 @@ async function create(data, user) {
 
   const opDate = operationalDate ? new Date(operationalDate) : new Date();
 
-  await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
+  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
 
   const existing = await prisma.remainingRecord.findFirst({
     where: {
@@ -157,7 +150,7 @@ async function create(data, user) {
     remaining = await prisma.remainingRecord.update({
       where: { id: existing.id },
       data: {
-        quantity: new Prisma.Decimal(String(quantity)),
+        quantity: toDecimal(String(quantity)),
         status,
         updatedBy: user.userId,
       },
@@ -175,7 +168,7 @@ async function create(data, user) {
         productId: parseInt(productId),
         branchId: parseInt(branchId),
         operationalDate: opDate,
-        quantity: new Prisma.Decimal(String(quantity)),
+        quantity: toDecimal(String(quantity)),
         status,
         createdBy: user.userId,
       },
@@ -197,23 +190,30 @@ async function createBulk(data, user) {
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
-  requireBranchAccess(branchId, user);
+  requireBranchAccess(branchId, user, 'inventory');
 
-  await inventoryFlowService.assertDayOpen(parseInt(branchId), opDate);
+  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
 
   try {
     const result = await prisma.$transaction(async (tx) => {
     // Re-check day open inside transaction boundary to close race window.
-    // The outer assertDayOpen guards against closed days without starting a
+    // The outer assertDayEditable guards against closed days without starting a
     // transaction, but the day could close between check and transaction start.
     // This inner check ensures atomicity.
     const closure = await tx.dailyClosure.findUnique({
       where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
     });
     if (closure?.isClosed) {
-      const err = new Error('Operational day is closed. Reopen required to make changes.');
-      err.status = 403;
-      throw err;
+      if (closure.closureType === 'MANUAL') {
+        const err = new Error('Operational day is closed. Reopen required to make changes.');
+        err.status = 403;
+        throw err;
+      }
+      if (!canEditOperationalRecord(opDate)) {
+        const err = new Error('Operational day is closed. Reopen required to make changes.');
+        err.status = 403;
+        throw err;
+      }
     }
 
     const results = [];
@@ -266,7 +266,7 @@ async function createBulk(data, user) {
         remaining = await tx.remainingRecord.update({
           where: { id: existing.id },
           data: {
-            quantity: new Prisma.Decimal(String(item.remainingQuantity ?? 0)),
+            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
             status: item.status || 'FINAL',
             updatedBy: user.userId,
           },
@@ -290,7 +290,7 @@ async function createBulk(data, user) {
             productId: parseInt(item.productId),
             branchId: parseInt(branchId),
             operationalDate: opDate,
-            quantity: new Prisma.Decimal(String(item.remainingQuantity ?? 0)),
+            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
             status: item.status || 'FINAL',
             createdBy: user.userId,
           },
@@ -327,9 +327,15 @@ async function createBulk(data, user) {
 async function update(id, data, user) {
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, user);
+  requireBranchAccess(existing.branchId, user, 'inventory');
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  if (!canEditOperationalRecord(existing.operationalDate)) {
+    const error = new Error('Remaining records can only be edited within 3 operational days');
+    error.status = 403;
+    throw error;
+  }
+
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   const updateData = {
     updatedBy: user.userId,
@@ -342,7 +348,7 @@ async function update(id, data, user) {
       error.status = 400;
       throw error;
     }
-    updateData.quantity = new Prisma.Decimal(String(data.quantity));
+    updateData.quantity = toDecimal(String(data.quantity));
   }
 
   if (data.status !== undefined) {
@@ -375,9 +381,9 @@ async function remove(id, user) {
 
   const existing = await findById(id);
 
-  requireBranchAccess(existing.branchId, user);
+  requireBranchAccess(existing.branchId, user, 'inventory');
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   await prisma.remainingRecord.delete({
     where: { id: parseInt(id) },
@@ -402,8 +408,9 @@ async function getDraftRemainings(branchId, operationalDate) {
 }
 
 async function getPendingRemainings(branchId) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const { getAddisAbabaDate } = require('../utils/dateUtils');
+  const addisNow = getAddisAbabaDate();
+  const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
 
   const activeProducts = await prisma.product.findMany({
     where: { isActive: true },
@@ -423,22 +430,6 @@ async function getPendingRemainings(branchId) {
   const missingProducts = activeProducts.filter(p => !submittedIds.has(p.id));
 
   return missingProducts;
-}
-
-function requireBranchAccess(branchId, user) {
-  if (!user?.role) return;
-
-  const privilegedRoles = ['ADMIN', 'MANAGER'];
-
-  if (privilegedRoles.includes(user.role)) {
-    return;
-  }
-
-  if (Number(branchId) !== Number(user.branchId)) {
-    const err = new Error('You can only modify inventory for your assigned branch');
-    err.status = 403;
-    throw err;
-  }
 }
 
 module.exports = {

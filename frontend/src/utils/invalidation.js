@@ -44,5 +44,23 @@ export function invalidateAfterRemainingMutation(queryClient, branchId, date) {
 }
 
 export function invalidateWasteScope(queryClient) {
-  queryClient.invalidateQueries({ queryKey: ['waste'] });
+  // predicate matches all ['waste', ...] prefixed keys — same pattern as
+  // invalidateProductionBranch, handles any future waste sub-keys
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const key = query.queryKey;
+      return key[0] === 'waste';
+    },
+  });
+}
+
+// mirrors Production invalidation architecture (invalidateAfterProductionMutation)
+// waste mutations affect inventory visibility — requires branch-scoped
+// production + dashboard invalidation when branchId is available
+export function invalidateAfterWasteMutation(queryClient, branchId) {
+  invalidateWasteScope(queryClient);
+  if (branchId) {
+    invalidateProductionBranch(queryClient, branchId);
+    invalidateDashboardScope(queryClient, branchId);
+  }
 }
