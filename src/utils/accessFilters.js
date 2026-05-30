@@ -32,8 +32,9 @@ function buildProductionAccessFilter(user) {
   const where = {};
 
   if (!isAdminOrManager(user.role)) {
-    if (user.userId) {
-      where.createdBy = parseInt(user.userId);
+    const categories = getAllowedCategories(user.role);
+    if (categories.length > 0) {
+      where.product = { category: { in: categories } };
     }
     if (user.branchId) {
       where.branchId = parseInt(user.branchId);
@@ -60,9 +61,6 @@ function buildWasteAccessFilter(user) {
   const where = {};
 
   if (!isAdminOrManager(user.role)) {
-    if (user.userId) {
-      where.createdBy = parseInt(user.userId);
-    }
     const categories = getAllowedCategories(user.role);
     if (categories.length > 0) {
       where.product = { category: { in: categories } };

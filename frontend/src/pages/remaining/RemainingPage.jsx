@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
-import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
@@ -35,7 +35,24 @@ export default function RemainingPage() {
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
-  const operationalDate = getOperationalDate();
+  const todayAddis = getOperationalDate();
+  const [selectedDate, setSelectedDate] = useState(todayAddis);
+  const addisFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Addis_Ababa',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const [ty, tm, td] = todayAddis.split('-');
+  const todayLocal = new Date(Date.UTC(parseInt(ty), parseInt(tm) - 1, parseInt(td)));
+  const availableDates = [todayAddis];
+  const dateLabels = { [todayAddis]: `${t('remaining.today')}` };
+  for (let i = 1; i <= 2; i++) {
+    const d = new Date(todayLocal);
+    d.setUTCDate(d.getUTCDate() - i);
+    const ds = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    availableDates.push(ds);
+    dateLabels[ds] = formatOperationalDate(ds);
+  }
+
   const canManageAll = isManagerOrAdmin();
   const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
 
@@ -50,7 +67,7 @@ export default function RemainingPage() {
     isError: remainingsError,
     error: remainingsErrorObj,
     refetch: refetchRemainings,
-  } = useRemainingEntriesQuery(effectiveBranchId, operationalDate);
+  } = useRemainingEntriesQuery(effectiveBranchId, selectedDate);
 
   useEffect(() => {
     if (!remainingsData) return;
@@ -150,7 +167,7 @@ export default function RemainingPage() {
     try {
       await saveMutation.mutateAsync({
         branchId: effectiveBranchId,
-        operationalDate,
+        operationalDate: selectedDate,
         items,
       });
       setSuccess(t('remaining.remainingSaved'));
@@ -190,7 +207,7 @@ export default function RemainingPage() {
     try {
       await finalizeMutation.mutateAsync({
         branchId: effectiveBranchId,
-        operationalDate,
+        operationalDate: selectedDate,
         items,
       });
       // Optimistically update local state to FINAL before cache refetch completes.
@@ -230,7 +247,7 @@ export default function RemainingPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
           </div>
         </div>
         {canManageAll && branches.length === 0 ? (
@@ -247,12 +264,14 @@ export default function RemainingPage() {
     );
   }
 
+  const isEditable = canEditOperationalRecord(selectedDate, userRole);
+
   return (
     <div className="pb-28">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           {canManageAll && (
@@ -278,6 +297,17 @@ export default function RemainingPage() {
               {t('remaining.branch')}: {userBranchId || 'N/A'}
             </span>
           )}
+          <div className="flex items-center gap-2 bg-[#F9F7F2] dark:bg-[#0f0f1a] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <select
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+            >
+              {availableDates.map(d => (
+                <option key={d} value={d}>{dateLabels[d]}</option>
+              ))}
+            </select>
+          </div>
           {hasUnsavedChanges && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
@@ -358,6 +388,7 @@ export default function RemainingPage() {
                       placeholder="0"
                       min="0"
                       step={p.unitType === 'piece' ? '1' : '0.01'}
+                      disabled={!isEditable || isSaving}
                     />
                   </div>
                 );
@@ -369,7 +400,7 @@ export default function RemainingPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a2e] border-t border-[#E5E1D8] dark:border-[#2d2d4a] p-4 lg:left-72 z-10">
         <div className="max-w-7xl mx-auto flex justify-end gap-3">
-          {hasUnfinalizedChanges && (
+          {hasUnfinalizedChanges && isEditable && (
             <button
               onClick={handleFinalize}
               disabled={isSaving}
@@ -379,14 +410,16 @@ export default function RemainingPage() {
               {t('remaining.finalizeAll')}
             </button>
           )}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-8 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {t('remaining.saveRemaining')}
-          </button>
+          {isEditable && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-8 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {t('remaining.saveRemaining')}
+            </button>
+          )}
         </div>
       </div>
     </div>

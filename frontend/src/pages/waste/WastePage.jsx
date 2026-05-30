@@ -162,7 +162,7 @@ export default function WastePage() {
   const handleCreate = async (e) => {
     e.preventDefault();
     setActionError(null);
-    if (createForm.operationalDate && !canEditOperationalRecord(createForm.operationalDate)) {
+    if (createForm.operationalDate && !canEditOperationalRecord(createForm.operationalDate, user.role)) {
       setActionError(t('waste.cannotEditOlderThan3Days'));
       return;
     }
@@ -484,33 +484,31 @@ export default function WastePage() {
                       <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-400">
                         {waste.creator?.name || waste.creator?.username || `#${waste.createdBy}`}
                       </td>
-                      {canManage && (
-                        <td className="px-6 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {canEditOperationalRecord(waste.operationalDate) ? (
-                              <>
-                                <button
-                                  onClick={() => handleEditClick(waste)}
-                                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(waste.id, waste.branchId)}
-                                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
-                                <Edit2 className="w-3 h-3" />
-                                {t('common.edit')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                      <td className="px-6 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {canEditOperationalRecord(waste.operationalDate, user.role) ? (
+                            <>
+                              <button
+                                onClick={() => handleEditClick(waste)}
+                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(waste.id, waste.branchId)}
+                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                              <Edit2 className="w-3 h-3" />
+                              {t('common.edit')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}

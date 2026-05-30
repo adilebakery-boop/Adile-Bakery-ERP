@@ -125,7 +125,8 @@
     "showing": "Showing {{from}} to {{to}} of {{total}} production groups",
     "pageOf": "Page {{current}} of {{total}}",
     "deleteConfirm": "Are you sure you want to delete this production entry?",
-    "deleted": "Production entry deleted successfully!"
+    "deleted": "Production entry deleted successfully!",
+    "shiftLockedTooltip": "Shift cannot be changed after record creation (accounting rule)"
   },
   "remaining": {
     "title": "Remaining Stock",
