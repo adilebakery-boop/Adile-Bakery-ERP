@@ -1,5 +1,4 @@
 const prisma = require('../config/prisma');
-const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { canEditOperationalRecord } = require('../utils/dateUtils');
@@ -27,7 +26,7 @@ async function findAll(filters = {}) {
   }
 
   const pageNum = Math.max(1, parseInt(page) || 1);
-  const limitNum = Math.min(100, parseInt(limit) || 20);
+  const limitNum = parseInt(limit) || 20;
   const skip = (pageNum - 1) * limitNum;
 
   const [data, total] = await Promise.all([
@@ -45,7 +44,7 @@ async function findAll(filters = {}) {
     prisma.wasteRecord.count({ where }),
   ]);
 
-  return { data, total };
+  return { data, total, appliedLimit: limitNum };
 }
 
 async function findById(id) {
@@ -111,7 +110,11 @@ async function create(data, userId) {
 
   const opDate = new Date(operationalDate);
 
-  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
+  if (!canEditOperationalRecord(opDate, userId.role)) {
+    const error = new Error('Waste records can only be created within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   const waste = await prisma.wasteRecord.create({
     data: {
@@ -139,13 +142,11 @@ async function update(id, data, userId) {
 
   requireBranchAccess(existing.branchId, userId, 'waste');
 
-  if (!canEditOperationalRecord(existing.operationalDate)) {
-    const error = new Error('Waste records can only be edited within 3 operational days');
+  if (!canEditOperationalRecord(existing.operationalDate, userId.role)) {
+    const error = new Error('Waste records can only be edited within the 3-day edit window');
     error.status = 403;
     throw error;
   }
-
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   const updateData = {};
 
@@ -180,17 +181,15 @@ async function update(id, data, userId) {
 }
 
 async function remove(id, userId) {
-  if (userId.role !== 'ADMIN' && userId.role !== 'MANAGER') {
-    const error = new Error('Only ADMIN or MANAGER can delete waste records');
-    error.status = 403;
-    throw error;
-  }
-
   const existing = await findById(id);
 
   requireBranchAccess(existing.branchId, userId, 'waste');
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  if (!canEditOperationalRecord(existing.operationalDate, userId.role)) {
+    const error = new Error('Waste records can only be deleted within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   await prisma.wasteRecord.delete({
     where: { id: parseInt(id) },

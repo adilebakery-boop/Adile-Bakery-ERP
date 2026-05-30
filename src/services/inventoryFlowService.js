@@ -1,6 +1,6 @@
 const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
-const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
+const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString } = require('../utils/dateUtils');
 const { logAudit } = require('./auditService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
@@ -66,42 +66,6 @@ function toDecimalRaw(value) {
 
 function getPrismaDecimalOps() {
   return { zero: ZERO, toDecimal: toDecimalRaw, plus: safePlus, minus: safeMinus };
-}
-
-async function assertDayOpen(branchId, operationalDate) {
-  const closure = await prisma.dailyClosure.findUnique({
-    where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate) } },
-  });
-
-  if (closure?.isClosed) {
-    const error = new Error('Operational day is closed. Reopen required to make changes.');
-    error.status = 403;
-    throw error;
-  }
-}
-
-async function assertDayEditable(branchId, operationalDate) {
-  const closure = await prisma.dailyClosure.findUnique({
-    where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate) } },
-  });
-
-  if (!closure?.isClosed) return;
-
-  // MANUAL closures always block edits (admin intent)
-  if (closure.closureType === 'MANUAL') {
-    const error = new Error('Operational day is closed. Reopen required to make changes.');
-    error.status = 403;
-    throw error;
-  }
-
-  // AUTO_FINALIZE: only block if outside the 3-day edit window
-  if (!canEditOperationalRecord(operationalDate)) {
-    const error = new Error('Operational day is closed. Reopen required to make changes.');
-    error.status = 403;
-    throw error;
-  }
-
-  // AUTO_FINALIZE within edit window: allow
 }
 
 async function resolveRollover(branchId, operationalDate) {
@@ -879,8 +843,6 @@ async function validateInventoryFlow(branchId, operationalDate, productId) {
 
 module.exports = {
   calculateOperationalDate,
-  assertDayOpen,
-  assertDayEditable,
   resolveRollover,
   getOpeningStock,
   getDayProduction,

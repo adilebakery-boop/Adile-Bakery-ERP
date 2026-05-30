@@ -189,10 +189,6 @@ export default function ProductionPage() {
       quantity: parseFloat(editFormData.quantity),
     };
 
-    if (editFormData.shift !== editingEntry?.shift) {
-      updatePayload.shift = editFormData.shift;
-    }
-
     try {
       await updateMutation.mutateAsync({
         id: editingEntry.id,
@@ -251,9 +247,9 @@ export default function ProductionPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
             <select
               value={editFormData.shift}
-              onChange={(e) => setEditFormData({ ...editFormData, shift: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
-              required
+              disabled
+              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+              title={t('production.shiftLockedTooltip')}
             >
               <option value="">{t('production.selectShift')}</option>
               {SHIFTS.map((s) => <option key={s.value} value={s.value}>{t(s.labelKey)}</option>)}
@@ -531,7 +527,7 @@ export default function ProductionPage() {
                                         {entry.creator?.name || entry.creator?.username || '-'}
                                       </td>
                                       <td className="px-6 py-2.5">
-                                        {canEditOperationalRecord(group.operationalDate) ? (
+                                        {canEditOperationalRecord(group.operationalDate, userRole) ? (
                                           <div className="flex items-center gap-1">
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}

@@ -1,6 +1,5 @@
 const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
-const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { addDays, subDays } = require('date-fns');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
@@ -169,7 +168,11 @@ async function create(data, user) {
 
   const opDate = calculateOperationalDate(prodDate, shift);
 
-  await inventoryFlowService.assertDayOpen(assignedBranchId, opDate);
+  if (!canEditOperationalRecord(opDate, user.role)) {
+    const error = new Error('Production records can only be created within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   const production = await prisma.productionRecord.create({
     data: {
@@ -196,13 +199,23 @@ async function create(data, user) {
 async function update(id, data, user) {
   const existing = await findById(id);
 
-  if (!canEditOperationalRecord(existing.operationalDate)) {
-    const error = new Error('Production records can only be edited within 3 operational days');
+  if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
+    const error = new Error('Production records can only be edited within the 3-day edit window');
     error.status = 403;
     throw error;
   }
 
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
+  if (data.shift !== undefined && data.shift !== existing.shift) {
+    const error = new Error('Shift cannot be changed after creation. operationalDate is an immutable ledger key.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (data.productionDate !== undefined) {
+    const error = new Error('Production date cannot be changed after creation. Create a new record instead.');
+    error.status = 400;
+    throw error;
+  }
 
   const updateData = {
     updatedBy: user.userId,
@@ -216,16 +229,6 @@ async function update(id, data, user) {
       throw error;
     }
     updateData.quantity = new Prisma.Decimal(String(data.quantity));
-  }
-
-  if (data.shift !== undefined && data.shift !== existing.shift) {
-    updateData.shift = data.shift;
-    if (data.productionDate) {
-      updateData.productionDate = new Date(data.productionDate);
-      updateData.operationalDate = calculateOperationalDate(new Date(data.productionDate), data.shift);
-    } else {
-      updateData.operationalDate = calculateOperationalDate(existing.productionDate, data.shift);
-    }
   }
 
   const oldValue = { ...existing };
@@ -247,15 +250,13 @@ async function update(id, data, user) {
 }
 
 async function remove(id, user) {
-  if (!isAdminOrManager(user.role)) {
-    const error = new Error('Only ADMIN or MANAGER can delete production records');
+  const existing = await findById(id);
+
+  if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
+    const error = new Error('Production records can only be deleted within the 3-day edit window');
     error.status = 403;
     throw error;
   }
-
-  const existing = await findById(id);
-
-  await inventoryFlowService.assertDayOpen(existing.branchId, existing.operationalDate);
 
   await prisma.productionRecord.delete({
     where: { id: parseInt(id) },
@@ -275,7 +276,10 @@ async function getTodayProductions(branchId, user) {
   };
 
   if (!isAdminOrManager(user.role)) {
-    where.createdBy = user.userId;
+    const allowedCategories = getAllowedCategories(user.role);
+    if (allowedCategories.length > 0) {
+      where.product = { category: { in: allowedCategories } };
+    }
   }
 
   if (branchId) {
