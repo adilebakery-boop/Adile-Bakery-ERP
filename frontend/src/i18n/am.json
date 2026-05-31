@@ -125,7 +125,8 @@
     "showing": "ከ {{total}} የምርት ቡድኖች {{from}} እስከ {{to}} ያሳያል",
     "pageOf": "ገጽ {{current}} ከ {{total}}",
     "deleteConfirm": "ይህን የምርት መዝገብ መሰረዝ ይፈልጋሉ?",
-    "deleted": "የምርት መዝገብ በተሳካ ሁኔታ ተሰርዟል!"
+    "deleted": "የምርት መዝገብ በተሳካ ሁኔታ ተሰርዟል!",
+    "shiftLockedTooltip": "ፈረቃ ከመዝገብ ፈጠራ በኋላ መቀየር አይቻልም (የሂሳብ ደንብ)"
   },
   "remaining": {
     "title": "የቀረ ክምችት",

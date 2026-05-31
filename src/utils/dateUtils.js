@@ -135,7 +135,7 @@ function getDateRangeForOperationalDay(operationalDate) {
 
 const EDIT_WINDOW_DAYS = 3;
 
-function canEditOperationalRecord(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
+function canEditOperationalRecord(operationalDate, role) {
   if (!operationalDate) return false;
   let opDate;
   if (operationalDate instanceof Date) {
@@ -149,7 +149,10 @@ function canEditOperationalRecord(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
   const addisNow = getAddisAbabaDate();
   const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
   const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays < maxDays;
+  if (diffDays < 0) return false;
+  if (diffDays === 0) return true;
+  if (diffDays <= 2) return role === 'ADMIN' || role === 'MANAGER';
+  return false;
 }
 
 function getEditWindowDeadline(operationalDate, maxDays = EDIT_WINDOW_DAYS) {

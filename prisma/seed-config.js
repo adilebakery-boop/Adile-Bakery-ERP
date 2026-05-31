@@ -17,15 +17,15 @@ const DATASETS = {
     rolloverScenario: false,
     priceChanges: true,
   },
-  large: {
-    startDate: '2026-04-01',
-    endDate: '2026-05-16',
-    branchNames: ['Main Branch', 'Branch 2', 'Branch 3'],
-    productIds: null,
-    reopenScenario: true,
-    rolloverScenario: false,
-    priceChanges: false,
-  },
+   large: {
+     startDate: '2026-04-01',
+     endDate: '2026-05-28',
+     branchNames: ['Main Branch', 'Branch 2', 'Branch 3'],
+     productIds: null,
+     reopenScenario: true,
+     rolloverScenario: false,
+     priceChanges: true,
+   },
 };
 
 function getConfig() {
