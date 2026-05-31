@@ -12,15 +12,14 @@ const findAll = asyncHandler(async (req, res) => {
 
   const result = await wasteService.findAll(filters);
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
   res.json({
     success: true,
     data: result.data,
     pagination: {
       page,
-      limit,
+      limit: result.appliedLimit,
       total: result.total,
-      totalPages: Math.ceil(result.total / limit),
+      totalPages: Math.ceil(result.total / result.appliedLimit),
     },
   });
 });

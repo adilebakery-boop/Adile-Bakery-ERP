@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString } = require('../utils/dateUtils');
+const { getAllowedCategories } = require('../utils/accessFilters');
 
 async function getAllBranchesOverview(operationalDate, userId, userRole) {
   const opDate = new Date(operationalDate + 'T00:00:00.000Z');
@@ -66,6 +67,10 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
   const opDate = new Date(opDateStr + 'T00:00:00.000Z');
 
+  const allowedCategories = getAllowedCategories(userRole);
+  const categoryFilter = allowedCategories.length > 0
+    ? { product: { category: { in: allowedCategories } } }
+    : {};
 
   let totals;
   let productionCompleted;
@@ -77,21 +82,19 @@ async function getTodayMetrics(branchId, operationalDate, userId, userRole) {
     productionCompleted = flows.some(f => f.dayProduction > 0 || f.nightProduction > 0);
     remainingSubmitted = flows.some(f => f.remainingStock > 0);
   } else {
-    const userFilter = { createdBy: parseInt(userId) };
-
     const productions = await prisma.productionRecord.findMany({
-      where: { branchId: parseInt(branchId), operationalDate: opDate, ...userFilter },
+      where: { branchId: parseInt(branchId), operationalDate: opDate, ...categoryFilter },
       select: { quantity: true, shift: true },
     });
 
     const remainings = await prisma.remainingRecord.findMany({
-      where: { branchId: parseInt(branchId), operationalDate: opDate, ...userFilter },
+      where: { branchId: parseInt(branchId), operationalDate: opDate, ...categoryFilter },
       select: { quantity: true, status: true },
     });
 
     const prevDay = new Date(Date.UTC(opDate.getUTCFullYear(), opDate.getUTCMonth(), opDate.getUTCDate() - 1));
     const prevDayRemainings = await prisma.remainingRecord.findMany({
-      where: { branchId: parseInt(branchId), operationalDate: prevDay, status: 'FINAL', ...userFilter },
+      where: { branchId: parseInt(branchId), operationalDate: prevDay, status: 'FINAL', ...categoryFilter },
       select: { quantity: true },
     });
 
@@ -181,12 +184,7 @@ async function getAllBranchesStatus(operationalDate) {
 }
 
 async function getRecentActivity(branchId, operationalDate, limit = 10, userId, userRole) {
-  // Use the date string directly to avoid timezone issues
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
-  
-  // Only managers/admins see all data, others only see their own
-  const isManager = userRole === 'ADMIN' || userRole === 'MANAGER';
-  const userFilter = isManager ? {} : { createdBy: parseInt(userId) };
 
   if (!branchId || branchId === 'all') {
 
@@ -194,7 +192,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       prisma.productionRecord.findMany({
         where: { 
           operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-          ...userFilter
         },
         include: {
           product: { select: { name: true } },
@@ -207,7 +204,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       prisma.remainingRecord.findMany({
         where: { 
           operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-          ...userFilter
         },
         include: {
           product: { select: { name: true } },
@@ -220,7 +216,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       prisma.wasteRecord.findMany({
         where: {
           operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-          ...userFilter
         },
         include: {
           product: { select: { name: true } },
@@ -293,7 +288,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       where: { 
         branchId: parseInt(branchId), 
         operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-        ...userFilter
       },
       include: {
         product: { select: { name: true } },
@@ -306,7 +300,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       where: { 
         branchId: parseInt(branchId), 
         operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-        ...userFilter
       },
       include: {
         product: { select: { name: true } },
@@ -319,7 +312,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
       where: {
         branchId: parseInt(branchId),
         operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
-        ...userFilter
       },
       include: {
         product: { select: { name: true } },
@@ -398,9 +390,6 @@ async function getDashboardOverview(branchId, operationalDate, userId, userRole)
   }
 
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
-  
-  // Filter by user for non-managers
-  const userFilter = isManager ? {} : { createdBy: parseInt(userId) };
 
   const [metrics, activities, branchInfo, pendingDraftsCount] = await Promise.all([
     getTodayMetrics(branchId, operationalDate, userId, userRole),
@@ -414,7 +403,6 @@ async function getDashboardOverview(branchId, operationalDate, userId, userRole)
         branchId: parseInt(branchId),
         operationalDate: new Date(opDateStr + 'T00:00:00.000Z'),
         status: 'DRAFT',
-        ...(isManager ? {} : { createdBy: parseInt(userId) }),
       },
     }),
   ]);

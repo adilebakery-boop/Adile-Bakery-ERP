@@ -19,25 +19,20 @@ const BATCH_SIZE = 500;
 // Price change schedule by product name: productName → [{ validFrom, validTo, multiplier }]
 const PRICE_SCHEDULE_BY_NAME = {
   'Bread Prod 1': [
-    { validFrom: '2026-04-15', validTo: '2026-08-31', multiplier: 1.20 },
-    { validFrom: '2026-09-01', validTo: null, multiplier: 1.50 },
+    { validFrom: '2026-04-01', validTo: '2026-05-26', multiplier: 1.0 },
+    { validFrom: '2026-05-27', validTo: null, multiplier: 1.2 },
   ],
   'Bread Prod 2': [
-    { validFrom: '2026-04-15', validTo: '2026-08-31', multiplier: 1.20 },
-    { validFrom: '2026-09-01', validTo: null, multiplier: 1.40 },
+    { validFrom: '2026-04-01', validTo: '2026-05-26', multiplier: 1.0 },
+    { validFrom: '2026-05-27', validTo: null, multiplier: 1.2 },
   ],
   'Cream Cake 1': [
-    { validFrom: '2026-03-16', validTo: null, multiplier: 1.10 },
+    { validFrom: '2026-04-01', validTo: '2026-05-26', multiplier: 1.0 },
+    { validFrom: '2026-05-27', validTo: null, multiplier: 1.2 },
   ],
   'Cream Cake 2': [
-    { validFrom: '2026-03-16', validTo: null, multiplier: 1.10 },
-  ],
-  'Soft Cake 1': [
-    { validFrom: '2026-07-01', validTo: null, multiplier: 1.15 },
-  ],
-  'Cookies 1': [
-    { validFrom: '2026-02-01', validTo: '2026-05-31', multiplier: 1.10 },
-    { validFrom: '2026-06-01', validTo: null, multiplier: 1.30 },
+    { validFrom: '2026-04-01', validTo: '2026-05-26', multiplier: 1.0 },
+    { validFrom: '2026-05-27', validTo: null, multiplier: 1.2 },
   ],
 };
 

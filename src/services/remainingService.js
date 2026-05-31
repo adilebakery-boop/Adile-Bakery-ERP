@@ -1,5 +1,4 @@
 const prisma = require('../config/prisma');
-const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
@@ -12,6 +11,7 @@ async function findAll(filters = {}) {
 
   if (branchId) where.branchId = parseInt(branchId);
   if (status) where.status = status;
+  if (filters.product) where.product = filters.product;
 
   if (operationalDate) {
     where.operationalDate = new Date(operationalDate);
@@ -133,7 +133,11 @@ async function create(data, user) {
 
   const opDate = operationalDate ? new Date(operationalDate) : new Date();
 
-  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
+  if (!canEditOperationalRecord(opDate, user.role)) {
+    const error = new Error('Remaining records can only be created within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   const existing = await prisma.remainingRecord.findFirst({
     where: {
@@ -192,29 +196,14 @@ async function createBulk(data, user) {
 
   requireBranchAccess(branchId, user, 'inventory');
 
-  await inventoryFlowService.assertDayEditable(parseInt(branchId), opDate);
+  if (!canEditOperationalRecord(opDate, user.role)) {
+    const error = new Error('Remaining records can only be edited within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-    // Re-check day open inside transaction boundary to close race window.
-    // The outer assertDayEditable guards against closed days without starting a
-    // transaction, but the day could close between check and transaction start.
-    // This inner check ensures atomicity.
-    const closure = await tx.dailyClosure.findUnique({
-      where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate } },
-    });
-    if (closure?.isClosed) {
-      if (closure.closureType === 'MANUAL') {
-        const err = new Error('Operational day is closed. Reopen required to make changes.');
-        err.status = 403;
-        throw err;
-      }
-      if (!canEditOperationalRecord(opDate)) {
-        const err = new Error('Operational day is closed. Reopen required to make changes.');
-        err.status = 403;
-        throw err;
-      }
-    }
 
     const results = [];
     const auditLogs = [];
@@ -329,13 +318,11 @@ async function update(id, data, user) {
 
   requireBranchAccess(existing.branchId, user, 'inventory');
 
-  if (!canEditOperationalRecord(existing.operationalDate)) {
-    const error = new Error('Remaining records can only be edited within 3 operational days');
+  if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
+    const error = new Error('Remaining records can only be edited within the 3-day edit window');
     error.status = 403;
     throw error;
   }
-
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
 
   const updateData = {
     updatedBy: user.userId,
@@ -373,17 +360,15 @@ async function update(id, data, user) {
 }
 
 async function remove(id, user) {
-  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
-    const error = new Error('Only ADMIN or MANAGER can delete remaining records');
-    error.status = 403;
-    throw error;
-  }
-
   const existing = await findById(id);
 
   requireBranchAccess(existing.branchId, user, 'inventory');
 
-  await inventoryFlowService.assertDayEditable(existing.branchId, existing.operationalDate);
+  if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
+    const error = new Error('Remaining records can only be deleted within the 3-day edit window');
+    error.status = 403;
+    throw error;
+  }
 
   await prisma.remainingRecord.delete({
     where: { id: parseInt(id) },
