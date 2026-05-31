@@ -26,6 +26,8 @@ export default function WastePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedGroups, setExpandedGroups] = useState({});
 
+  const entriesBranchId = canManage ? (selectedBranch || undefined) : (userBranchId ? userBranchId.toString() : undefined);
+
   const [createForm, setCreateForm] = useState(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -48,7 +50,7 @@ export default function WastePage() {
 
   const filters = {
     search: searchTerm || undefined,
-    branchId: selectedBranch || undefined,
+    branchId: entriesBranchId,
     productId: selectedProduct || undefined,
     limit: 10000,
   };
@@ -130,10 +132,17 @@ export default function WastePage() {
   })();
   const visibleGroups = groupedWastes.filter(g => g.operationalDate >= visibilityCutoff);
 
+  const searchedGroups = searchTerm
+    ? visibleGroups.filter(g => {
+        const name = getLocalizedName(g.product, i18n.language) || g.product?.name || '';
+        return name.toLowerCase().includes(searchTerm.toLowerCase());
+      })
+    : visibleGroups;
+
   const itemsPerPage = 10;
-  const totalGroups = visibleGroups.length;
+  const totalGroups = searchedGroups.length;
   const totalPages = Math.ceil(totalGroups / itemsPerPage);
-  const displayGroups = visibleGroups.slice(
+  const displayGroups = searchedGroups.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -160,6 +169,7 @@ export default function WastePage() {
     try {
       await createWaste.mutateAsync({
         ...createForm,
+        branchId: createForm.branchId || (userBranchId ? userBranchId.toString() : ''),
         quantity: parseFloat(createForm.quantity),
       });
       resetCreateForm();
@@ -227,7 +237,6 @@ export default function WastePage() {
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('waste.title')}</h1>
       </div>
 
-      {canManage && (
         <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <form onSubmit={handleCreate} className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[180px]">
@@ -246,21 +255,23 @@ export default function WastePage() {
                 ))}
               </select>
             </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.branch')}</label>
-              <select
-                value={createForm.branchId}
-                onChange={(e) => setCreateForm({ ...createForm, branchId: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
-                required
-                disabled={createWaste.isPending}
-              >
-                <option value="">{t('waste.selectBranch')}</option>
-                {(Array.isArray(branches) ? branches : []).map((b) => (
-                  <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                ))}
-              </select>
-            </div>
+            {canManage && (
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.branch')}</label>
+                <select
+                  value={createForm.branchId}
+                  onChange={(e) => setCreateForm({ ...createForm, branchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                  required
+                  disabled={createWaste.isPending}
+                >
+                  <option value="">{t('waste.selectBranch')}</option>
+                  {(Array.isArray(branches) ? branches : []).map((b) => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="w-44">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.operationalDate')}</label>
               <input
@@ -319,7 +330,6 @@ export default function WastePage() {
             </button>
           </form>
         </div>
-      )}
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md min-w-[200px]">
@@ -332,23 +342,25 @@ export default function WastePage() {
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
-        <select
-          value={selectedBranch}
-          onChange={(e) => setSelectedBranch(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
-        >
-          <option value="">{t('waste.allBranches')}</option>
-          {(Array.isArray(branches) ? branches : []).map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
+        {canManage && (
+          <select
+            value={selectedBranch}
+            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+          >
+            <option value="">{t('waste.allBranches')}</option>
+            {(Array.isArray(branches) ? branches : []).map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
         <select
           value={selectedProduct}
           onChange={(e) => setSelectedProduct(e.target.value)}
           className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
         >
           <option value="">{t('waste.allProducts')}</option>
-          {(Array.isArray(products) ? products : []).map((p) => (
+          {(Array.isArray(filteredProducts) ? filteredProducts : []).map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
