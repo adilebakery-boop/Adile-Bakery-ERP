@@ -3,11 +3,11 @@ const { asyncHandler } = require('../../middlewares/errorHandler');
 const { buildWasteAccessFilter } = require('../../utils/accessFilters');
 
 const findAll = asyncHandler(async (req, res) => {
-  const { role, userId } = req.user;
+  const { role, userId, branchId } = req.user;
 
   const filters = { ...req.query };
 
-  const accessFilter = buildWasteAccessFilter({ role, userId });
+  const accessFilter = buildWasteAccessFilter({ role, userId, branchId });
   Object.assign(filters, accessFilter);
 
   const result = await wasteService.findAll(filters);
