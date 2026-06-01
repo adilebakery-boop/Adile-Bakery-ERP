@@ -14,6 +14,7 @@ import { useClosureStatus } from '../../hooks/useClosureStatus';
 import OperationalDayControlBar from '../../components/OperationalDayControlBar';
 import { useQueries } from '@tanstack/react-query';
 import closureService from '../../services/closureService';
+import { queryKeys } from '../../utils/queryKeys';
 import { useCreateProductionMutation } from '../../features/production/hooks/mutations/useCreateProductionMutation';
 import { useUpdateProductionMutation } from '../../features/production/hooks/mutations/useUpdateProductionMutation';
 import { useDeleteProductionMutation } from '../../features/production/hooks/mutations/useDeleteProductionMutation';
@@ -133,7 +134,7 @@ export default function ProductionPage() {
 
   const rowStatuses = useQueries({
     queries: uniquePairs.map(({ branchId, operationalDate }) => ({
-      queryKey: ['closure', 'status', branchId, operationalDate],
+      queryKey: queryKeys.closure.status(branchId, operationalDate),
       queryFn: () => closureService.getStatus(operationalDate, branchId),
       enabled: !!branchId && !!operationalDate,
       staleTime: 30000,

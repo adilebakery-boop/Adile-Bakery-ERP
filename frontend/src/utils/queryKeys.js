@@ -41,6 +41,9 @@ export const queryKeys = {
     list: (filters = {}) => ['waste', 'list', filters],
     byId: (id) => ['waste', id],
   },
+  closure: {
+    status: (branchId, operationalDate) => ['closure', 'status', branchId, operationalDate],
+  },
   users: {
     list: (filters) => filters ? ['users', 'list', filters] : ['users', 'list'],
     byId: (id) => ['users', id],
