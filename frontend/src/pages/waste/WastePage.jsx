@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, RefreshCw, Loader2, CheckCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useQueries } from '@tanstack/react-query';
 import closureService from '../../services/closureService';
+import { queryKeys } from '../../utils/queryKeys';
 import { useWasteQuery } from '../../features/waste/hooks/queries/useWasteQuery';
 import { useClosureStatus } from '../../hooks/useClosureStatus';
 import OperationalDayControlBar from '../../components/OperationalDayControlBar';
@@ -63,6 +64,7 @@ export default function WastePage() {
     reason: '',
   });
   const [actionError, setActionError] = useState(null);
+  const [success, setSuccess] = useState('');
 
   const filters = {
     search: searchTerm || undefined,
@@ -90,7 +92,7 @@ export default function WastePage() {
 
   const wasteRowStatuses = useQueries({
     queries: uniqueWastePairs.map(({ branchId, operationalDate }) => ({
-      queryKey: ['closure', 'status', branchId, operationalDate],
+      queryKey: queryKeys.closure.status(branchId, operationalDate),
       queryFn: () => closureService.getStatus(operationalDate, branchId),
       enabled: !!branchId && !!operationalDate,
       staleTime: 30000,
@@ -242,6 +244,8 @@ export default function WastePage() {
         quantity: parseFloat(createForm.quantity),
       });
       resetCreateForm();
+      setSuccess('Waste record created successfully');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setActionError(err.message);
     }
@@ -277,6 +281,8 @@ export default function WastePage() {
       });
       setIsEditOpen(false);
       setEditingWaste(null);
+      setSuccess('Waste record updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setActionError(err.message);
     }
@@ -287,6 +293,8 @@ export default function WastePage() {
       setActionError(null);
       try {
         await deleteWaste.mutateAsync({ id, branchId });
+        setSuccess('Waste record deleted successfully');
+        setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
         setActionError(err.message);
       }
@@ -453,6 +461,12 @@ export default function WastePage() {
 
       </div>
 
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4" />
+          {success}
+        </div>
+      )}
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
           {error?.message || error}
