@@ -76,7 +76,7 @@ export default function UsersPage() {
   const [branchFilter, setBranchFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
-  const { data, isLoading: loading } = useUsersQuery({
+  const { data, isLoading: loading, isError } = useUsersQuery({
     page: currentPage,
     limit: itemsPerPage,
     ...(branchFilter && { branchId: branchFilter }),
@@ -257,6 +257,10 @@ export default function UsersPage() {
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 dark:text-gray-500" />
                   </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-red-500 dark:text-red-400">{t('users.errorLoading')}</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
