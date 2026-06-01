@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const auditService = require('./auditService');
 const { addDays, subDays } = require('date-fns');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
+const { requireDayNotClosed } = require('./closureService');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
@@ -152,6 +153,17 @@ async function create(data, user) {
     throw error;
   }
 
+  const branch = await prisma.branch.findUnique({
+    where: { id: assignedBranchId },
+    select: { isActive: true },
+  });
+
+  if (!branch || !branch.isActive) {
+    const error = new Error('Cannot create production records for inactive branch');
+    error.status = 400;
+    throw error;
+  }
+
   const [y, m, d] = productionDate.split('-');
   const prodDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d)));
 
@@ -173,6 +185,8 @@ async function create(data, user) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(assignedBranchId, opDate);
 
   const production = await prisma.productionRecord.create({
     data: {
@@ -204,6 +218,8 @@ async function update(id, data, user) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   if (data.shift !== undefined && data.shift !== existing.shift) {
     const error = new Error('Shift cannot be changed after creation. operationalDate is an immutable ledger key.');
@@ -257,6 +273,8 @@ async function remove(id, user) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   await prisma.productionRecord.delete({
     where: { id: parseInt(id) },

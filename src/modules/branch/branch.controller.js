@@ -55,6 +55,15 @@ const deleteBranch = asyncHandler(async (req, res) => {
   });
 });
 
+const restore = asyncHandler(async (req, res) => {
+  const branch = await branchService.restore(parseInt(req.params.id), req.user?.userId);
+  res.json({
+    success: true,
+    message: 'Branch restored successfully',
+    data: branch,
+  });
+});
+
 module.exports = {
   create,
   findActive,
@@ -62,4 +71,5 @@ module.exports = {
   findById,
   update,
   delete: deleteBranch,
+  restore,
 };

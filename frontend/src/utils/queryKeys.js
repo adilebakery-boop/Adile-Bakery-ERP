@@ -6,6 +6,7 @@ export const queryKeys = {
     all: ['branches'],
     byId: (id) => ['branches', id],
     active: (filters = {}) => ['branches', 'active', filters],
+    list: (filters = {}) => ['branches', 'list', filters],
   },
   products: {
     all: ['products'],
@@ -21,8 +22,8 @@ export const queryKeys = {
   inventory: {
     production: {
       grouped: (branchId, filters = {}) => {
-        const { page, limit, startDate, endDate, operationalDate } = filters;
-        return ['inventory', 'production', branchId, 'grouped', { page, limit, startDate, endDate, operationalDate }];
+        const { page, limit, startDate, endDate, operationalDate, productId } = filters;
+        return ['inventory', 'production', branchId, 'grouped', { page, limit, startDate, endDate, operationalDate, productId }];
       },
     },
     remaining: {

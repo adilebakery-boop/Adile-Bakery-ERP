@@ -35,7 +35,6 @@ async function getInventoryFlowReport(branchId, operationalDate, category, produ
 
 async function getCombinedBranchReport(branchId, operationalDate) {
   const branches = await prisma.branch.findMany({
-    where: { isActive: true },
     orderBy: { name: 'asc' },
   });
   const branchReports = await Promise.all(
@@ -99,7 +98,7 @@ async function getDailyReport(branchId, date, category, productId) {
 
 async function getWeeklyReport(branchId, weekStartDate, category, productId) {
   const branches = !branchId
-    ? await prisma.branch.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } })
+    ? await prisma.branch.findMany({ orderBy: { name: 'asc' } })
     : [{ id: parseInt(branchId), name: '' }];
 
   const inputDate = new Date(weekStartDate);
@@ -350,7 +349,7 @@ async function getYearlyReport(branchId, year, category, productId) {
   const pidFilter = productId ? parseInt(productId) : null;
 
   const branches = !branchId
-    ? await prisma.branch.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } })
+    ? await prisma.branch.findMany({ orderBy: { name: 'asc' } })
     : [{ id: parseInt(branchId), name: '' }];
 
   const monthTotalsMap = {};

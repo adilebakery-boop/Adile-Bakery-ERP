@@ -43,18 +43,26 @@ const branchService = {
   },
 
   async findAll(options = {}) {
-    const { page = 1, limit = 10, search, sortBy = 'id', sortOrder = 'desc' } = options;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, search, sortBy = 'id', sortOrder = 'desc', isActive } = options;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
-    const where = search
-      ? { name: { contains: search, mode: 'insensitive' } }
-      : {};
+    const where = {};
+
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+
+    if (isActive !== undefined) {
+      where.isActive = isActive === 'true' || isActive === true;
+    }
 
     const [branches, total] = await Promise.all([
       prisma.branch.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { [sortBy]: sortOrder },
       }),
       prisma.branch.count({ where }),
@@ -63,10 +71,10 @@ const branchService = {
     return {
       data: branches,
       pagination: {
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limitNum),
       },
     };
   },
