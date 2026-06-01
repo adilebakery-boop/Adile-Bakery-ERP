@@ -42,7 +42,7 @@ export const queryKeys = {
     byId: (id) => ['waste', id],
   },
   users: {
-    list: (filters = {}) => ['users', 'list', filters],
+    list: (filters) => filters ? ['users', 'list', filters] : ['users', 'list'],
     byId: (id) => ['users', id],
   },
 };
