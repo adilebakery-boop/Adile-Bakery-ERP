@@ -68,6 +68,7 @@ function errorHandler(err, req, res, next) {
   res.status(status).json({
     success: false,
     message: status === 500 ? 'An unexpected error occurred' : err.message,
+    ...(err.data && { data: err.data }),
   });
 }
 

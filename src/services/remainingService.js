@@ -3,6 +3,7 @@ const auditService = require('./auditService');
 const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { requireDayNotClosed } = require('./closureService');
 const { requireBranchAccess } = require('../utils/accessFilters');
 
 async function findAll(filters = {}) {
@@ -95,6 +96,17 @@ async function create(data, user) {
 
   requireBranchAccess(branchId, user, 'inventory');
 
+  const branch = await prisma.branch.findUnique({
+    where: { id: parseInt(branchId) },
+    select: { isActive: true },
+  });
+
+  if (!branch || !branch.isActive) {
+    const error = new Error('Cannot create remaining records for inactive branch');
+    error.status = 400;
+    throw error;
+  }
+
   // Validate quantity is positive
   if (quantity === undefined || quantity === null || Number(quantity) <= 0) {
     throw new Error('Quantity must be a positive number');
@@ -138,6 +150,8 @@ async function create(data, user) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(branchId, opDate);
 
   const existing = await prisma.remainingRecord.findFirst({
     where: {
@@ -196,40 +210,59 @@ async function createBulk(data, user) {
 
   requireBranchAccess(branchId, user, 'inventory');
 
+  const branch = await prisma.branch.findUnique({
+    where: { id: parseInt(branchId) },
+    select: { isActive: true },
+  });
+
+  if (!branch || !branch.isActive) {
+    const error = new Error('Cannot create remaining records for inactive branch');
+    error.status = 400;
+    throw error;
+  }
+
   if (!canEditOperationalRecord(opDate, user.role)) {
     const error = new Error('Remaining records can only be edited within the 3-day edit window');
     error.status = 403;
     throw error;
   }
 
+  await requireDayNotClosed(branchId, opDate);
+
   try {
     const result = await prisma.$transaction(async (tx) => {
+
+    const productIds = items.map(item => parseInt(item.productId));
+
+    const allProducts = await tx.product.findMany({
+      where: { id: { in: productIds } },
+    });
+    const productMap = new Map(allProducts.map(p => [p.id, p]));
+
+    const existingRecords = await tx.remainingRecord.findMany({
+      where: {
+        branchId: parseInt(branchId),
+        operationalDate: opDate,
+        productId: { in: productIds },
+      },
+    });
+    const existingMap = new Map(existingRecords.map(r => [r.productId, r]));
 
     const results = [];
     const auditLogs = [];
 
     for (const item of items) {
-      const product = await tx.product.findFirst({
-        where: {
-          id: parseInt(item.productId),
-          isActive: true,
-        },
-      });
+      const product = productMap.get(parseInt(item.productId));
 
       if (!product) {
-        const existingProduct = await tx.product.findUnique({
-          where: { id: parseInt(item.productId) },
-          select: { isActive: true },
-        });
-
-        if (existingProduct && !existingProduct.isActive) {
-          const err = new Error(`Cannot save remaining for inactive product: ${existingProduct.id}`);
-          err.status = 400;
-          throw err;
-        }
-
         const err = new Error(`Product ${item.productId} not found`);
         err.status = 404;
+        throw err;
+      }
+
+      if (!product.isActive) {
+        const err = new Error(`Cannot save remaining for inactive product: ${product.id}`);
+        err.status = 400;
         throw err;
       }
 
@@ -240,13 +273,7 @@ async function createBulk(data, user) {
         throw err;
       }
 
-      const existing = await tx.remainingRecord.findFirst({
-        where: {
-          branchId: parseInt(branchId),
-          operationalDate: opDate,
-          productId: parseInt(item.productId),
-        },
-      });
+      const existing = existingMap.get(parseInt(item.productId));
 
       let remaining;
 
@@ -324,6 +351,8 @@ async function update(id, data, user) {
     throw error;
   }
 
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
+
   const updateData = {
     updatedBy: user.userId,
   };
@@ -369,6 +398,8 @@ async function remove(id, user) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   await prisma.remainingRecord.delete({
     where: { id: parseInt(id) },

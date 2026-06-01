@@ -87,4 +87,12 @@ router.delete(
   branchController.delete
 );
 
+router.patch(
+  '/:id/restore',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  validateParams(branchIdSchema),
+  branchController.restore
+);
+
 module.exports = router;

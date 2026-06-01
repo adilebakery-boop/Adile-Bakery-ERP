@@ -3,6 +3,7 @@ const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { canEditOperationalRecord } = require('../utils/dateUtils');
 const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
+const { requireDayNotClosed } = require('./closureService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function findAll(filters = {}) {
@@ -71,6 +72,17 @@ async function create(data, userId) {
 
   requireBranchAccess(branchId, userId, 'waste');
 
+  const branch = await prisma.branch.findUnique({
+    where: { id: parseInt(branchId) },
+    select: { isActive: true },
+  });
+
+  if (!branch || !branch.isActive) {
+    const error = new Error('Cannot create waste records for inactive branch');
+    error.status = 400;
+    throw error;
+  }
+
   const product = await prisma.product.findFirst({
     where: {
       id: parseInt(productId),
@@ -116,6 +128,8 @@ async function create(data, userId) {
     throw error;
   }
 
+  await requireDayNotClosed(branchId, opDate);
+
   const waste = await prisma.wasteRecord.create({
     data: {
       productId: parseInt(productId),
@@ -147,6 +161,8 @@ async function update(id, data, userId) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   const updateData = {};
 
@@ -190,6 +206,8 @@ async function remove(id, userId) {
     error.status = 403;
     throw error;
   }
+
+  await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   await prisma.wasteRecord.delete({
     where: { id: parseInt(id) },

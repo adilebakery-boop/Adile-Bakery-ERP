@@ -4,7 +4,7 @@ import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, Chevron
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getLocalizedName, PRODUCT_NAMES, BRANCH_NAMES } from '../../utils/getLocalizedName';
 import reportService from '../../services/reportService';
-import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import { useBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useProductCategoriesQuery } from '../../features/products/hooks/queries/useProductCategoriesQuery';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { useDailyReportQuery } from '../../features/reports/hooks/queries/useDailyReportQuery';
@@ -55,7 +55,7 @@ export default function ReportsPage() {
     return branchName;
   };
 
-  const { data: branches = [] } = useActiveBranchesQuery();
+  const { data: branches = [] } = useBranchesQuery({ limit: 100 });
   const { data: categories = [] } = useProductCategoriesQuery();
 
   const {
@@ -239,7 +239,9 @@ export default function ReportsPage() {
                   >
                     <option value="">{t('reports.allBranches')}</option>
                     {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                      <option key={b.id} value={b.id}>
+                        {getLocalizedName(b, i18n.language)}{b.isActive === false ? ' (Archived)' : ''}
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />

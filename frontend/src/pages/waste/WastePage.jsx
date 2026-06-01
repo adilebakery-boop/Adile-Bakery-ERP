@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, RefreshCw, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal';
+import { useQueries } from '@tanstack/react-query';
+import closureService from '../../services/closureService';
 import { useWasteQuery } from '../../features/waste/hooks/queries/useWasteQuery';
+import { useClosureStatus } from '../../hooks/useClosureStatus';
+import OperationalDayControlBar from '../../components/OperationalDayControlBar';
 import { useCreateWasteMutation } from '../../features/waste/hooks/mutations/useCreateWasteMutation';
 import { useUpdateWasteMutation } from '../../features/waste/hooks/mutations/useUpdateWasteMutation';
 import { useDeleteWasteMutation } from '../../features/waste/hooks/mutations/useDeleteWasteMutation';
@@ -21,12 +25,19 @@ export default function WastePage() {
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    const u = getUser();
+    return u?.branchId ? u.branchId.toString() : '';
+  });
+  const [closureBranch, setClosureBranch] = useState(() => {
+    const u = getUser();
+    return u?.branchId ? u.branchId.toString() : '';
+  });
   const [selectedProduct, setSelectedProduct] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const entriesBranchId = canManage ? (selectedBranch || undefined) : (userBranchId ? userBranchId.toString() : undefined);
+  const entriesBranchId = canManage ? (selectedBranch ? Number(selectedBranch) : null) : (userBranchId ?? null);
 
   const [createForm, setCreateForm] = useState(() => {
     const now = new Date();
@@ -40,6 +51,10 @@ export default function WastePage() {
     };
   });
 
+  const createFormBranch = canManage ? (createForm.branchId || undefined) : userBranchId;
+  const { data: createFormClosureStatus } = useClosureStatus(createFormBranch, createForm.operationalDate);
+  const isCreateFormClosed = createFormBranch ? createFormClosureStatus === 'CLOSED' : false;
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingWaste, setEditingWaste] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -50,13 +65,50 @@ export default function WastePage() {
 
   const filters = {
     search: searchTerm || undefined,
-    branchId: entriesBranchId,
+    branchId: entriesBranchId ?? undefined,
     productId: selectedProduct || undefined,
     limit: 10000,
   };
 
   const { data, isLoading, isError, error: queryError, refetch } = useWasteQuery(filters);
   const wastes = data?.data || [];
+
+  const uniqueWastePairs = useMemo(() => {
+    const seen = new Set();
+    const pairs = [];
+    wastes.forEach(w => {
+      const date = (w.operationalDate || '').split('T')[0];
+      const key = `${w.branchId}_${date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        pairs.push({ branchId: w.branchId, operationalDate: date });
+      }
+    });
+    return pairs;
+  }, [wastes]);
+
+  const wasteRowStatuses = useQueries({
+    queries: uniqueWastePairs.map(({ branchId, operationalDate }) => ({
+      queryKey: ['closure', 'status', branchId, operationalDate],
+      queryFn: () => closureService.getStatus(operationalDate, branchId),
+      enabled: !!branchId && !!operationalDate,
+      staleTime: 30000,
+      select: (res) => {
+        const raw = res?.data ?? res ?? {};
+        return (raw?.status || 'OPEN') === 'CLOSED';
+      },
+    })),
+  });
+
+  const wasteClosedMap = useMemo(() => {
+    const map = {};
+    uniqueWastePairs.forEach((pair, i) => {
+      if (wasteRowStatuses[i]?.data) {
+        map[`${pair.branchId}_${pair.operationalDate}`] = true;
+      }
+    });
+    return map;
+  }, [wasteRowStatuses, uniqueWastePairs]);
 
   const { data: branches = [] } = useActiveBranchesQuery();
   const { data: productsData } = useProductsQuery({ isActive: true, limit: 500 });
@@ -86,6 +138,14 @@ export default function WastePage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedBranch, selectedProduct]);
+
+  useEffect(() => {
+    if (canManage && branches.length > 0) {
+      if (!closureBranch) {
+        setClosureBranch(branches[0].id.toString());
+      }
+    }
+  }, [branches, canManage, closureBranch]);
 
   const normalizedOpDate = (d) => (d || '').split('T')[0];
 
@@ -313,7 +373,7 @@ export default function WastePage() {
             </div>
             <button
               type="submit"
-              disabled={createWaste.isPending}
+              disabled={createWaste.isPending || isCreateFormClosed}
               className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {createWaste.isPending ? (
@@ -330,6 +390,12 @@ export default function WastePage() {
             </button>
           </form>
         </div>
+
+      <OperationalDayControlBar
+        branchId={closureBranch}
+        branches={branches}
+        onBranchChange={setClosureBranch}
+      />
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md min-w-[200px]">
@@ -486,7 +552,7 @@ export default function WastePage() {
                       </td>
                       <td className="px-6 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {canEditOperationalRecord(waste.operationalDate, user.role) ? (
+                          {canEditOperationalRecord(waste.operationalDate, user.role) && !wasteClosedMap[`${waste.branchId}_${(waste.operationalDate || '').split('T')[0]}`] ? (
                             <>
                               <button
                                 onClick={() => handleEditClick(waste)}

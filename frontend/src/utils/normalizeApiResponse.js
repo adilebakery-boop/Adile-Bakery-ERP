@@ -15,6 +15,7 @@ export function normalizeError(error) {
       success: false,
       message: error.response.data?.message || 'Server error occurred',
       errors: error.response.data?.errors || [],
+      data: error.response.data?.data,
       status: error.response.status,
     };
   }
