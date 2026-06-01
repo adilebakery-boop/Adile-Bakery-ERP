@@ -47,7 +47,8 @@
     "view": "View",
     "hide": "Hide",
     "locked": "Locked",
-    "selectBranch": "Select branch"
+    "selectBranch": "Select branch",
+    "retry": "Retry"
   },
   "auth": {
     "login": "Sign In",
@@ -126,7 +127,10 @@
     "pageOf": "Page {{current}} of {{total}}",
     "deleteConfirm": "Are you sure you want to delete this production entry?",
     "deleted": "Production entry deleted successfully!",
-    "shiftLockedTooltip": "Shift cannot be changed after record creation (accounting rule)"
+    "shiftLockedTooltip": "Shift cannot be changed after record creation (accounting rule)",
+    "searchProduction": "Search production records...",
+    "allBranches": "All Branches",
+    "allProducts": "All Products"
   },
   "remaining": {
     "title": "Remaining Stock",
@@ -298,6 +302,39 @@
   "units": {
     "piece": "piece",
     "kg": "kg"
+  },
+  "closure": {
+    "open": "Open",
+    "closed": "Closed",
+    "reopened": "Reopened",
+    "closeDay": "Close Day",
+    "reopenDay": "Reopen Day",
+    "closing": "Closing...",
+    "reopening": "Reopening...",
+    "statusError": "Unable to load closure status",
+    "closeFailed": "Failed to close day",
+    "reopenFailed": "Failed to reopen day",
+    "confirmCloseTitle": "Close Day",
+    "confirmCloseMessage": "Are you sure you want to close this day? This will lock all operational data and generate a snapshot.",
+    "confirmReopenTitle": "Reopen Day",
+    "reopenReasonPrompt": "Please provide a reason for reopening this day:",
+    "reopenReasonPlaceholder": "Enter reason for reopening...",
+    "reopenReasonRequired": "Reason is required to reopen",
+    "reopenedWarning": "Changes affect historical reports",
+    "selectBranch": "Select a branch to view closure status",
+    "checking": "Checking closure readiness...",
+    "validationPassed": "All checks passed — ready to close",
+    "validationFailed": "Cannot close — fix the issues below",
+    "cannotValidate": "Could not check closure readiness",
+    "validationIssues": "Issues to resolve:",
+    "warnings": "Warnings:",
+    "blockingIssues": "Blocking issues — must fix before closing:",
+    "productsRequireCounting": "products require counting",
+    "autoZeroTitle": "Products with no activity",
+    "autoZeroMessage": "{{count}} products had no activity. The system will automatically create Remaining = 0.",
+    "autoZeroList": "Auto-finalized products",
+    "showProducts": "Show products",
+    "hideProducts": "Hide products"
   },
   "waste": {
     "title": "Waste Management",

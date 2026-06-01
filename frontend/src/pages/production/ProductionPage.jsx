@@ -1,6 +1,6 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Loader2, RefreshCw, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole } from '../../utils/permissions';
@@ -10,6 +10,10 @@ import { TableSkeleton } from '../../components/skeletons';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useProductionEntriesQuery } from '../../features/production/hooks/queries/useProductionEntriesQuery';
+import { useClosureStatus } from '../../hooks/useClosureStatus';
+import OperationalDayControlBar from '../../components/OperationalDayControlBar';
+import { useQueries } from '@tanstack/react-query';
+import closureService from '../../services/closureService';
 import { useCreateProductionMutation } from '../../features/production/hooks/mutations/useCreateProductionMutation';
 import { useUpdateProductionMutation } from '../../features/production/hooks/mutations/useUpdateProductionMutation';
 import { useDeleteProductionMutation } from '../../features/production/hooks/mutations/useDeleteProductionMutation';
@@ -33,11 +37,22 @@ export default function ProductionPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
-  const [branch, setBranch] = useState(() => {
+  const [inputBranch, setInputBranch] = useState(() => {
     const role = getUserRole();
     const uid = getUserBranchId();
     return (role !== 'ROLE_MANAGER' && role !== 'ROLE_ADMIN') && uid ? uid.toString() : '';
   });
+  const [selectedFilterBranch, setSelectedFilterBranch] = useState(() => {
+    const uid = getUserBranchId();
+    return uid ? uid.toString() : '';
+  });
+  const [closureBranch, setClosureBranch] = useState(() => {
+    const uid = getUserBranchId();
+    return uid ? uid.toString() : '';
+  });
+  const [selectedFilterProduct, setSelectedFilterProduct] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [shift, setShift] = useState('');
   const [quantity, setQuantity] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
@@ -55,7 +70,7 @@ export default function ProductionPage() {
   const allowedCategories = getCategoriesForRole(userRole);
   const canManageAll = isManagerOrAdmin();
 
-  const entriesBranchId = canManageAll ? (branch ? parseInt(branch) : 'all') : userBranchId;
+  const entriesBranchId = canManageAll ? (selectedFilterBranch ? Number(selectedFilterBranch) : null) : userBranchId;
 
   const calculatedOperationalDate = (() => {
     if (!productionDate || !shift) return null;
@@ -66,6 +81,10 @@ export default function ProductionPage() {
     }
     return `${prodDate.getFullYear()}-${String(prodDate.getMonth() + 1).padStart(2, '0')}-${String(prodDate.getDate()).padStart(2, '0')}`;
   })();
+
+  const createFormBranch = canManageAll ? inputBranch : userBranchId;
+  const { data: createFormClosureStatus } = useClosureStatus(createFormBranch, calculatedOperationalDate);
+  const isCreateFormClosed = createFormBranch && calculatedOperationalDate ? createFormClosureStatus === 'CLOSED' : false;
 
   const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
   const fullProductList = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
@@ -78,12 +97,59 @@ export default function ProductionPage() {
     isError: entriesError,
     error: entriesErrorObj,
     refetch: refetchEntries,
-  } = useProductionEntriesQuery(entriesBranchId, { page: currentPage, limit: itemsPerPage });
+  } = useProductionEntriesQuery(entriesBranchId, {
+    page: currentPage,
+    limit: itemsPerPage,
+    productId: selectedFilterProduct || undefined,
+  });
 
-  const groupedEntries = response?.data || [];
+  const groupedEntries = (() => {
+    const entries = response?.data || [];
+    if (!searchTerm) return entries;
+    return entries.filter(g => {
+      const name = getLocalizedName(g.product, i18n.language) || g.product?.name || '';
+      return name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  })();
   const pagination = response?.pagination || {};
-  const totalPages = pagination.totalPages || 1;
-  const totalGroups = pagination.total || 0;
+  const totalGroups = groupedEntries.length;
+  const totalPages = Math.ceil(totalGroups / itemsPerPage);
+
+  const uniquePairs = useMemo(() => {
+    const seen = new Set();
+    const pairs = [];
+    (response?.data || []).forEach(g => {
+      const key = `${g.branchId}_${g.operationalDate}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        pairs.push({ branchId: g.branchId, operationalDate: g.operationalDate });
+      }
+    });
+    return pairs;
+  }, [response?.data]);
+
+  const rowStatuses = useQueries({
+    queries: uniquePairs.map(({ branchId, operationalDate }) => ({
+      queryKey: ['closure', 'status', branchId, operationalDate],
+      queryFn: () => closureService.getStatus(operationalDate, branchId),
+      enabled: !!branchId && !!operationalDate,
+      staleTime: 30000,
+      select: (res) => {
+        const raw = res?.data ?? res ?? {};
+        return (raw?.status || 'OPEN') === 'CLOSED';
+      },
+    })),
+  });
+
+  const closedMap = useMemo(() => {
+    const map = {};
+    uniquePairs.forEach((pair, i) => {
+      if (rowStatuses[i]?.data) {
+        map[`${pair.branchId}_${pair.operationalDate}`] = true;
+      }
+    });
+    return map;
+  }, [rowStatuses, uniquePairs]);
 
   const createMutation = useCreateProductionMutation();
   const updateMutation = useUpdateProductionMutation();
@@ -91,7 +157,22 @@ export default function ProductionPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [branch]);
+  }, [selectedFilterBranch, selectedFilterProduct, searchTerm]);
+
+  useEffect(() => {
+    if (canManageAll && branches.length > 0) {
+      if (!closureBranch) {
+        setClosureBranch(branches[0].id.toString());
+      }
+    }
+  }, [branches, canManageAll, closureBranch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const toggleGroupExpand = (groupKey) => {
     setExpandedGroups(prev => ({
@@ -118,7 +199,7 @@ export default function ProductionPage() {
     setError('');
     setSuccess('');
 
-    const requiredBranch = branch || userBranchId;
+    const requiredBranch = inputBranch || userBranchId;
     if (!product || !requiredBranch || !shift || !quantity) {
       setError('All fields are required');
       return;
@@ -193,7 +274,7 @@ export default function ProductionPage() {
       await updateMutation.mutateAsync({
         id: editingEntry.id,
         data: updatePayload,
-        branchId: entriesBranchId,
+        branchId: editingEntry.branchId,
       });
       setSuccess('Production updated successfully!');
       setIsEditModalOpen(false);
@@ -314,8 +395,8 @@ export default function ProductionPage() {
             />
           </div>
 
-            <div className="w-full md:flex-1 md:min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
+          <div className="w-full md:flex-1 md:min-w-[180px]">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
             {isLoadingProducts ? (
               <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-xl">
                 <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-500" />
@@ -348,8 +429,8 @@ export default function ProductionPage() {
             <div className="w-full md:flex-1 md:min-w-[180px]">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.branch')}</label>
               <select
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
+                value={inputBranch}
+                onChange={(e) => setInputBranch(e.target.value)}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 disabled={createMutation.isPending}
@@ -362,8 +443,8 @@ export default function ProductionPage() {
             </div>
           )}
 
-            <div className="w-full md:flex-1 md:min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
+          <div className="w-full md:flex-1 md:min-w-[180px]">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
@@ -378,8 +459,8 @@ export default function ProductionPage() {
             </select>
           </div>
 
-            <div className="w-full md:w-40">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
+          <div className="w-full md:w-40">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
             <input
               type="number"
               value={quantity}
@@ -395,7 +476,7 @@ export default function ProductionPage() {
 
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || isCreateFormClosed}
             className="w-full md:w-auto px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center justify-center md:justify-start gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {createMutation.isPending ? (
@@ -411,6 +492,47 @@ export default function ProductionPage() {
             )}
           </button>
         </form>
+      </div>
+
+      <OperationalDayControlBar
+        branchId={closureBranch}
+        branches={branches}
+        onBranchChange={setClosureBranch}
+      />
+
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
+        <div className="relative flex-1 max-w-md min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <input
+            type="text"
+            placeholder={t('production.searchProduction')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
+          />
+        </div>
+        {canManageAll && (
+          <select
+            value={selectedFilterBranch}
+            onChange={(e) => setSelectedFilterBranch(e.target.value)}
+            className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+          >
+            <option value="">{t('production.allBranches')}</option>
+            {(Array.isArray(branches) ? branches : []).map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
+        <select
+          value={selectedFilterProduct}
+          onChange={(e) => setSelectedFilterProduct(e.target.value)}
+          className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+        >
+          <option value="">{t('production.allProducts')}</option>
+          {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
+            <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
@@ -527,7 +649,7 @@ export default function ProductionPage() {
                                         {entry.creator?.name || entry.creator?.username || '-'}
                                       </td>
                                       <td className="px-6 py-2.5">
-                                        {canEditOperationalRecord(group.operationalDate, userRole) ? (
+                                        {canEditOperationalRecord(group.operationalDate, userRole) && !closedMap[`${group.branchId}_${group.operationalDate}`] ? (
                                           <div className="flex items-center gap-1">
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}

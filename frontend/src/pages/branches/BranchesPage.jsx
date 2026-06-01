@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Eye, RotateCcw } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useBranchMutations } from '../../features/branches/hooks/mutations/useBranchMutations';
 import { getUser } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
-import { LoadingSpinner, ApiErrorState, EmptyState } from '../../components/ui';
+import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
 
 export default function BranchesPage() {
@@ -15,13 +15,19 @@ export default function BranchesPage() {
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
 
   const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery();
-  const { addBranch, editBranch, removeBranch } = useBranchMutations();
-  
+  const { addBranch, editBranch, removeBranch, restoreBranch } = useBranchMutations();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
   const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '' });
   const [actionError, setActionError] = useState(null);
+
+  const { data: deletedBranches = [], isLoading: deletedLoading } = useBranchesQuery(
+    { isActive: false, limit: 100 },
+    { enabled: isDeletedModalOpen }
+  );
 
   const error = actionError || queryError;
 
@@ -61,13 +67,14 @@ export default function BranchesPage() {
     }
   };
 
-  const handleToggleStatus = async (branch) => {
-    const newStatus = branch.isActive === false ? true : false;
-    setActionError(null);
-    try {
-      await editBranch.mutateAsync({ id: branch.id, data: { isActive: newStatus } });
-    } catch (err) {
-      setActionError(err.message);
+  const handleRestore = async (id) => {
+    if (window.confirm('Restore this branch?')) {
+      setActionError(null);
+      try {
+        await restoreBranch.mutateAsync(id);
+      } catch (err) {
+        setActionError(err.message);
+      }
     }
   };
 
@@ -87,13 +94,22 @@ export default function BranchesPage() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('branches.title')}</h1>
         {canManage && (
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {t('branches.addBranch')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDeletedModalOpen(true)}
+              className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Deleted Branches
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {t('branches.addBranch')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -142,8 +158,8 @@ export default function BranchesPage() {
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.phone || '-'}</td>
                     <td className="px-6 py-4">
 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          branch.isActive !== false 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                          branch.isActive !== false
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                             : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                         }`}>
                         {branch.isActive !== false ? t('common.active') : t('common.inactive')}
@@ -152,16 +168,6 @@ export default function BranchesPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => handleToggleStatus(branch)}
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              branch.isActive !== false 
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            {branch.isActive !== false ? 'Active' : 'Inactive'}
-                          </button>
                           <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -300,6 +306,43 @@ required
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Deleted Branches Modal */}
+      <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title="Deleted Branches">
+        {deletedLoading ? (
+          <div className="py-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+          </div>
+        ) : deletedBranches.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">No deleted branches</div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {deletedBranches.map((branch) => (
+              <div key={branch.id} className="flex items-center justify-between p-3 bg-[#F9F7F2] rounded-xl">
+                <div>
+                  <div className="font-medium text-[#001F3F]">{getLocalizedName(branch, i18n.language)}</div>
+                  <div className="text-sm text-gray-500">{branch.address || 'No address'}</div>
+                </div>
+                <button
+                  onClick={() => handleRestore(branch.id)}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Restore"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
+          <button
+            onClick={() => setIsDeletedModalOpen(false)}
+            className="w-full px-6 py-3 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm"
+          >
+            Close
+          </button>
+        </div>
       </Modal>
     </div>
   );

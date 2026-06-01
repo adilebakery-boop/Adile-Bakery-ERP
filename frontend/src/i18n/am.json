@@ -47,7 +47,8 @@
     "view": "ይመልከቱ",
     "hide": "ደብቅ",
     "locked": "ተቀልጥፏል",
-    "selectBranch": "ቅርንጫፍ ምረጥ"
+    "selectBranch": "ቅርንጫፍ ምረጥ",
+    "retry": "ደግሞ ሞክር"
   },
   "auth": {
     "login": "ግባ",
@@ -126,7 +127,10 @@
     "pageOf": "ገጽ {{current}} ከ {{total}}",
     "deleteConfirm": "ይህን የምርት መዝገብ መሰረዝ ይፈልጋሉ?",
     "deleted": "የምርት መዝገብ በተሳካ ሁኔታ ተሰርዟል!",
-    "shiftLockedTooltip": "ፈረቃ ከመዝገብ ፈጠራ በኋላ መቀየር አይቻልም (የሂሳብ ደንብ)"
+    "shiftLockedTooltip": "ፈረቃ ከመዝገብ ፈጠራ በኋላ መቀየር አይቻልም (የሂሳብ ደንብ)",
+    "searchProduction": "የምርት መዝገቦችን ይፈልጉ...",
+    "allBranches": "ሁሉም ቅርንጫፎች",
+    "allProducts": "ሁሉም ምርቶች"
   },
   "remaining": {
     "title": "የቀረ ክምችት",
@@ -298,6 +302,39 @@
   "units": {
     "piece": "ነገር",
     "kg": "ኪሎ"
+  },
+  "closure": {
+    "open": "ክፍት",
+    "closed": "ዝግ",
+    "reopened": "እንደገና ተከፍቷል",
+    "closeDay": "ቀን ዝጋ",
+    "reopenDay": "ቀን ክፈት",
+    "closing": "በመዝጋት ላይ...",
+    "reopening": "በመክፈት ላይ...",
+    "statusError": "የቀን ሁኔታ መጫን አልተሳካም",
+    "closeFailed": "ቀን መዝጋት አልተሳካም",
+    "reopenFailed": "ቀን መክፈት አልተሳካም",
+    "confirmCloseTitle": "ቀን ዝጋ",
+    "confirmCloseMessage": "ይህን ቀን መዝጋት ይፈልጋሉ? ሁሉም የስራ መረጃዎች ይቆለፋሉ እና ቅጽበታዊ ገጽታ ይፈጠራል።",
+    "confirmReopenTitle": "ቀን ክፈት",
+    "reopenReasonPrompt": "እባክዎን ይህን ቀን እንደገና ለመክፈት ምክንያት ያስገቡ:",
+    "reopenReasonPlaceholder": "ለመክፈት ምክንያት ያስገቡ...",
+    "reopenReasonRequired": "ለመክፈት ምክንያት ያስፈልጋል",
+    "reopenedWarning": "ለውጦች የታሪክ ሪፖርቶችን ይነካሉ",
+    "selectBranch": "የቀን ሁኔታ ለማየት ቅርንጫፍ ይምረጡ",
+    "checking": "የመዝጊያ ዝግጁነት በመፈተሽ ላይ...",
+    "validationPassed": "ሁሉም ማረጋገጫዎች አልፈዋል - ለመዝጋት ዝግጁ",
+    "validationFailed": "መዝጋት አይቻልም - ከታች ያሉትን ችግሮች ያስተካክሉ",
+    "cannotValidate": "የመዝጊያ ዝግጁነት መፈተሽ አልተሳካም",
+    "validationIssues": "መፍታት ያለባቸው ጉዳዮች:",
+    "warnings": "ማስጠንቀቂያዎች:",
+    "blockingIssues": "የሚያግዱ ጉዳዮች — ከመዝጋት በፊት መጠገን አለባቸው:",
+    "productsRequireCounting": "ምርቶች መቆጠር ያስፈልጋቸዋል",
+    "autoZeroTitle": "እንቅስቃሴ የሌላቸው ምርቶች",
+    "autoZeroMessage": "{{count}} ምርቶች እንቅስቃሴ የሌላቸው ናቸው። ሲስተሙ ራስ-ሰር ቀሪ = 0 ይፈጥራል።",
+    "autoZeroList": "ራስ-ሰር የተጠናቀቁ ምርቶች",
+    "showProducts": "ምርቶች አሳይ",
+    "hideProducts": "ምርቶች ደብቅ"
   },
   "waste": {
     "title": "የብክነት አስተዳደር",

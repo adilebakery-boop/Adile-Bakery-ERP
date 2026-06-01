@@ -25,6 +25,10 @@ export const branchService = {
   getActiveBranches: async () => {
     return safeCall(api.get('/branches/active'));
   },
+
+  restoreBranch: async (id) => {
+    return safeCall(api.patch(`/branches/${id}/restore`));
+  },
 };
 
 export default branchService;
