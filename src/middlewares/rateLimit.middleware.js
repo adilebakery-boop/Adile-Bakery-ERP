@@ -1,5 +1,47 @@
-const rateLimit = require('express-rate-limit');
 const prisma = require('../config/prisma');
+
+function createPrismaLimiter({ windowMs, max, message }) {
+  return async (req, res, next) => {
+    const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
+    const now = new Date();
+    const key = `ratelimit:${ip}`;
+
+    try {
+      let record = await prisma.rateLimit.findUnique({ where: { key } });
+
+      if (!record) {
+        record = await prisma.rateLimit.create({
+          data: { key, count: 0, expiresAt: new Date(now.getTime() + windowMs) },
+        });
+      }
+
+      if (now > record.expiresAt) {
+        record = await prisma.rateLimit.update({
+          where: { key },
+          data: { count: 0, expiresAt: new Date(now.getTime() + windowMs) },
+        });
+      }
+
+      if (record.count >= max) {
+        const retryAfter = Math.ceil((record.expiresAt.getTime() - now.getTime()) / 1000);
+        res.set('Retry-After', String(retryAfter));
+        res.set('X-RateLimit-Limit', String(max));
+        res.set('X-RateLimit-Remaining', '0');
+        return res.status(429).json(message);
+      }
+
+      await prisma.rateLimit.upsert({
+        where: { key },
+        create: { key, count: 1, expiresAt: new Date(now.getTime() + windowMs) },
+        update: { count: { increment: 1 } },
+      });
+
+      next();
+    } catch {
+      next();
+    }
+  };
+}
 
 const loginLimiter = async (req, res, next) => {
   const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
@@ -47,7 +89,7 @@ const incrementLoginAttempts = async (ip) => {
   }
 };
 
-const apiLimiter = rateLimit({
+const apiLimiter = createPrismaLimiter({
   windowMs: 15 * 60 * 1000,
   max: 250,
   message: {
@@ -55,11 +97,9 @@ const apiLimiter = rateLimit({
     message: 'Too many requests. Please try again after 15 minutes.',
     errors: [],
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
-const exportLimiter = rateLimit({
+const exportLimiter = createPrismaLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: {
@@ -67,11 +107,9 @@ const exportLimiter = rateLimit({
     message: 'Too many export requests. Please try again after 1 hour.',
     errors: [],
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
-const otpLimiter = rateLimit({
+const otpLimiter = createPrismaLimiter({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: {
@@ -79,8 +117,6 @@ const otpLimiter = rateLimit({
     message: 'Too many password reset requests. Please try again after 15 minutes.',
     errors: [],
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 });
 
 module.exports = {
