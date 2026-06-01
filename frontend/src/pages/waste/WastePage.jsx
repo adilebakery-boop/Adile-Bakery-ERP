@@ -39,6 +39,7 @@ export default function WastePage() {
 
   const entriesBranchId = canManage ? (selectedBranch ? Number(selectedBranch) : null) : (userBranchId ?? null);
 
+  const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [createForm, setCreateForm] = useState(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -217,6 +218,7 @@ export default function WastePage() {
       quantity: '',
       reason: '',
     });
+    setSelectedProductUnitType(null);
   };
 
   const handleCreate = async (e) => {
@@ -225,6 +227,13 @@ export default function WastePage() {
     if (createForm.operationalDate && !canEditOperationalRecord(createForm.operationalDate, user.role)) {
       setActionError(t('waste.cannotEditOlderThan3Days'));
       return;
+    }
+    if (selectedProductUnitType === 'piece') {
+      const qty = parseFloat(createForm.quantity);
+      if (!Number.isInteger(qty)) {
+        setActionError(t('waste.integerQuantityRequired'));
+        return;
+      }
     }
     try {
       await createWaste.mutateAsync({
@@ -250,6 +259,13 @@ export default function WastePage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setActionError(null);
+    if (editingWaste?.product?.unitType === 'piece') {
+      const qty = parseFloat(editForm.quantity);
+      if (!Number.isInteger(qty)) {
+        setActionError(t('waste.integerQuantityRequired'));
+        return;
+      }
+    }
     try {
       await updateWaste.mutateAsync({
         id: editingWaste.id,
@@ -303,7 +319,11 @@ export default function WastePage() {
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.product')}</label>
               <select
                 value={createForm.productId}
-                onChange={(e) => setCreateForm({ ...createForm, productId: e.target.value })}
+                onChange={(e) => {
+                  setCreateForm({ ...createForm, productId: e.target.value });
+                  const selected = filteredProducts.find(p => p.id === parseInt(e.target.value));
+                  setSelectedProductUnitType(selected?.unitType || null);
+                }}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
                 required
                 autoFocus
@@ -349,7 +369,7 @@ export default function WastePage() {
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.quantity')}</label>
               <input
                 type="number"
-                step="any"
+              step={selectedProductUnitType === 'piece' ? '1' : 'any'}
                 value={createForm.quantity}
                 onChange={(e) => setCreateForm({ ...createForm, quantity: e.target.value })}
                 className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
@@ -621,7 +641,7 @@ export default function WastePage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.quantity')}</label>
             <input
               type="number"
-              step="any"
+              step={editingWaste?.product?.unitType === 'piece' ? '1' : 'any'}
               value={editForm.quantity}
               onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"

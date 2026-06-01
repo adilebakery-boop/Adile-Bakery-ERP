@@ -4,7 +4,7 @@ const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils')
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 const { requireDayNotClosed } = require('./closureService');
-const { requireBranchAccess } = require('../utils/accessFilters');
+const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
 
 async function findAll(filters = {}) {
   const { branchId, operationalDate, status, startDate, endDate, categories, page = 1, limit = 20 } = filters;
@@ -136,6 +136,12 @@ async function create(data, user) {
     throw error;
   }
 
+  if (!canCreateForCategory(user, product.category)) {
+    const error = new Error('You can only record remaining for products in your category');
+    error.status = 403;
+    throw error;
+  }
+
   const unitValidation = validateQuantityForUnitType(quantity, product.unitType);
   if (!unitValidation.valid) {
     const error = new Error(unitValidation.message);
@@ -263,6 +269,12 @@ async function createBulk(data, user) {
       if (!product.isActive) {
         const err = new Error(`Cannot save remaining for inactive product: ${product.id}`);
         err.status = 400;
+        throw err;
+      }
+
+      if (!canCreateForCategory(user, product.category)) {
+        const err = new Error(`You do not have permission to record remaining for product "${product.name}"`);
+        err.status = 403;
         throw err;
       }
 

@@ -48,18 +48,20 @@ const loginLimiter = async (req, res, next) => {
   const now = new Date();
   const windowMs = 1 * 60 * 1000;
 
+  const key = `login:${ip}`;
+
   try {
-    let record = await prisma.rateLimit.findUnique({ where: { key: ip } });
+    let record = await prisma.rateLimit.findUnique({ where: { key } });
 
     if (!record) {
       record = await prisma.rateLimit.create({
-        data: { key: ip, count: 0, expiresAt: new Date(now.getTime() + windowMs) },
+        data: { key, count: 0, expiresAt: new Date(now.getTime() + windowMs) },
       });
     }
 
     if (now > record.expiresAt) {
       record = await prisma.rateLimit.update({
-        where: { key: ip },
+        where: { key },
         data: { count: 0, expiresAt: new Date(now.getTime() + windowMs) },
       });
     }
@@ -79,10 +81,11 @@ const loginLimiter = async (req, res, next) => {
 };
 
 const incrementLoginAttempts = async (ip) => {
+  const key = `login:${ip}`;
   try {
     await prisma.rateLimit.upsert({
-      where: { key: ip },
-      create: { key: ip, count: 1, expiresAt: new Date(Date.now() + 60 * 1000) },
+      where: { key },
+      create: { key, count: 1, expiresAt: new Date(Date.now() + 60 * 1000) },
       update: { count: { increment: 1 } },
     });
   } catch {

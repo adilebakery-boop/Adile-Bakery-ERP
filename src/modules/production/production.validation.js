@@ -10,6 +10,8 @@ const createProductionSchema = z.object({
   quantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
     .positive('Quantity must be greater than 0')
     .max(999999.99, 'Quantity must not exceed 999999.99'),
+  productionDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Production date must be in YYYY-MM-DD format'),
 });
 
 const updateProductionSchema = z.object({
