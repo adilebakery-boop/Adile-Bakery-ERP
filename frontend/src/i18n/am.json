@@ -359,6 +359,7 @@
     "saving": "በማስቀመጥ ላይ...",
     "showing": "ከ {{total}} መዝገቦች {{from}} እስከ {{to}} ያሳያል",
     "pageOf": "ገጽ {{current}} ከ {{total}}",
-    "cannotEditOlderThan3Days": "ከ3 ቀናት በላይ የሆነ ብክነት መፍጠር/ማስተካከል አይቻልም"
+    "cannotEditOlderThan3Days": "ከ3 ቀናት በላይ የሆነ ብክነት መፍጠር/ማስተካከል አይቻልም",
+    "integerQuantityRequired": "የቁራጭ ምርቶች ብዛት ሙሉ ቁጥር መሆን አለበት (አስርዮሽ አይፈቀድም)"
   }
 }

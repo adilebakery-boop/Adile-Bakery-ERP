@@ -359,6 +359,7 @@
     "saving": "Saving...",
     "showing": "Showing {{from}} to {{to}} of {{total}} records",
     "pageOf": "Page {{current}} of {{total}}",
-    "cannotEditOlderThan3Days": "Cannot create/edit waste older than 3 days"
+    "cannotEditOlderThan3Days": "Cannot create/edit waste older than 3 days",
+    "integerQuantityRequired": "Quantity for piece products must be a whole number (no decimals)"
   }
 }

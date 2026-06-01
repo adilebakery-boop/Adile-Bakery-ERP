@@ -116,6 +116,8 @@ model ProductionRecord {
   updater         User?    @relation("ProductionUpdatedBy", fields: [updatedBy], references: [id])
 
   @@index([branchId, operationalDate, productId])
+  @@index([branchId, operationalDate])
+  @@index([productId])
   @@index([productId, operationalDate])
   @@index([shift])
   @@index([createdBy])
@@ -141,6 +143,8 @@ model RemainingRecord {
 
   @@unique([branchId, operationalDate, productId])
   @@index([branchId, operationalDate, productId])
+  @@index([branchId, operationalDate])
+  @@index([productId])
   @@index([createdBy])
   @@index([status])
 }
@@ -159,6 +163,8 @@ model WasteRecord {
   product         Product  @relation(fields: [productId], references: [id])
 
   @@index([branchId, operationalDate, productId])
+  @@index([branchId, operationalDate])
+  @@index([productId])
   @@index([createdBy])
 }
 
