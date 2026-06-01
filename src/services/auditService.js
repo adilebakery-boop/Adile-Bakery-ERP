@@ -1,22 +1,16 @@
 const prisma = require('../config/prisma');
 
 async function logAudit(entityType, entityId, action, oldValue, newValue, userId) {
-  try {
-    const auditLog = await prisma.auditLog.create({
-      data: {
-        entityType,
-        entityId: parseInt(entityId),
-        action,
-        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
-        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
-        userId: parseInt(userId),
-      },
-    });
-    return auditLog;
-  } catch (error) {
-    console.error('[AUDIT_SERVICE] Failed to log audit:', error);
-    return null;
-  }
+  return prisma.auditLog.create({
+    data: {
+      entityType,
+      entityId: parseInt(entityId),
+      action,
+      oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
+      newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
+      userId: parseInt(userId),
+    },
+  });
 }
 
 async function getAuditLogs(entityType, entityId, limit = 50) {
