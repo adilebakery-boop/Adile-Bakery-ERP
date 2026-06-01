@@ -7,6 +7,8 @@ import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
+import CloseReopenBar from '../../components/CloseReopenBar';
+import { useClosureStatus } from '../../hooks/useClosureStatus';
 import { useRemainingEntriesQuery } from '../../features/remaining/hooks/queries/useRemainingEntriesQuery';
 import { useSaveRemainingMutation } from '../../features/remaining/hooks/mutations/useSaveRemainingMutation';
 import { useFinalizeRemainingMutation } from '../../features/remaining/hooks/mutations/useFinalizeRemainingMutation';
@@ -55,6 +57,8 @@ export default function RemainingPage() {
 
   const canManageAll = isManagerOrAdmin();
   const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
+  const { data: closureStatus } = useClosureStatus(effectiveBranchId, selectedDate);
+  const isClosed = closureStatus === 'CLOSED';
 
   const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
   const products = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
@@ -264,7 +268,7 @@ export default function RemainingPage() {
     );
   }
 
-  const isEditable = canEditOperationalRecord(selectedDate, userRole);
+  const isEditable = canEditOperationalRecord(selectedDate, userRole) && !isClosed;
 
   return (
     <div className="pb-28">
@@ -336,6 +340,11 @@ export default function RemainingPage() {
           {error}
         </div>
       )}
+
+      <CloseReopenBar
+        branchId={effectiveBranchId}
+        operationalDate={selectedDate}
+      />
 
       {isLoadingProducts || isLoadingRemainings ? (
         <div className="flex items-center justify-center py-20">

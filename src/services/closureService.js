@@ -35,17 +35,38 @@ const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function getStatus(branchId, operationalDate) {
+  const branchIdInt = parseInt(branchId);
+  const opDate = new Date(operationalDate);
+
   const closure = await prisma.dailyClosure.findUnique({
-    where: { branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate) } },
+    where: { branchId_operationalDate: { branchId: branchIdInt, operationalDate: opDate } },
     include: {
       closedByUser: { select: { id: true, name: true, username: true } },
     },
   });
 
+  const isClosed = closure?.isClosed || false;
+
+  // Determine status: a day is REOPENED if isClosed is false but there exists
+  // an invalidated (previously-active) snapshot for this branch+date.
+  let status = 'OPEN';
+  if (isClosed) {
+    status = 'CLOSED';
+  } else {
+    const hasInvalidatedSnapshot = await prisma.dailySnapshot.findFirst({
+      where: { branchId: branchIdInt, operationalDate: opDate, isInvalidated: true },
+      select: { id: true },
+    });
+    if (hasInvalidatedSnapshot) {
+      status = 'REOPENED';
+    }
+  }
+
   return {
-    branchId: parseInt(branchId),
-    operationalDate: toDateString(new Date(operationalDate)),
-    isClosed: closure?.isClosed || false,
+    branchId: branchIdInt,
+    operationalDate: toDateString(opDate),
+    status,
+    isClosed,
     closureType: closure?.closureType || 'MANUAL',
     closedBy: closure?.closedByUser || null,
     closedAt: closure?.closedAt || null,
@@ -73,11 +94,57 @@ async function validateBeforeClose(branchId, operationalDate) {
   const submittedIds = new Set(finalRemainings.map(r => r.productId));
   const missingProducts = activeProducts.filter(p => !submittedIds.has(p.id));
 
-  if (missingProducts.length > 0) {
+  // OPTIMIZED: Single batch inventory pipeline call — used for both
+  // missing-product classification and per-product flow validation.
+  const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchIdInt, operationalDate);
+
+  // Build product name lookup for error messages
+  const productNames = {};
+  for (const p of activeProducts) {
+    productNames[p.id] = p.name;
+  }
+
+  // Build flow lookup map
+  const flowMap = {};
+  for (const f of flows) { flowMap[f.productId] = f; }
+
+  // Split missing products into:
+  //   blocking  — product had activity, requires manual remaining entry
+  //   autoFinal — product had zero activity, safe to auto-finalize as 0
+  const blockingMissingProducts = [];
+  const autoFinalizeProducts = [];
+
+  for (const product of missingProducts) {
+    const flow = flowMap[product.id];
+    const hasActivity = flow && (
+      flow.openingStock > 0 ||
+      flow.dayProduction > 0 ||
+      flow.nightProduction > 0 ||
+      flow.wasteQuantity > 0
+    );
+    if (hasActivity) {
+      blockingMissingProducts.push(product);
+    } else {
+      autoFinalizeProducts.push(product);
+    }
+  }
+
+  if (blockingMissingProducts.length > 0) {
     errors.push({
       type: 'MISSING_REMAINING',
-      message: `Missing remaining records for products: ${missingProducts.map(p => p.name).join(', ')}`,
-      productIds: missingProducts.map(p => p.id),
+      message: `Missing remaining records for ${blockingMissingProducts.length} products with activity`,
+      productIds: blockingMissingProducts.map(p => p.id),
+      productNames: blockingMissingProducts.map(p => p.name),
+    });
+  }
+
+  if (autoFinalizeProducts.length > 0) {
+    warnings.push({
+      type: 'AUTO_ZERO_REMAINING',
+      message: `${autoFinalizeProducts.length} products had no activity. Remaining will be set to 0.`,
+      productIds: autoFinalizeProducts.map(p => p.id),
+      productNames: autoFinalizeProducts.map(p => p.name),
+      count: autoFinalizeProducts.length,
     });
   }
 
@@ -106,18 +173,7 @@ async function validateBeforeClose(branchId, operationalDate) {
     });
   }
 
-  // OPTIMIZED: Use batch inventory pipeline instead of per-product DB calls.
-  // OLD: Called validateInventoryFlow per product → 5 batch queries × N products
-  // NEW: Single getInventoryFlowForAllProducts → 5 batch queries total, then in-memory validation
-  const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchIdInt, operationalDate);
-
-  // Build a product name lookup for error messages
-  const productNames = {};
-  for (const p of activeProducts) {
-    productNames[p.id] = p.name;
-  }
-
-  // Validate each product's flow in memory (zero DB queries)
+  // Validate each product's flow in memory (zero DB queries — reuses flows from above)
   for (const flow of flows) {
     if (flow.estimatedSold < 0) {
       errors.push({
@@ -161,6 +217,7 @@ async function validateBeforeClose(branchId, operationalDate) {
     valid: errors.length === 0,
     errors,
     warnings,
+    autoFinalizeProductIds: autoFinalizeProducts.map(p => p.id),
     checks: {
       allProductsHaveFinalRemaining: missingProducts.length === 0,
       noDraftRemainings: draftRemainings.length === 0,
@@ -184,6 +241,24 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
     error.status = 400;
     error.data = validation;
     throw error;
+  }
+
+  // Auto-create zero-quantity FINAL remaining records for products that had
+  // no activity (sellableStock = 0).  These products do not need manual entry
+  // because remaining = 0 is mathematically certain.
+  if (validation.autoFinalizeProductIds?.length > 0) {
+    const now = new Date();
+    const records = validation.autoFinalizeProductIds.map(productId => ({
+      productId,
+      branchId: branchIdInt,
+      operationalDate: opDate,
+      quantity: 0,
+      status: 'FINAL',
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    await prisma.remainingRecord.createMany({ data: records });
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -365,9 +440,25 @@ async function reopenDay(branchId, operationalDate, user, reason) {
   return result;
 }
 
+async function requireDayNotClosed(branchId, operationalDate) {
+  const opDate = operationalDate instanceof Date ? operationalDate : new Date(operationalDate);
+  const closure = await prisma.dailyClosure.findUnique({
+    where: {
+      branchId_operationalDate: { branchId: parseInt(branchId), operationalDate: opDate },
+    },
+    select: { isClosed: true },
+  });
+  if (closure?.isClosed) {
+    const error = new Error('This operational day is closed. Reopen the day before making changes.');
+    error.status = 403;
+    throw error;
+  }
+}
+
 module.exports = {
   getStatus,
   validateBeforeClose,
   closeDay,
   reopenDay,
+  requireDayNotClosed,
 };

@@ -6,29 +6,31 @@ import { branchService } from '../../../../services/branchService';
 export function useBranchMutations() {
   const queryClient = useQueryClient();
 
+  const invalidateBranches = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.branches.list() });
+  };
+
   const addBranch = useMutation({
     mutationFn: (data) => unwrap(branchService.createBranch(data)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
-    },
+    onSuccess: invalidateBranches,
   });
 
   const editBranch = useMutation({
     mutationFn: ({ id, data }) => unwrap(branchService.updateBranch(id, data)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
-    },
+    onSuccess: invalidateBranches,
   });
 
   const removeBranch = useMutation({
     mutationFn: (id) => unwrap(branchService.deleteBranch(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.branches.active() });
-    },
+    onSuccess: invalidateBranches,
   });
 
-  return { addBranch, editBranch, removeBranch };
+  const restoreBranch = useMutation({
+    mutationFn: (id) => unwrap(branchService.restoreBranch(id)),
+    onSuccess: invalidateBranches,
+  });
+
+  return { addBranch, editBranch, removeBranch, restoreBranch };
 }

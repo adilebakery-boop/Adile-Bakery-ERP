@@ -64,3 +64,14 @@ export function invalidateAfterWasteMutation(queryClient, branchId) {
     invalidateDashboardScope(queryClient, branchId);
   }
 }
+
+// Central invalidation for close/reopen operations — refreshes ALL operational
+// data across every module so every page reflects the new closure state.
+export function invalidateAllOperationalData(queryClient, branchId) {
+  queryClient.invalidateQueries({ queryKey: ['inventory', 'production'] });
+  queryClient.invalidateQueries({ queryKey: ['inventory', 'remaining'] });
+  queryClient.invalidateQueries({ queryKey: ['waste'] });
+  queryClient.invalidateQueries({ queryKey: ['closure'] });
+  if (branchId) invalidateDashboardScope(queryClient, branchId);
+  queryClient.invalidateQueries({ queryKey: ['reports'] });
+}
