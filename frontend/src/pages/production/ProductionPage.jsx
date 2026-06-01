@@ -103,17 +103,8 @@ export default function ProductionPage() {
     productId: selectedFilterProduct || undefined,
   });
 
-  const groupedEntries = (() => {
-    const entries = response?.data || [];
-    if (!searchTerm) return entries;
-    return entries.filter(g => {
-      const name = getLocalizedName(g.product, i18n.language) || g.product?.name || '';
-      return name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  })();
-  const pagination = response?.pagination || {};
-  const totalGroups = groupedEntries.length;
-  const totalPages = Math.ceil(totalGroups / itemsPerPage);
+  const groupedEntries = response?.data || [];
+  const pagination = response?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 };
 
   const uniquePairs = useMemo(() => {
     const seen = new Set();
@@ -190,7 +181,7 @@ export default function ProductionPage() {
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < pagination.totalPages) setCurrentPage(currentPage + 1);
   };
 
 
@@ -692,13 +683,13 @@ export default function ProductionPage() {
           <EmptyState type="production" message={t('production.noRecords')} />
         )}
 
-        {!isLoadingEntries && !entriesError && totalPages > 1 && (
+        {!isLoadingEntries && !entriesError && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('production.showing', {
                 from: ((currentPage - 1) * itemsPerPage) + 1,
-                to: Math.min(currentPage * itemsPerPage, totalGroups),
-                total: totalGroups
+                to: Math.min(currentPage * itemsPerPage, pagination.total),
+                total: pagination.total
               })}
             </div>
             <div className="flex items-center gap-2">
@@ -710,11 +701,11 @@ export default function ProductionPage() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
-                {t('production.pageOf', { current: currentPage, total: totalPages })}
+                {t('production.pageOf', { current: currentPage, total: pagination.totalPages })}
               </span>
               <button
                 onClick={goToNextPage}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === pagination.totalPages}
                 className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
