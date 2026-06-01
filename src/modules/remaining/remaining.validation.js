@@ -13,7 +13,7 @@ const createRemainingSchema = z.object({
 const bulkItemSchema = z.object({
   productId: z.coerce.number().int().positive('Product ID must be positive'),
   remainingQuantity: z.coerce.number({ invalid_type_error: 'Quantity must be a number' })
-    .positive('Quantity must be positive')
+    .nonnegative('Quantity must be zero or positive')
     .max(999999.99, 'Quantity must not exceed 999999.99'),
   status: z.enum(['DRAFT', 'FINAL']).optional(),
 });
