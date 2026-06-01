@@ -217,7 +217,7 @@ router.put(
   validate(updateUserSchema),
   asyncHandler(async (req, res) => {
     const targetUserId = parseInt(req.params.id);
-    const { name, roleId, branchId, isBlocked, email } = req.body;
+    const { name, username, roleId, branchId, isBlocked, email } = req.body;
     const currentUserRole = req.user.role;
 
     const canManage = await canManageTargetUser(currentUserRole, targetUserId);
@@ -245,6 +245,7 @@ router.put(
           where: { id: targetUserId },
           data: { 
             name, 
+            username,
             roleId, 
             branchId: null, 
             isBlocked,
@@ -260,6 +261,7 @@ router.put(
       where: { id: targetUserId },
       data: { 
         name, 
+        username,
         roleId, 
         branchId, 
         isBlocked,
