@@ -3,7 +3,7 @@ const prisma = require('../config/prisma');
 const auditService = require('./auditService');
 const { addDays, subDays } = require('date-fns');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
-const { requireDayNotClosed } = require('./closureService');
+const { requireDayNotClosed, getClosureMap } = require('./closureService');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
@@ -434,6 +434,12 @@ async function findAllGrouped(filters = {}, user) {
       entries,
       totalQuantity: toDecimal(gk._sum.quantity),
     };
+  });
+
+  const pairs = groupedArray.map(g => ({ branchId: g.branchId, operationalDate: g.operationalDate }));
+  const closureMap = await getClosureMap(pairs);
+  groupedArray.forEach(g => {
+    g.isClosed = closureMap[`${g.branchId}|${g.operationalDate}`] ?? false;
   });
 
   return {
