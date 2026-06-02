@@ -22,6 +22,5 @@ export function useProductionEntriesQuery(branchId, filters = {}) {
       };
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
   });
 }

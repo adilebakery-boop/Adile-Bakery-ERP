@@ -38,7 +38,7 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
       setProcessing(false);
       return;
     }
-    invalidateAllOperationalData(queryClient, branchId);
+    invalidateAllOperationalData(queryClient, branchId, operationalDate);
     setIsConfirmOpen(false);
     setProcessing(false);
   };
@@ -53,7 +53,7 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
       setProcessing(false);
       return;
     }
-    invalidateAllOperationalData(queryClient, branchId);
+    invalidateAllOperationalData(queryClient, branchId, operationalDate);
     setIsReopenOpen(false);
     setReopenReason('');
     setProcessing(false);

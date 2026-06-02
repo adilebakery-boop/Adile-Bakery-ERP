@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Loader2, RefreshCw, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -12,9 +12,6 @@ import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/us
 import { useProductionEntriesQuery } from '../../features/production/hooks/queries/useProductionEntriesQuery';
 import { useClosureStatus } from '../../hooks/useClosureStatus';
 import OperationalDayControlBar from '../../components/OperationalDayControlBar';
-import { useQueries } from '@tanstack/react-query';
-import closureService from '../../services/closureService';
-import { queryKeys } from '../../utils/queryKeys';
 import { useCreateProductionMutation } from '../../features/production/hooks/mutations/useCreateProductionMutation';
 import { useUpdateProductionMutation } from '../../features/production/hooks/mutations/useUpdateProductionMutation';
 import { useDeleteProductionMutation } from '../../features/production/hooks/mutations/useDeleteProductionMutation';
@@ -118,42 +115,6 @@ export default function ProductionPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const uniquePairs = useMemo(() => {
-    const seen = new Set();
-    const pairs = [];
-    (response?.data || []).forEach(g => {
-      const key = `${g.branchId}_${g.operationalDate}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        pairs.push({ branchId: g.branchId, operationalDate: g.operationalDate });
-      }
-    });
-    return pairs;
-  }, [response?.data]);
-
-  const rowStatuses = useQueries({
-    queries: uniquePairs.map(({ branchId, operationalDate }) => ({
-      queryKey: queryKeys.closure.status(branchId, operationalDate),
-      queryFn: () => closureService.getStatus(operationalDate, branchId),
-      enabled: !!branchId && !!operationalDate,
-      staleTime: 30000,
-      select: (res) => {
-        const raw = res?.data ?? res ?? {};
-        return (raw?.status || 'OPEN') === 'CLOSED';
-      },
-    })),
-  });
-
-  const closedMap = useMemo(() => {
-    const map = {};
-    uniquePairs.forEach((pair, i) => {
-      if (rowStatuses[i]?.data) {
-        map[`${pair.branchId}_${pair.operationalDate}`] = true;
-      }
-    });
-    return map;
-  }, [rowStatuses, uniquePairs]);
 
   const createMutation = useCreateProductionMutation();
   const updateMutation = useUpdateProductionMutation();
@@ -653,7 +614,7 @@ export default function ProductionPage() {
                                         {entry.creator?.name || entry.creator?.username || '-'}
                                       </td>
                                       <td className="px-6 py-2.5">
-                                        {canEditOperationalRecord(group.operationalDate, userRole) && !closedMap[`${group.branchId}_${group.operationalDate}`] ? (
+                                        {canEditOperationalRecord(group.operationalDate, userRole) && !group.isClosed ? (
                                           <div className="flex items-center gap-1">
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}

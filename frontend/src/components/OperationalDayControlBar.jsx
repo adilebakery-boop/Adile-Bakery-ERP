@@ -97,7 +97,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
       setProcessing(false);
       return;
     }
-    invalidateAllOperationalData(queryClient, branchId);
+    invalidateAllOperationalData(queryClient, branchId, selectedDate);
     setIsConfirmOpen(false);
     setProcessing(false);
   };
@@ -112,7 +112,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
       setProcessing(false);
       return;
     }
-    invalidateAllOperationalData(queryClient, branchId);
+    invalidateAllOperationalData(queryClient, branchId, selectedDate);
     setIsReopenOpen(false);
     setReopenReason('');
     setProcessing(false);
