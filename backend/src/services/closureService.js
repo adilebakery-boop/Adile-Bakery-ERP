@@ -455,10 +455,50 @@ async function requireDayNotClosed(branchId, operationalDate) {
   }
 }
 
+async function getClosureMap(pairs) {
+  const seen = new Set();
+  const uniquePairs = [];
+  for (const p of pairs) {
+    const dateStr = toDateString(p.operationalDate);
+    const key = `${p.branchId}|${dateStr}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniquePairs.push({ branchId: parseInt(p.branchId), operationalDate: new Date(p.operationalDate), _key: key });
+    }
+  }
+
+  if (uniquePairs.length === 0) return {};
+
+  const closures = await prisma.dailyClosure.findMany({
+    where: {
+      OR: uniquePairs.map(p => ({
+        branchId: p.branchId,
+        operationalDate: p.operationalDate,
+      })),
+    },
+    select: { branchId: true, operationalDate: true, isClosed: true },
+  });
+
+  const map = {};
+  for (const c of closures) {
+    const dateStr = toDateString(c.operationalDate);
+    map[`${c.branchId}|${dateStr}`] = c.isClosed;
+  }
+
+  for (const p of uniquePairs) {
+    if (!(p._key in map)) {
+      map[p._key] = false;
+    }
+  }
+
+  return map;
+}
+
 module.exports = {
   getStatus,
   validateBeforeClose,
   closeDay,
   reopenDay,
   requireDayNotClosed,
+  getClosureMap,
 };
