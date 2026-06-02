@@ -30,6 +30,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.8",
+    "pg": "^8.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
