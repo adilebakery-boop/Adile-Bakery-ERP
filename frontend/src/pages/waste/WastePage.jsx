@@ -1,10 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, RefreshCw, Loader2, CheckCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { useQueries } from '@tanstack/react-query';
-import closureService from '../../services/closureService';
-import { queryKeys } from '../../utils/queryKeys';
 import { useWasteQuery } from '../../features/waste/hooks/queries/useWasteQuery';
 import { useClosureStatus } from '../../hooks/useClosureStatus';
 import OperationalDayControlBar from '../../components/OperationalDayControlBar';
@@ -75,43 +72,6 @@ export default function WastePage() {
 
   const { data, isLoading, isError, error: queryError, refetch } = useWasteQuery(filters);
   const wastes = data?.data || [];
-
-  const uniqueWastePairs = useMemo(() => {
-    const seen = new Set();
-    const pairs = [];
-    wastes.forEach(w => {
-      const date = (w.operationalDate || '').split('T')[0];
-      const key = `${w.branchId}_${date}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        pairs.push({ branchId: w.branchId, operationalDate: date });
-      }
-    });
-    return pairs;
-  }, [wastes]);
-
-  const wasteRowStatuses = useQueries({
-    queries: uniqueWastePairs.map(({ branchId, operationalDate }) => ({
-      queryKey: queryKeys.closure.status(branchId, operationalDate),
-      queryFn: () => closureService.getStatus(operationalDate, branchId),
-      enabled: !!branchId && !!operationalDate,
-      staleTime: 30000,
-      select: (res) => {
-        const raw = res?.data ?? res ?? {};
-        return (raw?.status || 'OPEN') === 'CLOSED';
-      },
-    })),
-  });
-
-  const wasteClosedMap = useMemo(() => {
-    const map = {};
-    uniqueWastePairs.forEach((pair, i) => {
-      if (wasteRowStatuses[i]?.data) {
-        map[`${pair.branchId}_${pair.operationalDate}`] = true;
-      }
-    });
-    return map;
-  }, [wasteRowStatuses, uniqueWastePairs]);
 
   const { data: branches = [] } = useActiveBranchesQuery();
   const { data: productsData } = useProductsQuery({ isActive: true, limit: 500 });
@@ -586,7 +546,7 @@ export default function WastePage() {
                       </td>
                       <td className="px-6 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {canEditOperationalRecord(waste.operationalDate, user.role) && !wasteClosedMap[`${waste.branchId}_${(waste.operationalDate || '').split('T')[0]}`] ? (
+                          {canEditOperationalRecord(waste.operationalDate, user.role) && !waste.isClosed ? (
                             <>
                               <button
                                 onClick={() => handleEditClick(waste)}

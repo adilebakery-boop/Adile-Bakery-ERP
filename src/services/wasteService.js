@@ -1,9 +1,9 @@
 const prisma = require('../config/prisma');
 const auditService = require('./auditService');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
-const { canEditOperationalRecord } = require('../utils/dateUtils');
+const { canEditOperationalRecord, toDateString } = require('../utils/dateUtils');
 const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
-const { requireDayNotClosed } = require('./closureService');
+const { requireDayNotClosed, getClosureMap } = require('./closureService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 async function findAll(filters = {}) {
@@ -44,6 +44,13 @@ async function findAll(filters = {}) {
     }),
     prisma.wasteRecord.count({ where }),
   ]);
+
+  const pairs = data.map(w => ({ branchId: w.branchId, operationalDate: w.operationalDate }));
+  const closureMap = await getClosureMap(pairs);
+  data.forEach(w => {
+    const dateStr = toDateString(w.operationalDate);
+    w.isClosed = closureMap[`${w.branchId}|${dateStr}`] ?? false;
+  });
 
   return { data, total, appliedLimit: limitNum };
 }
