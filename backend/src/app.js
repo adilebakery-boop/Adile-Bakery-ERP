@@ -33,7 +33,19 @@ const reportsRoutes = require('./modules/reports/reports.routes');
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, cb) {
+    if (!origin) return cb(null, true);
+    var allowed = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://adile-bakery-erp.vercel.app',
+      process.env.FRONTEND_URL,
+    ];
+    if (allowed.indexOf(origin) !== -1) return cb(null, true);
+    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
+    if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.split(',').indexOf(origin) !== -1) return cb(null, true);
+    cb(Error('Origin not allowed: ' + origin));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
