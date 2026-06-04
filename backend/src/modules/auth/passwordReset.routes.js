@@ -38,6 +38,9 @@ router.post(
       if (err.message === 'User not found') {
         return res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
       }
+      if (err.isEmailError) {
+        return res.status(500).json({ success: false, message: err.message });
+      }
       res.status(400).json({ success: false, message: err.message });
     }
   })

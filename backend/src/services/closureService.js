@@ -234,6 +234,8 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
 
+  await inventoryFlowService.resolveRollover(branchIdInt, operationalDate);
+
   const validation = await validateBeforeClose(branchIdInt, operationalDate);
 
   if (!validation.valid) {

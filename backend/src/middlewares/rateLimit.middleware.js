@@ -1,11 +1,19 @@
 const prisma = require('../config/prisma');
 
-function createPrismaLimiter({ windowMs, max, message }) {
+function makeRateLimitKey(feature, ip) {
+  var safeFeature = (feature && typeof feature === 'string') ? feature : 'unknown';
+  var safeIp = (ip && typeof ip === 'string') ? ip : 'unknown';
+  if (safeFeature !== feature || safeIp !== ip) {
+    console.warn('[RATE_LIMIT] Invalid input, falling back to unknown key');
+  }
+  return 'ratelimit:' + safeFeature + ':' + safeIp;
+}
+
+function createPrismaLimiter({ windowMs, max, message, prefix }) {
   return async (req, res, next) => {
     const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
     const now = new Date();
-    const key = `ratelimit:${ip}`;
-
+    const key = makeRateLimitKey(prefix, ip);
     try {
       let record = await prisma.rateLimit.findUnique({ where: { key } });
 
@@ -48,7 +56,7 @@ const loginLimiter = async (req, res, next) => {
   const now = new Date();
   const windowMs = 1 * 60 * 1000;
 
-  const key = `login:${ip}`;
+  const key = makeRateLimitKey('login', ip);
 
   try {
     let record = await prisma.rateLimit.findUnique({ where: { key } });
@@ -81,7 +89,7 @@ const loginLimiter = async (req, res, next) => {
 };
 
 const incrementLoginAttempts = async (ip) => {
-  const key = `login:${ip}`;
+  const key = makeRateLimitKey('login', ip);
   try {
     await prisma.rateLimit.upsert({
       where: { key },
@@ -95,6 +103,7 @@ const incrementLoginAttempts = async (ip) => {
 const apiLimiter = createPrismaLimiter({
   windowMs: 15 * 60 * 1000,
   max: 250,
+  prefix: 'api',
   message: {
     success: false,
     message: 'Too many requests. Please try again after 15 minutes.',
@@ -105,6 +114,7 @@ const apiLimiter = createPrismaLimiter({
 const exportLimiter = createPrismaLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
+  prefix: 'export',
   message: {
     success: false,
     message: 'Too many export requests. Please try again after 1 hour.',
@@ -115,6 +125,7 @@ const exportLimiter = createPrismaLimiter({
 const otpLimiter = createPrismaLimiter({
   windowMs: 15 * 60 * 1000,
   max: 5,
+  prefix: 'otp',
   message: {
     success: false,
     message: 'Too many password reset requests. Please try again after 15 minutes.',

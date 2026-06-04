@@ -10,7 +10,7 @@ const sendOTPEmail = async (email, otp) => {
     console.log(`[OTP] Your password reset code is: ${otp}`);
     console.log('This code will expire in 5 minutes.');
     console.log('-----------------------------------------');
-    return;
+    throw new Error('EMAIL_USER and EMAIL_PASS must be configured');
   }
 
   const transporter = nodemailer.createTransport({
