@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ClosureType" ADD VALUE 'REOPEN_TIMEOUT';

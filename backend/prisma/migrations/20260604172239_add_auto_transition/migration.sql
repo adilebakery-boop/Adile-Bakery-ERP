@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ClosureType" ADD VALUE 'AUTO_TRANSITION';

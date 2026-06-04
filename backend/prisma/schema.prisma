@@ -177,6 +177,8 @@ model DailyClosure {
   closedAt        DateTime?
   note            String?
   closureType     ClosureType    @default(MANUAL)
+  autoCloseAt     DateTime?
+  reopenedAt      DateTime?
   branch          Branch         @relation(fields: [branchId], references: [id])
   closedByUser    User?          @relation("ClosureClosedBy", fields: [closedBy], references: [id])
   snapshot        DailySnapshot?
@@ -338,4 +340,6 @@ enum RemainingStatus {
 enum ClosureType {
   MANUAL
   AUTO_FINALIZE
+  AUTO_TRANSITION
+  REOPEN_TIMEOUT
 }
