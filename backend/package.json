@@ -14,7 +14,8 @@
     "seed:medium": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js medium",
     "seed:large": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js large",
     "seed:reset": "npx prisma migrate reset --force && npm run seed:all",
-    "seed:verify": "node prisma/seed-verify.js"
+    "seed:verify": "node prisma/seed-verify.js",
+    "seed:closure-test": "node prisma/seed-closure-test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

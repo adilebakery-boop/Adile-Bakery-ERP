@@ -33,6 +33,7 @@ const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { REOPEN_TIMEOUT_HOURS } = require('../constants/operationalWindow');
 
 async function getStatus(branchId, operationalDate) {
   const branchIdInt = parseInt(branchId);
@@ -71,6 +72,8 @@ async function getStatus(branchId, operationalDate) {
     closedBy: closure?.closedByUser || null,
     closedAt: closure?.closedAt || null,
     note: closure?.note || null,
+    reopenedAt: closure?.reopenedAt || null,
+    autoCloseAt: closure?.autoCloseAt || null,
   };
 }
 
@@ -230,35 +233,43 @@ async function validateBeforeClose(branchId, operationalDate) {
 // If the day was previously closed and reopened, the existing snapshot
 // (found by closureId) is reused — items are replaced, not accumulated.
 // snapshotPrice is set from inventoryFlowService (PriceHistory) at close time.
-async function closeDay(branchId, operationalDate, userId, note = null) {
+//
+// Options:
+//   closureType: string   — override closure type (default 'MANUAL')
+//   skipValidation: bool  — skip pre-close validation (for auto-transition)
+async function closeDay(branchId, operationalDate, userId, note = null, options = {}) {
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
+  const effectiveClosureType = options.closureType || 'MANUAL';
+  const skipValidation = options.skipValidation === true;
 
-  const validation = await validateBeforeClose(branchIdInt, operationalDate);
+  if (!skipValidation) {
+    const validation = await validateBeforeClose(branchIdInt, operationalDate);
 
-  if (!validation.valid) {
-    const error = new Error('Cannot close day. Validation failed.');
-    error.status = 400;
-    error.data = validation;
-    throw error;
-  }
+    if (!validation.valid) {
+      const error = new Error('Cannot close day. Validation failed.');
+      error.status = 400;
+      error.data = validation;
+      throw error;
+    }
 
-  // Auto-create zero-quantity FINAL remaining records for products that had
-  // no activity (sellableStock = 0).  These products do not need manual entry
-  // because remaining = 0 is mathematically certain.
-  if (validation.autoFinalizeProductIds?.length > 0) {
-    const now = new Date();
-    const records = validation.autoFinalizeProductIds.map(productId => ({
-      productId,
-      branchId: branchIdInt,
-      operationalDate: opDate,
-      quantity: 0,
-      status: 'FINAL',
-      createdBy: userId,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    await prisma.remainingRecord.createMany({ data: records });
+    // Auto-create zero-quantity FINAL remaining records for products that had
+    // no activity (sellableStock = 0).  These products do not need manual entry
+    // because remaining = 0 is mathematically certain.
+    if (validation.autoFinalizeProductIds?.length > 0) {
+      const now = new Date();
+      const records = validation.autoFinalizeProductIds.map(productId => ({
+        productId,
+        branchId: branchIdInt,
+        operationalDate: opDate,
+        quantity: 0,
+        status: 'FINAL',
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      await prisma.remainingRecord.createMany({ data: records });
+    }
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -282,10 +293,12 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
           branchId: branchIdInt,
           operationalDate: opDate,
           isClosed: true,
-          closureType: 'MANUAL',
+          closureType: effectiveClosureType,
           closedBy: userId,
           closedAt: new Date(),
           note,
+          reopenedAt: null,
+          autoCloseAt: null,
         },
       });
     } else {
@@ -293,10 +306,12 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
         where: { id: existingClosure.id },
         data: {
           isClosed: true,
-          closureType: 'MANUAL',
+          closureType: effectiveClosureType,
           closedBy: userId,
           closedAt: new Date(),
           note,
+          reopenedAt: null,
+          autoCloseAt: null,
         },
       });
     }
@@ -414,12 +429,17 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       });
     }
 
+    const now = new Date();
+    const autoCloseAt = new Date(now.getTime() + REOPEN_TIMEOUT_HOURS * 60 * 60 * 1000);
+
     const updatedClosure = await tx.dailyClosure.update({
       where: { id: closure.id },
       data: {
         isClosed: false,
         closedBy: null,
         closedAt: null,
+        reopenedAt: now,
+        autoCloseAt,
       },
     });
 
@@ -453,6 +473,65 @@ async function requireDayNotClosed(branchId, operationalDate) {
     error.status = 403;
     throw error;
   }
+}
+
+// ensureDayReadyForAutoClose — prepares a day for automatic closure by filling
+// in any missing data so that closeDay() validation will pass.
+//   - Auto-finalizes DRAFT remaining records
+//   - Creates zero-quantity FINAL remaining records for products without any
+// Returns the count of created/finalized records.
+async function ensureDayReadyForAutoClose(branchId, operationalDate, userId) {
+  const branchIdInt = parseInt(branchId);
+  const opDate = new Date(operationalDate);
+  const now = new Date();
+  let createdCount = 0;
+
+  // 1. Auto-finalize any DRAFT remaining records
+  const draftRemainings = await prisma.remainingRecord.findMany({
+    where: { branchId: branchIdInt, operationalDate: opDate, status: 'DRAFT' },
+  });
+  if (draftRemainings.length > 0) {
+    await prisma.remainingRecord.updateMany({
+      where: { branchId: branchIdInt, operationalDate: opDate, status: 'DRAFT' },
+      data: { status: 'FINAL', updatedAt: now },
+    });
+    createdCount += draftRemainings.length;
+  }
+
+  // 2. Find active products that have NO remaining record at all (DRAFT or FINAL)
+  const activeProducts = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { id: true },
+  });
+
+  const existingRecordProductIds = await prisma.remainingRecord.findMany({
+    where: { branchId: branchIdInt, operationalDate: opDate },
+    select: { productId: true },
+    distinct: ['productId'],
+  });
+  const existingIds = new Set(existingRecordProductIds.map(r => r.productId));
+
+  const missingProducts = activeProducts.filter(p => !existingIds.has(p.id));
+  if (missingProducts.length > 0) {
+    const zeroRecords = missingProducts.map(p => ({
+      productId: p.id,
+      branchId: branchIdInt,
+      operationalDate: opDate,
+      quantity: 0,
+      status: 'FINAL',
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    await prisma.remainingRecord.createMany({ data: zeroRecords });
+    createdCount += zeroRecords.length;
+  }
+
+  if (createdCount > 0) {
+    console.log(`[AUTO_TRANSITION] Prepared day ${branchIdInt} ${toDateString(opDate)}: ${createdCount} record(s) created/finalized`);
+  }
+
+  return createdCount;
 }
 
 async function getClosureMap(pairs) {
@@ -501,4 +580,5 @@ module.exports = {
   reopenDay,
   requireDayNotClosed,
   getClosureMap,
+  ensureDayReadyForAutoClose,
 };
