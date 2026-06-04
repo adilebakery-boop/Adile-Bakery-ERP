@@ -30,6 +30,8 @@ function createPrismaLimiter({ windowMs, max, message, prefix }) {
         });
       }
 
+      console.log('[RATE_LIMIT]', prefix, key, record?.count, max);
+
       if (record.count >= max) {
         const retryAfter = Math.ceil((record.expiresAt.getTime() - now.getTime()) / 1000);
         res.set('Retry-After', String(retryAfter));
@@ -45,7 +47,8 @@ function createPrismaLimiter({ windowMs, max, message, prefix }) {
       });
 
       next();
-    } catch {
+    } catch (error) {
+      console.error('[RATE_LIMIT_ERROR]', error);
       next();
     }
   };
@@ -83,7 +86,8 @@ const loginLimiter = async (req, res, next) => {
     }
 
     next();
-  } catch {
+  } catch (error) {
+    console.error('[RATE_LIMIT_ERROR]', error);
     next();
   }
 };
@@ -96,7 +100,8 @@ const incrementLoginAttempts = async (ip) => {
       create: { key, count: 1, expiresAt: new Date(Date.now() + 60 * 1000) },
       update: { count: { increment: 1 } },
     });
-  } catch {
+  } catch (error) {
+    console.error('[RATE_LIMIT_ERROR]', error);
   }
 };
 
