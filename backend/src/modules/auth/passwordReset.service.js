@@ -18,19 +18,34 @@ const createResetRequest = async (email) => {
   if (user.isBlocked) throw new Error('Account is blocked');
   if (!user.isActive) throw new Error('Account is deactivated');
 
-  const otp = generateOTP();
-  const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-  await prisma.passwordReset.create({
-    data: {
-      userId: user.id,
-      otpHash,
-      expiresAt
-    }
+  await prisma.passwordReset.deleteMany({
+    where: { userId: user.id }
   });
 
-  await sendOTPEmail(email, otp);
+  const otp = generateOTP();
+
+  try {
+    await sendOTPEmail(email, otp);
+  } catch (emailErr) {
+    emailErr.isEmailError = true;
+    throw emailErr;
+  }
+
+  const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  try {
+    await prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        otpHash,
+        expiresAt
+      }
+    });
+  } catch (dbErr) {
+    console.warn(`[OTP] Email sent but DB persistence failed for ${email}: ${dbErr.message}`);
+    throw Object.assign(new Error('Failed to complete request. Please try again.'), { isEmailError: true });
+  }
 };
 
 // Internal verification logic

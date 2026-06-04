@@ -32,7 +32,7 @@ function errorHandler(err, req, res, next) {
   if (err.status === 401) {
     return res.status(401).json({
       success: false,
-      message: 'Authentication required',
+      message: err.message,
     });
   }
 
