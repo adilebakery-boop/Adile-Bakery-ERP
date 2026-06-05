@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const prisma = require('../config/prisma');
+const crypto = require("crypto");
+const prisma = require("../config/prisma");
 
 const REFRESH_TOKEN_BYTES = 40;
 const REFRESH_TOKEN_EXPIRES_DAYS = 7;
@@ -14,7 +14,7 @@ function hashToken(token) {
 }
 
 function generateToken() {
-  return crypto.randomBytes(REFRESH_TOKEN_BYTES).toString('hex');
+  return crypto.randomBytes(REFRESH_TOKEN_BYTES).toString("hex");
 }
 
 function buildToken() {
