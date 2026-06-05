@@ -1,6 +1,7 @@
 const express = require('express');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { z, validate, passwordSchema } = require('../../utils/validation');
+const { otpLimiter } = require('../../middlewares/rateLimit.middleware');
 const passwordResetService = require('./passwordReset.service');
 const AppError = require('../../utils/AppError');
 
@@ -29,6 +30,7 @@ const resetPasswordSchema = validate(
 
 router.post(
   '/forgot-password',
+  otpLimiter,
   forgotPasswordSchema,
   asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -38,6 +40,9 @@ router.post(
     } catch (err) {
       if (err instanceof AppError && err.message === 'User not found') {
         return res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
+      }
+      if (err.isEmailError) {
+        return res.status(500).json({ success: false, message: err.message });
       }
       throw err;
     }

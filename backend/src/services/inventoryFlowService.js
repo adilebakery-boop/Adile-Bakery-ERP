@@ -4,7 +4,7 @@ const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString } = re
 const { logAudit } = require('./auditService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
-const ROLLOVER_TTL = 60_000;
+const ROLLOVER_TTL = 86_400_000;
 
 async function isRolloverRecentlyProcessed(branchId, dateKey) {
   const key = `${branchId}-${dateKey}`;
@@ -371,8 +371,6 @@ async function buildSnapshotItems(tx, branchId, date) {
 }
 
 async function getOpeningStock(branchId, operationalDate, productId) {
-  await resolveRollover(parseInt(branchId), operationalDate);
-
   const prevDay = getPreviousDay(new Date(operationalDate));
 
   const prevRemaining = await prisma.remainingRecord.findFirst({
@@ -535,9 +533,6 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   // operationally and financially relevant for the dates they have records.
   const branchIdNum = parseInt(branchId);
   const opDate = new Date(operationalDate);
-
-  // Side-effect: resolve stale DRAFT remaining records before reading
-  await resolveRollover(branchIdNum, operationalDate);
 
   const activeProducts = await prisma.product.findMany({
     where: { isActive: true },

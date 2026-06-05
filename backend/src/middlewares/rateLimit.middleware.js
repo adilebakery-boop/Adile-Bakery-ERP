@@ -1,11 +1,19 @@
 const prisma = require('../config/prisma');
 
-function createPrismaLimiter({ windowMs, max, message }) {
+function makeRateLimitKey(feature, ip) {
+  var safeFeature = (feature && typeof feature === 'string') ? feature : 'unknown';
+  var safeIp = (ip && typeof ip === 'string') ? ip : 'unknown';
+  if (safeFeature !== feature || safeIp !== ip) {
+    console.warn('[RATE_LIMIT] Invalid input, falling back to unknown key');
+  }
+  return 'ratelimit:' + safeFeature + ':' + safeIp;
+}
+
+function createPrismaLimiter({ windowMs, max, message, prefix }) {
   return async (req, res, next) => {
     const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
     const now = new Date();
-    const key = `ratelimit:${ip}`;
-
+    const key = makeRateLimitKey(prefix, ip);
     try {
       let record = await prisma.rateLimit.findUnique({ where: { key } });
 
@@ -22,6 +30,8 @@ function createPrismaLimiter({ windowMs, max, message }) {
         });
       }
 
+      console.log('[RATE_LIMIT]', prefix, key, record?.count, max);
+
       if (record.count >= max) {
         const retryAfter = Math.ceil((record.expiresAt.getTime() - now.getTime()) / 1000);
         res.set('Retry-After', String(retryAfter));
@@ -37,7 +47,8 @@ function createPrismaLimiter({ windowMs, max, message }) {
       });
 
       next();
-    } catch {
+    } catch (error) {
+      console.error('[RATE_LIMIT_ERROR]', error);
       next();
     }
   };
@@ -48,7 +59,7 @@ const loginLimiter = async (req, res, next) => {
   const now = new Date();
   const windowMs = 1 * 60 * 1000;
 
-  const key = `login:${ip}`;
+  const key = makeRateLimitKey('login', ip);
 
   try {
     let record = await prisma.rateLimit.findUnique({ where: { key } });
@@ -75,26 +86,29 @@ const loginLimiter = async (req, res, next) => {
     }
 
     next();
-  } catch {
+  } catch (error) {
+    console.error('[RATE_LIMIT_ERROR]', error);
     next();
   }
 };
 
 const incrementLoginAttempts = async (ip) => {
-  const key = `login:${ip}`;
+  const key = makeRateLimitKey('login', ip);
   try {
     await prisma.rateLimit.upsert({
       where: { key },
       create: { key, count: 1, expiresAt: new Date(Date.now() + 60 * 1000) },
       update: { count: { increment: 1 } },
     });
-  } catch {
+  } catch (error) {
+    console.error('[RATE_LIMIT_ERROR]', error);
   }
 };
 
 const apiLimiter = createPrismaLimiter({
   windowMs: 15 * 60 * 1000,
   max: 250,
+  prefix: 'api',
   message: {
     success: false,
     message: 'Too many requests. Please try again after 15 minutes.',
@@ -105,6 +119,7 @@ const apiLimiter = createPrismaLimiter({
 const exportLimiter = createPrismaLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
+  prefix: 'export',
   message: {
     success: false,
     message: 'Too many export requests. Please try again after 1 hour.',
@@ -113,11 +128,12 @@ const exportLimiter = createPrismaLimiter({
 });
 
 const otpLimiter = createPrismaLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: 1 * 60 * 1000,
+  max: 3,
+  prefix: 'otp',
   message: {
     success: false,
-    message: 'Too many password reset requests. Please try again after 15 minutes.',
+    message: 'Too many password reset requests. Please try again after 1 minute.',
     errors: [],
   },
 });
