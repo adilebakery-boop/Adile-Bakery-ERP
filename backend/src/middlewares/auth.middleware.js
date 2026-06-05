@@ -37,6 +37,10 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    if (!dbUser.role || !dbUser.role.name) {
+      throw Object.assign(new Error('User role configuration is invalid'), { status: 500 });
+    }
+
     if (dbUser.isBlocked) {
       return res.status(403).json({
         success: false,

@@ -64,7 +64,7 @@ const login = async (username, password) => {
 const refreshAccessToken = async (refreshTokenValue) => {
   const user = await refreshTokenUtil.verify(refreshTokenValue);
   if (!user) {
-    throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
+throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
   }
 
   const newRefresh = await refreshTokenUtil.rotate(refreshTokenValue, user.id);
