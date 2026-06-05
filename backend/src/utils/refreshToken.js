@@ -1,27 +1,36 @@
-const crypto = require('crypto');
-const prisma = require('../config/prisma');
+const crypto = require("crypto");
+const prisma = require("../config/prisma");
 
 const REFRESH_TOKEN_BYTES = 40;
 const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
 function generateToken() {
-  return crypto.randomBytes(REFRESH_TOKEN_BYTES).toString('hex');
+  return crypto.randomBytes(REFRESH_TOKEN_BYTES).toString("hex");
+}
+
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 async function create(userId) {
   const token = generateToken();
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(
+    Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
+  );
 
   await prisma.refreshToken.create({
-    data: { token, userId, expiresAt },
+    data: { tokenHash, userId, expiresAt },
   });
 
   return { token, expiresAt };
 }
 
 async function rotate(oldToken, userId) {
+  const oldHash = hashToken(oldToken);
+
   await prisma.refreshToken.updateMany({
-    where: { token: oldToken, userId },
+    where: { tokenHash: oldHash, userId },
     data: { revoked: true },
   });
 
@@ -29,8 +38,10 @@ async function rotate(oldToken, userId) {
 }
 
 async function verify(token) {
+  const tokenHash = hashToken(token);
+
   const record = await prisma.refreshToken.findUnique({
-    where: { token },
+    where: { tokenHash },
     include: { user: { include: { role: true, branch: true } } },
   });
 
