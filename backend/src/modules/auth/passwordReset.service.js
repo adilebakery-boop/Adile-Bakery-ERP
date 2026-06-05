@@ -14,37 +14,43 @@ const generateOTP = () => {
 // Create password reset request
 const createResetRequest = async (email) => {
   const user = await prisma.user.findUnique({ where: { email } });
+
   if (!user) throw new Error('User not found');
   if (user.isBlocked) throw new Error('Account is blocked');
   if (!user.isActive) throw new Error('Account is deactivated');
 
-  await prisma.passwordReset.deleteMany({
-    where: { userId: user.id }
-  });
-
   const otp = generateOTP();
 
+  // 1. SEND EMAIL FIRST
   try {
     await sendOTPEmail(email, otp);
-  } catch (emailErr) {
-    emailErr.isEmailError = true;
-    throw emailErr;
+  } catch (err) {
+    err.isEmailError = true;
+    throw err;
   }
 
   const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+  // 2. DB STATE MUST BE SINGLE SOURCE OF TRUTH
   try {
+    await prisma.passwordReset.deleteMany({
+      where: { userId: user.id }
+    });
+
     await prisma.passwordReset.create({
       data: {
         userId: user.id,
         otpHash,
-        expiresAt
+        expiresAt,
+        attempts: 0,
+        used: false
       }
     });
+
   } catch (dbErr) {
-    console.warn(`[OTP] Email sent but DB persistence failed for ${email}: ${dbErr.message}`);
-    throw Object.assign(new Error('Failed to complete request. Please try again.'), { isEmailError: true });
+    console.warn(`[OTP] DB failed AFTER email sent for ${email}: ${dbErr.message}`);
+    throw new Error('OTP was sent but system failed to register it. Request a new OTP.');
   }
 };
 
