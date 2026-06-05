@@ -14,6 +14,10 @@ async function create(userId) {
     Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
   );
 
+  await prisma.refreshToken.deleteMany({
+    where: { userId },
+  });
+
   await prisma.refreshToken.create({
     data: { token, userId, expiresAt },
   });
@@ -45,9 +49,8 @@ async function verify(token) {
 }
 
 async function revokeAll(userId) {
-  await prisma.refreshToken.updateMany({
-    where: { userId, revoked: false },
-    data: { revoked: true },
+  await prisma.refreshToken.deleteMany({
+    where: { userId },
   });
 }
 
