@@ -128,12 +128,12 @@ const exportLimiter = createPrismaLimiter({
 });
 
 const otpLimiter = createPrismaLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: 1 * 60 * 1000,
+  max: 3,
   prefix: 'otp',
   message: {
     success: false,
-    message: 'Too many password reset requests. Please try again after 15 minutes.',
+    message: 'Too many password reset requests. Please try again after 1 minute.',
     errors: [],
   },
 });
