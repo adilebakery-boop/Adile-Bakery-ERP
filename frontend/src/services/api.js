@@ -20,7 +20,7 @@ const processQueue = (error, token = null) => {
 };
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://adile-bakery-erp-production.up.railway.app/api',
   timeout: DEFAULT_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
