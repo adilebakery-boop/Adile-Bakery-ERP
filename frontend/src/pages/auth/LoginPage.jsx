@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
   const [wasLockedOut, setWasLockedOut] = useState(false);
   const lockoutTimerRef = useRef(null);
+  const isSubmittingRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,36 +21,41 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     setError('');
     setIsLoading(true);
+    isSubmittingRef.current = true;
 
-    const result = await authService.login({
-      username,
-      password,
-    });
+    try {
+      const result = await authService.login({
+        username,
+        password,
+      });
 
-    setIsLoading(false);
-
-    if (result.success) {
-      setWasLockedOut(false);
-      setLockoutCountdown(0);
-      navigate('/dashboard');
-    } else if (result.message && result.message.includes('Too many login attempts')) {
-      setLockoutCountdown(60);
-      setWasLockedOut(true);
-      setError('');
-      clearInterval(lockoutTimerRef.current);
-      lockoutTimerRef.current = setInterval(() => {
-        setLockoutCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(lockoutTimerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      setError('Invalid username or password');
+      if (result.success) {
+        setWasLockedOut(false);
+        setLockoutCountdown(0);
+        navigate('/dashboard');
+      } else if (result.message && result.message.includes('Too many login attempts')) {
+        setLockoutCountdown(60);
+        setWasLockedOut(true);
+        setError('');
+        clearInterval(lockoutTimerRef.current);
+        lockoutTimerRef.current = setInterval(() => {
+          setLockoutCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(lockoutTimerRef.current);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setError('Invalid username or password');
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setIsLoading(false);
     }
   };
 
