@@ -1,6 +1,7 @@
 const express = require('express');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { z, validate, passwordSchema } = require('../../utils/validation');
+const { otpLimiter } = require('../../middlewares/rateLimit.middleware');
 const passwordResetService = require('./passwordReset.service');
 
 const router = express.Router();
@@ -28,6 +29,7 @@ const resetPasswordSchema = validate(
 
 router.post(
   '/forgot-password',
+  otpLimiter,
   forgotPasswordSchema,
   asyncHandler(async (req, res) => {
     const { email } = req.body;
