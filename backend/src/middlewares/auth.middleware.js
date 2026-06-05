@@ -63,25 +63,7 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token has expired',
-        errors: []
-      });
-    }
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token',
-        errors: []
-      });
-    }
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication failed',
-      errors: []
-    });
+    next(error);
   }
 };
 
