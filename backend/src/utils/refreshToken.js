@@ -8,29 +8,22 @@ function generateToken() {
   return crypto.randomBytes(REFRESH_TOKEN_BYTES).toString("hex");
 }
 
-function hashToken(token) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
 async function create(userId) {
   const token = generateToken();
-  const tokenHash = hashToken(token);
   const expiresAt = new Date(
     Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
   );
 
   await prisma.refreshToken.create({
-    data: { token, tokenHash, userId, expiresAt },
+    data: { token, userId, expiresAt },
   });
 
   return { token, expiresAt };
 }
 
 async function rotate(oldToken, userId) {
-  const oldHash = hashToken(oldToken);
-
   await prisma.refreshToken.updateMany({
-    where: { tokenHash: oldHash, userId },
+    where: { token: oldToken, userId },
     data: { revoked: true },
   });
 
@@ -38,10 +31,8 @@ async function rotate(oldToken, userId) {
 }
 
 async function verify(token) {
-  const tokenHash = hashToken(token);
-
   const record = await prisma.refreshToken.findUnique({
-    where: { tokenHash },
+    where: { token },
     include: { user: { include: { role: true, branch: true } } },
   });
 
