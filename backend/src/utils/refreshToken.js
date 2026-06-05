@@ -20,7 +20,7 @@ async function create(userId) {
   );
 
   await prisma.refreshToken.create({
-    data: { tokenHash, userId, expiresAt },
+    data: { token, tokenHash, userId, expiresAt },
   });
 
   return { token, expiresAt };
