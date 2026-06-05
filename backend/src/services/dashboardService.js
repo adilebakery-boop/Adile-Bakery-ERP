@@ -376,7 +376,6 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
 
 async function getDashboardOverview(branchId, operationalDate, userId, userRole) {
   const isAllBranches = !branchId || branchId === 'all' || branchId === 'null' || branchId === 'undefined' || branchId === '';
-  const isManager = userRole === 'ADMIN' || userRole === 'MANAGER';
   
   if (isAllBranches) {
     const allBranchesData = await getAllBranchesOverview(operationalDate, userId, userRole);

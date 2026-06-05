@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Lock, Unlock, RotateCcw, AlertCircle, Loader2, Calendar, Building2, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { isManagerOrAdmin, getOperationalDate } from '../utils/authUtils';
+import { getUserRole, getOperationalDate } from '../utils/authUtils';
 import { getLocalizedName } from '../utils/getLocalizedName';
 import { invalidateAllOperationalData } from '../utils/invalidation';
 import { useClosureStatus } from '../hooks/useClosureStatus';
@@ -24,7 +24,9 @@ const STATUS_CONFIG = {
 export default function OperationalDayControlBar({ branchId, branches = [], onBranchChange, onStatusChange }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const isAdminOrManager = isManagerOrAdmin();
+  const userRole = getUserRole();
+  const isAdmin = userRole === 'ADMIN';
+  const canManage = userRole === 'ADMIN' || userRole === 'MANAGER';
 
   const today = getOperationalDate();
   const minDate = addDays(today, -2);
@@ -239,34 +241,33 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
   return (
     <>
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        {isAdminOrManager && (
-          <>
-            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
-              <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              <input
-                type="date"
-                value={selectedDate}
-                min={minDate}
-                max={maxDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
-              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
-              <select
-                value={branchId || ''}
-                onChange={(e) => onBranchChange?.(e.target.value)}
-                className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer min-w-[100px]"
-              >
-                <option value="">{t('closure.selectBranch')}</option>
-                {(Array.isArray(branches) ? branches : []).map((b) => (
-                  <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                ))}
-              </select>
-            </div>
-          </>
+        {canManage && (
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <input
+              type="date"
+              value={selectedDate}
+              min={minDate}
+              max={maxDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+            />
+          </div>
+        )}
+        {isAdmin && (
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a2e] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+            <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+            <select
+              value={branchId || ''}
+              onChange={(e) => onBranchChange?.(e.target.value)}
+              className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer min-w-[100px]"
+            >
+              <option value="">{t('closure.selectBranch')}</option>
+              {(Array.isArray(branches) ? branches : []).map((b) => (
+                <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+              ))}
+            </select>
+          </div>
         )}
 
         {isLoading ? (
@@ -278,7 +279,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
           <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
             <AlertCircle className="w-4 h-4 text-red-500" />
             <span className="text-sm text-red-600 dark:text-red-400">{t('closure.statusError')}</span>
-            {isAdminOrManager && <button onClick={refetchStatus} className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline ml-1">{t('common.retry')}</button>}
+            {canManage && <button onClick={refetchStatus} className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline ml-1">{t('common.retry')}</button>}
           </div>
         ) : (
           (() => {
@@ -294,7 +295,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
                     {t('closure.reopenedWarning')}
                   </span>
                 )}
-                {isAdminOrManager && (status === 'OPEN' || status === 'REOPENED') && (
+                {canManage && (status === 'OPEN' || status === 'REOPENED') && (
                   <button
                     onClick={openCloseModal}
                     disabled={processing}
@@ -303,7 +304,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
                     {t('closure.closeDay')}
                   </button>
                 )}
-                {isAdminOrManager && status === 'CLOSED' && (
+                {canManage && status === 'CLOSED' && (
                   <button
                     onClick={() => setIsReopenOpen(true)}
                     disabled={processing}
@@ -322,7 +323,7 @@ export default function OperationalDayControlBar({ branchId, branches = [], onBr
         )}
       </div>
 
-      {isAdminOrManager && (
+      {canManage && (
         <>
           <Modal isOpen={isConfirmOpen} onClose={() => { if (!processing) { setIsConfirmOpen(false); setValidationErrors([]); setValidationWarnings([]); setPreValidation(null); setExpandedMissing(false); setExpandedAutoZero(false); } }} title={t('closure.confirmCloseTitle')}>
             <div className="space-y-4">

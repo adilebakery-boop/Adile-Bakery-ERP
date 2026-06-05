@@ -70,14 +70,6 @@ async function main() {
       branchId: null,
       isBlocked: false,
     },
-    {
-      name: 'Operations Manager',
-      username: 'operations-manager',
-      passwordHash,
-      roleId: managerRole.id,
-      branchId: null,
-      isBlocked: false,
-    },
   ];
 
   for (const user of globalUsers) {
@@ -87,15 +79,16 @@ async function main() {
       create: user,
     });
   }
-  console.log('Global users created');
+  console.log('Global admin created');
 
-  // ── Branch operational staff ──
+  // ── Branch staff (managers + operational roles) ──
   const branchRecords = await prisma.branch.findMany({ orderBy: { id: 'asc' } });
-  let operationalTotal = 0;
+  let branchStaffTotal = 0;
 
   for (const branch of branchRecords) {
     const slug = BRANCH_SLUGS[branch.name] || branch.name.toLowerCase().replace(/\s+/g, '-');
     const roleNameMap = [
+      { roleId: managerRole.id, roleSlug: 'manager' },
       { roleId: bakerRole.id, roleSlug: 'baker' },
       { roleId: cakeChefRole.id, roleSlug: 'cake-chef' },
       { roleId: cookieBakerRole.id, roleSlug: 'cookie-baker' },
@@ -119,11 +112,11 @@ async function main() {
           isBlocked: false,
         },
       });
-      operationalTotal++;
+      branchStaffTotal++;
     }
   }
 
-  console.log(`Operational users created: ${operationalTotal} (${branchRecords.length} branches x 5 roles)`);
+  console.log(`Branch staff created: ${branchStaffTotal} (${branchRecords.length} branches x 6 roles)`);
   console.log('Database seeded successfully!');
 }
 

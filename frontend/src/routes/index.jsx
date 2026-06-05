@@ -13,7 +13,7 @@ import UsersPage from '../pages/users/UsersPage';
 import ProfilePage from '../pages/profile/ProfilePage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { getUserRole, getToken } from '../utils/authUtils';
-import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
+import { hasPageAccess, PAGES } from '../utils/permissions';
 
 const ProtectedRoute = ({ children, requiredPage }) => {
   const token = getToken();

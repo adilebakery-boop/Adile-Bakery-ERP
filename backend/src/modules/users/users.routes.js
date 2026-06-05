@@ -35,9 +35,14 @@ router.get(
 
     const where = {
       isActive: true,
-      ...(branchId && { branchId: Number(branchId) }),
       ...(roleId && { roleId: Number(roleId) }),
     };
+
+    if (req.user.role === 'MANAGER') {
+      where.branchId = req.user.branchId;
+    } else if (branchId) {
+      where.branchId = Number(branchId);
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
@@ -86,8 +91,12 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
+    const where = { isActive: false };
+    if (req.user.role === 'MANAGER') {
+      where.branchId = req.user.branchId;
+    }
     const users = await prisma.user.findMany({
-      where: { isActive: false },
+      where,
       include: { role: true, branch: true },
       orderBy: { deletedAt: 'desc' }
     });
@@ -117,7 +126,8 @@ router.get(
 
 const OPERATIONAL_ROLES = ['BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'];
 
-const canManageTargetUser = async (currentUserRole, targetUserId) => {
+const canManageTargetUser = async (currentUser, targetUserId) => {
+  const currentUserRole = currentUser.role;
   if (currentUserRole === 'ADMIN') return true;
   
   if (currentUserRole === 'MANAGER') {
@@ -127,6 +137,9 @@ const canManageTargetUser = async (currentUserRole, targetUserId) => {
     });
     if (!targetUser) return false;
     if (targetUser.role.name === 'MANAGER' || targetUser.role.name === 'ADMIN') {
+      return false;
+    }
+    if (Number(targetUser.branchId) !== Number(currentUser.branchId)) {
       return false;
     }
     return true;
@@ -141,41 +154,66 @@ router.post(
   allowRoles('ADMIN', 'MANAGER'),
   validate(createUserSchema),
   asyncHandler(async (req, res) => {
-    const { name, username, password, roleId, branchId, email } = req.body;
+    let { name, username, password, roleId, branchId, email } = req.body;
     const currentUserRole = req.user.role;
+
+    console.log('[CREATE USER] req.body:', { name, username, roleId, branchId, email });
+    console.log('[CREATE USER] req.user:', { role: req.user.role, branchId: req.user.branchId, userId: req.user.userId });
 
     const targetRole = await prisma.role.findUnique({ where: { id: roleId } });
     if (!targetRole) {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
+    console.log('[CREATE USER] targetRole:', targetRole);
 
     if (currentUserRole === 'MANAGER') {
+      console.log('[CREATE USER] MANAGER checks starting');
       if (targetRole.name === 'ADMIN' || targetRole.name === 'MANAGER') {
         return res.status(403).json({ success: false, message: 'Managers cannot create admin or manager accounts' });
       }
       if (!OPERATIONAL_ROLES.includes(targetRole.name)) {
         return res.status(403).json({ success: false, message: 'Managers can only create operational roles' });
       }
-      if (!branchId) {
-        return res.status(400).json({ success: false, message: 'Branch is required for operational users' });
+      if (branchId && Number(branchId) !== Number(req.user.branchId)) {
+        return res.status(403).json({ success: false, message: 'Managers can only create users for their own branch' });
       }
+      branchId = branchId || req.user.branchId;
+      console.log('[CREATE USER] resolved branchId:', branchId);
     }
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    if (targetRole.name === 'MANAGER' && !branchId) {
+      return res.status(400).json({ success: false, message: 'Branch is required for manager accounts' });
+    }
 
-    if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
+    console.log('[CREATE USER] hashing password...');
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    console.log('[CREATE USER] hash created, length:', passwordHash.length);
+
+    const createPayload = { name, username, passwordHash, roleId, branchId: branchId || null, email: email || null };
+    console.log('[CREATE USER] Prisma create payload:', { ...createPayload, passwordHash: '[REDACTED]', password: '[REDACTED]' });
+
+    try {
       const user = await prisma.user.create({
-        data: { name, username, passwordHash, roleId, branchId: null, email: email || null },
+        data: createPayload,
         include: { role: true }
       });
-      return res.status(201).json({ success: true, message: 'User created successfully', data: user });
+      console.log('[CREATE USER] success, user id:', user.id);
+      res.status(201).json({ success: true, message: 'User created successfully', data: user });
+    } catch (err) {
+      console.error('[CREATE USER] PRISMA ERROR:', {
+        code: err.code,
+        message: err.message,
+        meta: err.meta,
+        stack: err.stack,
+      });
+      return res.status(500).json({
+        success: false,
+        message: 'Database error',
+        error: err.message,
+        code: err.code,
+        meta: err.meta,
+      });
     }
-
-    const user = await prisma.user.create({
-      data: { name, username, passwordHash, roleId, branchId, email: email || null },
-      include: { role: true }
-    });
-    res.status(201).json({ success: true, message: 'User created successfully', data: user });
   })
 );
 
@@ -185,9 +223,8 @@ router.put(
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id);
-    const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, userId);
+    const canManage = await canManageTargetUser(req.user, userId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }
@@ -220,7 +257,7 @@ router.put(
     const { name, username, roleId, branchId, isBlocked, email } = req.body;
     const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, targetUserId);
+    const canManage = await canManageTargetUser(req.user, targetUserId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }
@@ -238,22 +275,13 @@ router.put(
         if (!OPERATIONAL_ROLES.includes(targetRole.name)) {
           return res.status(403).json({ success: false, message: 'Managers can only assign operational roles' });
         }
+        if (branchId && Number(branchId) !== Number(req.user.branchId)) {
+          return res.status(403).json({ success: false, message: 'Managers cannot change branch assignments' });
+        }
       }
 
-      if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
-        const user = await prisma.user.update({
-          where: { id: targetUserId },
-          data: { 
-            name, 
-            username,
-            roleId, 
-            branchId: null, 
-            isBlocked,
-            email: email === undefined ? undefined : (email || null)
-          },
-          include: { role: true }
-        });
-        return res.json({ success: true, message: 'User updated successfully', data: user });
+      if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER' && !branchId) {
+        return res.status(400).json({ success: false, message: 'Branch is required for manager accounts' });
       }
     }
 
@@ -279,9 +307,8 @@ router.delete(
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id);
-    const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, userId);
+    const canManage = await canManageTargetUser(req.user, userId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }

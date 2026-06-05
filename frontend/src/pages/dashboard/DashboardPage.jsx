@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Package, DollarSign, AlertCircle, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
-import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate } from '../../utils/authUtils';
 import { useDashboardData } from '../../features/dashboard/hooks/useDashboardData';
 import { queryKeys } from '../../utils/queryKeys';
 import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skeletons';
@@ -13,17 +13,17 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
-  const isManager = isManagerOrAdmin();
+  const isAdmin = userRole === 'ADMIN';
   const operationalDate = getOperationalDate();
   const queryClient = useQueryClient();
 
   const navigate = useNavigate();
-  const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
+  const targetBranchId = isAdmin ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
 
   const { overview, activity } = useDashboardData({
     branchId: targetBranchId,
     date: operationalDate,
-    isManager,
+    isManager: false,
   });
 
   const [lastUpdated, setLastUpdated] = useState(null);

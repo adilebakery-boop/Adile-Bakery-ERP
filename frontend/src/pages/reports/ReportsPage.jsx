@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getOperationalDate, formatOperationalDate, getUserRole, getUserBranchId } from '../../utils/authUtils';
 import { getLocalizedName, PRODUCT_NAMES, BRANCH_NAMES } from '../../utils/getLocalizedName';
 import reportService from '../../services/reportService';
 import { useBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
@@ -32,8 +32,10 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const canManageAll = isManagerOrAdmin();
-  const effectiveBranchId = canManageAll ? branchId : null;
+  const userRole = getUserRole();
+  const userBranchId = getUserBranchId();
+  const canManageAll = userRole === 'ADMIN';
+  const effectiveBranchId = canManageAll ? branchId : userBranchId;
 
   const getProductNameDisplay = (product) => {
     if (!product) return '';

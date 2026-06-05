@@ -143,7 +143,7 @@ async function create(data, user) {
     throw error;
   }
 
-  const assignedBranchId = isAdminOrManager(user.role)
+  const assignedBranchId = user.role === 'ADMIN'
     ? (parseInt(branchId) || user.branchId)
     : user.branchId;
 

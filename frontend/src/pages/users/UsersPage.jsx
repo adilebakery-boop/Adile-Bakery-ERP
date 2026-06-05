@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUser } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { useUsersQuery } from '../../features/users/hooks/queries/useUsersQuery';
 import { useCreateUserMutation } from '../../features/users/hooks/mutations/useCreateUserMutation';
@@ -37,7 +37,6 @@ const getRoleKey = (roleName) => {
 
 export default function UsersPage() {
   const { t, i18n } = useTranslation();
-  const canManage = isManagerOrAdmin();
   const currentUser = getUser();
   const isAdmin = currentUser?.role === 'ADMIN';
   const isManager = currentUser?.role === 'MANAGER';
@@ -76,11 +75,18 @@ export default function UsersPage() {
   const [branchFilter, setBranchFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
+  const queryFilters = {};
+  if (isManager && currentUser?.branchId) {
+    queryFilters.branchId = currentUser.branchId;
+  } else if (branchFilter) {
+    queryFilters.branchId = branchFilter;
+  }
+  if (roleFilter) queryFilters.roleId = roleFilter;
+
   const { data, isLoading: loading, isError } = useUsersQuery({
     page: currentPage,
     limit: itemsPerPage,
-    ...(branchFilter && { branchId: branchFilter }),
-    ...(roleFilter && { roleId: roleFilter }),
+    ...queryFilters,
   });
   const users = data?.users || [];
   const pagination = data?.pagination || null;
@@ -112,8 +118,10 @@ export default function UsersPage() {
       email: formData.email || null,
     };
 
-    if (formData.role === 'MANAGER' && isAdmin) {
+    if (formData.role === 'ADMIN') {
       submitData.branchId = null;
+    } else if (isManager && currentUser?.branchId) {
+      submitData.branchId = currentUser.branchId;
     } else if (formData.branchId) {
       submitData.branchId = parseInt(formData.branchId);
     }
@@ -152,7 +160,9 @@ export default function UsersPage() {
       email: formData.email || null,
     };
 
-    if (formData.role === 'MANAGER' && isAdmin) {
+    if (isManager) {
+      // MANAGER cannot change branch assignment
+    } else if (formData.role === 'ADMIN') {
       submitData.branchId = null;
     } else if (formData.branchId) {
       submitData.branchId = parseInt(formData.branchId);
@@ -200,7 +210,7 @@ export default function UsersPage() {
     <div className="px-4 sm:px-6 md:px-8 lg:px-10 max-w-screen-2xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('users.title')}</h1>
-        {canManage && (
+        {(isAdmin || isManager) && (
           <button onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsModalOpen(true); }} className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" />
             {t('users.addUser')}
@@ -214,18 +224,20 @@ export default function UsersPage() {
 
       <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center gap-4">
-          <select
-            value={branchFilter}
-            onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
-          >
-            <option value="">{t('users.allBranches')}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {getLocalizedName(branch, i18n.language)}
-              </option>
-            ))}
-          </select>
+          {isAdmin && (
+            <select
+              value={branchFilter}
+              onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
+              className="px-4 py-2.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+            >
+              <option value="">{t('users.allBranches')}</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {getLocalizedName(branch, i18n.language)}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
@@ -248,7 +260,7 @@ export default function UsersPage() {
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.role')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('users.branch')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
+                {(isAdmin || isManager) && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
@@ -282,7 +294,7 @@ export default function UsersPage() {
                         {user.isBlocked ? t('common.blocked') : t('common.active')}
                       </span>
                     </td>
-                    {canManage && (
+                    {(isAdmin || isManager) && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {canUserBlockTarget(user.role?.name) && (
@@ -367,21 +379,23 @@ export default function UsersPage() {
               {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{t(`roles.${role.labelKey}`)}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">
-              Branch {formData.role === 'MANAGER' && isAdmin ? '(All Branches)' : ''}
-            </label>
-            <select
-              value={formData.branchId}
-              onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
-              required={!(formData.role === 'MANAGER' && isAdmin)}
-              disabled={formData.role === 'MANAGER' && isAdmin || createMutation.isPending}
-            >
-              <option value="">{formData.role === 'MANAGER' && isAdmin ? 'All Branches' : 'Select branch'}</option>
-              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-            </select>
-          </div>
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Branch {formData.role === 'ADMIN' ? '(Global)' : ''}
+              </label>
+              <select
+                value={formData.branchId}
+                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+                required={formData.role !== 'ADMIN'}
+                disabled={formData.role === 'ADMIN' || createMutation.isPending}
+              >
+                <option value="">{formData.role === 'ADMIN' ? 'Global (No Branch)' : 'Select branch'}</option>
+                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm" disabled={createMutation.isPending}>Cancel</button>
             <button type="submit" disabled={createMutation.isPending} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{createMutation.isPending ? 'Saving...' : 'Save'}</button>
@@ -410,21 +424,23 @@ export default function UsersPage() {
               {getAllowedRoles().map((role) => <option key={role.value} value={role.value}>{t(`roles.${role.labelKey}`)}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">
-              Branch {formData.role === 'MANAGER' ? '(All Branches)' : ''}
-            </label>
-            <select
-              value={formData.branchId}
-              onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
-              required={formData.role !== 'MANAGER'}
-              disabled={formData.role === 'MANAGER' || updateMutation.isPending}
-            >
-              <option value="">{formData.role === 'MANAGER' ? 'All Branches' : 'Select branch'}</option>
-              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-            </select>
-          </div>
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Branch {formData.role === 'ADMIN' ? '(Global)' : ''}
+              </label>
+              <select
+                value={formData.branchId}
+                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+                required={formData.role !== 'ADMIN'}
+                disabled={formData.role === 'ADMIN' || updateMutation.isPending}
+              >
+                <option value="">{formData.role === 'ADMIN' ? 'Global (No Branch)' : 'Select branch'}</option>
+                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">New Password (leave blank to keep current)</label>
             <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm" placeholder="Enter new password" disabled={updateMutation.isPending} />
