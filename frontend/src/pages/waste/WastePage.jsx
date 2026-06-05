@@ -18,6 +18,7 @@ import { GroupedTable, OperationalPagination } from '../../components/operationa
 export default function WastePage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
+  const isAdmin = user?.role === 'ADMIN';
   const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
   const userBranchId = user?.branchId;
 
@@ -35,7 +36,7 @@ export default function WastePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const entriesBranchId = canManage ? (selectedBranch ? Number(selectedBranch) : null) : (userBranchId ?? null);
+  const entriesBranchId = isAdmin ? (selectedBranch ? Number(selectedBranch) : null) : (userBranchId ?? null);
 
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [createForm, setCreateForm] = useState(() => {
@@ -303,7 +304,7 @@ export default function WastePage() {
                 ))}
               </select>
             </div>
-            {canManage && (
+            {isAdmin && (
               <div className="flex-1 min-w-[180px]">
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.branch')}</label>
                 <select
@@ -396,7 +397,7 @@ export default function WastePage() {
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
-        {canManage && (
+        {isAdmin && (
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}

@@ -18,10 +18,8 @@ const ROLE_CATEGORIES = {
   CASHIER: [CATEGORIES.DRINKS_AND_RETAIL_ITEMS],
 };
 
-const ADMIN_MANAGER_ROLES = ['ADMIN', 'MANAGER'];
-
 function isAdminOrManager(role) {
-  return ADMIN_MANAGER_ROLES.includes(role);
+  return role === 'ADMIN' || role === 'MANAGER';
 }
 
 function getAllowedCategories(role) {
@@ -31,7 +29,13 @@ function getAllowedCategories(role) {
 function buildProductionAccessFilter(user) {
   const where = {};
 
-  if (!isAdminOrManager(user.role)) {
+  if (user.role === 'ADMIN') {
+    // no restrictions
+  } else if (user.role === 'MANAGER') {
+    if (user.branchId) {
+      where.branchId = parseInt(user.branchId);
+    }
+  } else {
     const categories = getAllowedCategories(user.role);
     if (categories.length > 0) {
       where.product = { category: { in: categories } };
@@ -47,7 +51,13 @@ function buildProductionAccessFilter(user) {
 function buildRemainingAccessFilter(user) {
   const where = {};
 
-  if (!isAdminOrManager(user.role)) {
+  if (user.role === 'ADMIN') {
+    // no restrictions
+  } else if (user.role === 'MANAGER') {
+    if (user.branchId) {
+      where.branchId = parseInt(user.branchId);
+    }
+  } else {
     const categories = getAllowedCategories(user.role);
     if (categories.length > 0) {
       where.product = { category: { in: categories } };
@@ -60,7 +70,13 @@ function buildRemainingAccessFilter(user) {
 function buildWasteAccessFilter(user) {
   const where = {};
 
-  if (!isAdminOrManager(user.role)) {
+  if (user.role === 'ADMIN') {
+    // no restrictions
+  } else if (user.role === 'MANAGER') {
+    if (user.branchId) {
+      where.branchId = parseInt(user.branchId);
+    }
+  } else {
     const categories = getAllowedCategories(user.role);
     if (categories.length > 0) {
       where.product = { category: { in: categories } };
@@ -74,15 +90,14 @@ function buildWasteAccessFilter(user) {
 }
 
 function canCreateForCategory(user, category) {
-  if (isAdminOrManager(user.role)) return true;
+  if (user.role === 'ADMIN' || user.role === 'MANAGER') return true;
   const allowed = getAllowedCategories(user.role);
   return allowed.includes(category);
 }
 
 function requireBranchAccess(branchId, user, resourceName = 'records') {
   if (!user?.role) return;
-  const privilegedRoles = ['ADMIN', 'MANAGER'];
-  if (privilegedRoles.includes(user.role)) return;
+  if (user.role === 'ADMIN') return;
   if (Number(branchId) !== Number(user.branchId)) {
     const err = new Error(`You can only modify ${resourceName} for your assigned branch`);
     err.status = 403;
@@ -93,7 +108,6 @@ function requireBranchAccess(branchId, user, resourceName = 'records') {
 module.exports = {
   CATEGORIES,
   ROLE_CATEGORIES,
-  ADMIN_MANAGER_ROLES,
   isAdminOrManager,
   getAllowedCategories,
   buildProductionAccessFilter,

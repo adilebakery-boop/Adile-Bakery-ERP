@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
-import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
@@ -55,7 +55,7 @@ export default function RemainingPage() {
     dateLabels[ds] = formatOperationalDate(ds);
   }
 
-  const canManageAll = isManagerOrAdmin();
+  const canManageAll = userRole === 'ADMIN';
   const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
   const { data: closureStatus } = useClosureStatus(effectiveBranchId, selectedDate);
   const isClosed = closureStatus === 'CLOSED';

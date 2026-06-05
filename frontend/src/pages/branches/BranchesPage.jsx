@@ -12,7 +12,7 @@ import { TableSkeleton } from '../../components/skeletons';
 export default function BranchesPage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
-  const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
+  const canManage = user?.role === 'ADMIN';
 
   const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery();
   const { addBranch, editBranch, removeBranch, restoreBranch } = useBranchMutations();

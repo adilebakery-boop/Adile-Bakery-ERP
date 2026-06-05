@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Loader2, RefreshCw, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, formatOperationalDate, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
@@ -66,7 +66,7 @@ export default function ProductionPage() {
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
-  const canManageAll = isManagerOrAdmin();
+  const canManageAll = userRole === 'ADMIN';
 
   const entriesBranchId = canManageAll ? (selectedFilterBranch ? Number(selectedFilterBranch) : null) : userBranchId;
 
