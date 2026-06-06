@@ -29,6 +29,7 @@ export default function ForgotPasswordPage() {
   const [otpExpiry, setOtpExpiry] = useState(300);
   const resendTimerRef = useRef(null);
   const otpExpiryRef = useRef(null);
+  const isSubmittingRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,67 +77,86 @@ export default function ForgotPasswordPage() {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     setError("");
     setIsLoading(true);
-    const result = await authService.forgotPassword(email);
-    setIsLoading(false);
-    if (result.success) {
-      setStep(2);
-    } else {
-      setError(result.message || "Failed to send OTP. Please try again.");
+    isSubmittingRef.current = true;
+    try {
+      const result = await authService.forgotPassword(email);
+      if (result.success) {
+        setStep(2);
+      } else {
+        setError(result.message || "Failed to send OTP. Please try again.");
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     setError("");
     setIsLoading(true);
-    const result = await authService.verifyOtp(email, otp);
-    setIsLoading(false);
-    if (result.success) {
-      setStep(3);
-    } else {
-      setError(result.message || "Invalid OTP. Please try again.");
+    isSubmittingRef.current = true;
+    try {
+      const result = await authService.verifyOtp(email, otp);
+      if (result.success) {
+        setStep(3);
+      } else {
+        setError(result.message || "Invalid OTP. Please try again.");
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setIsLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
+    if (isSubmittingRef.current) return;
     setError("");
     setResendSuccess("");
     setIsLoading(true);
-    const result = await authService.forgotPassword(email);
-    setIsLoading(false);
-    if (result.success) {
-      setResendSuccess("A new OTP has been sent");
-      setOtp("");
-      setOtpExpiry(300);
-      clearInterval(otpExpiryRef.current);
-      otpExpiryRef.current = setInterval(() => {
-        setOtpExpiry((prev) => {
-          if (prev <= 1) {
-            clearInterval(otpExpiryRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      setResendCooldown(60);
-      resendTimerRef.current = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(resendTimerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      setError(result.message || "Failed to resend OTP. Please try again.");
+    isSubmittingRef.current = true;
+    try {
+      const result = await authService.forgotPassword(email);
+      if (result.success) {
+        setResendSuccess("A new OTP has been sent");
+        setOtp("");
+        setOtpExpiry(300);
+        clearInterval(otpExpiryRef.current);
+        otpExpiryRef.current = setInterval(() => {
+          setOtpExpiry((prev) => {
+            if (prev <= 1) {
+              clearInterval(otpExpiryRef.current);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        setResendCooldown(60);
+        resendTimerRef.current = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(resendTimerRef.current);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setError(result.message || "Failed to resend OTP. Please try again.");
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setIsLoading(false);
     }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     setError("");
 
     if (newPassword !== confirmPassword) {
@@ -145,12 +165,17 @@ export default function ForgotPasswordPage() {
     }
 
     setIsLoading(true);
-    const result = await authService.resetPassword(email, otp, newPassword);
-    setIsLoading(false);
-    if (result.success) {
-      setSuccessMessage("Password reset successfully! Redirecting to login...");
-    } else {
-      setError(result.message || "Failed to reset password. Please try again.");
+    isSubmittingRef.current = true;
+    try {
+      const result = await authService.resetPassword(email, otp, newPassword);
+      if (result.success) {
+        setSuccessMessage("Password reset successfully! Redirecting to login...");
+      } else {
+        setError(result.message || "Failed to reset password. Please try again.");
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setIsLoading(false);
     }
   };
 
