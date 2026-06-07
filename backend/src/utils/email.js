@@ -34,6 +34,8 @@ const sendOTPEmail = async (email, otp) => {
 
   const ipv4Host = await getGmailIpv4();
 
+  console.log('[SMTP] Using IPv4 host:', ipv4Host);
+
   const transporter = nodemailer.createTransport({
     host: ipv4Host,
     port: 587,
@@ -41,10 +43,9 @@ const sendOTPEmail = async (email, otp) => {
     requireTLS: true,
     servername: GMAIL_SMTP_HOST,
     auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASS,
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
-    tls: { minVersion: 'TLSv1.2' },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 30000,
