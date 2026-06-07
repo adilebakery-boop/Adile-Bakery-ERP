@@ -22,9 +22,28 @@ if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
   const otp = generateOTP();
 
   // 1. SEND EMAIL FIRST
+  console.log('[OTP_DIAG] entering sendOTPEmail at', new Date().toISOString());
+
+  const emailStart = Date.now();
+
   try {
     await sendOTPEmail(email, otp);
+
+    console.log(
+      '[OTP_DIAG] sendOTPEmail returned in',
+      Date.now() - emailStart,
+      'ms'
+    );
   } catch (err) {
+    console.error(
+      '[OTP_DIAG] sendOTPEmail threw after',
+      Date.now() - emailStart,
+      'ms, code=',
+      err.code,
+      ', message=',
+      err.message
+    );
+
     err.isEmailError = true;
     throw err;
   }
