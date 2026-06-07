@@ -9,11 +9,12 @@ function makeRateLimitKey(feature, ip) {
   return 'ratelimit:' + safeFeature + ':' + safeIp;
 }
 
-function createPrismaLimiter({ windowMs, max, message, prefix }) {
+function createPrismaLimiter({ windowMs, max, message, prefix, keyExtractor }) {
   return async (req, res, next) => {
     const ip = (req.ip || req.connection.remoteAddress || 'unknown').replace('::ffff:', '');
     const now = new Date();
-    const key = makeRateLimitKey(prefix, ip);
+    const keySuffix = keyExtractor ? keyExtractor(req, ip) : ip;
+    const key = makeRateLimitKey(prefix, keySuffix);
     try {
       let record = await prisma.rateLimit.findUnique({ where: { key } });
 
@@ -131,6 +132,10 @@ const otpLimiter = createPrismaLimiter({
   windowMs: 1 * 60 * 1000,
   max: 3,
   prefix: 'otp',
+  keyExtractor: (req, ip) => {
+    const rawEmail = (req.body && req.body.email) ? String(req.body.email).toLowerCase().trim() : '';
+    return rawEmail ? `${ip}|${rawEmail}` : ip;
+  },
   message: {
     success: false,
     message: 'Too many password reset requests. Please try again after 1 minute.',
