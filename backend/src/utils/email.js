@@ -1,7 +1,26 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns').promises;
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
+
+const GMAIL_SMTP_HOST = 'smtp.gmail.com';
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+let cachedIpv4 = null;
+let cacheExpiry = 0;
+
+const getGmailIpv4 = async () => {
+  if (cachedIpv4 && Date.now() < cacheExpiry) return cachedIpv4;
+  const addresses = await dns.resolve4(GMAIL_SMTP_HOST);
+  if (!addresses || addresses.length === 0) {
+    throw new Error('No IPv4 address could be resolved for smtp.gmail.com');
+  }
+  cachedIpv4 = addresses[0];
+  cacheExpiry = Date.now() + CACHE_TTL_MS;
+  console.log('[OTP_DIAG] resolved', GMAIL_SMTP_HOST, 'to IPv4', cachedIpv4);
+  return cachedIpv4;
+};
 
 const sendOTPEmail = async (email, otp) => {
   if (!EMAIL_USER || !EMAIL_PASS) {
@@ -13,12 +32,22 @@ const sendOTPEmail = async (email, otp) => {
     throw new Error('EMAIL_USER and EMAIL_PASS must be configured');
   }
 
+  const ipv4Host = await getGmailIpv4();
+
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: ipv4Host,
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    servername: GMAIL_SMTP_HOST,
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASS,
     },
+    tls: { minVersion: 'TLSv1.2' },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 30000,
   });
 
   const mailOptions = {
