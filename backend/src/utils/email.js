@@ -71,10 +71,7 @@ const sendOTPEmail = async (email, otp) => {
   };
 
   console.log(
-    '[OTP_DIAG] sendMail: about to call with host=',
-    ipv4Host,
-    'port=587 secure=false requireTLS=true servername=',
-    GMAIL_SMTP_HOST
+    '[OTP_DIAG] sendMail: about to call with host=smtp.gmail.com port=465 secure=true'
   );
 
   const smtpStart = Date.now();
