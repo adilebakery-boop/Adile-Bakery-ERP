@@ -41,7 +41,44 @@ const sendOTPEmail = async (email, otp) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  console.log(
+    '[OTP_DIAG] sendMail: about to call with host=smtp.gmail.com port=465 secure=true'
+  );
+
+  const smtpStart = Date.now();
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log(
+      '[OTP_DIAG] sendMail: completed in',
+      Date.now() - smtpStart,
+      'ms, messageId=',
+      info.messageId
+    );
+  } catch (err) {
+    console.error(
+      '[OTP_DIAG] sendMail: failed after',
+      Date.now() - smtpStart,
+      'ms, code=',
+      err.code,
+      ', command=',
+      err.command,
+      ', responseCode=',
+      err.responseCode,
+      ', response=',
+      err.response,
+      ', message=',
+      err.message
+    );
+
+    console.error(
+      '[OTP_DIAG] sendMail: stack=',
+      err.stack
+    );
+
+    throw err;
+  }
 };
 
 module.exports = {
