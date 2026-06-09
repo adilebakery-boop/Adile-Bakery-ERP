@@ -12,19 +12,12 @@ const getResendClient = () => {
 };
 
 const sendOTPEmail = async (email, otp) => {
-  console.log('[FORGOT_TRACE] sendOTPEmail entered');
-
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.log('-----------------------------------------');
-    console.log(`[EMAIL CONSOLE] To: ${email}`);
-    console.log(`[OTP] Your password reset code is: ${otp}`);
-    console.log('This code will expire in 5 minutes.');
-    console.log('-----------------------------------------');
-    throw new Error('RESEND_API_KEY must be configured');
+  if (!RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY missing');
   }
 
   console.log('[RESEND DEBUG] API key exists:', !!process.env.RESEND_API_KEY);
-  console.log('[RESEND DEBUG] FROM:', process.env.RESEND_FROM);
+  console.log('[RESEND DEBUG] FROM:', RESEND_FROM);
 
   const resend = getResendClient();
 
