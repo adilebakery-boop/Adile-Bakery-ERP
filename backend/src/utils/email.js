@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM;
+const RESEND_FROM = process.env.RESEND_FROM || 'Adile Bakery <onboarding@resend.dev>';
 
 let resendClient = null;
 const getResendClient = () => {
@@ -53,7 +53,24 @@ const sendOTPEmail = async (email, otp) => {
   const sendStart = Date.now();
 
   try {
-    const { data, error } = await resend.emails.send(mailOptions);
+    console.log('[RESEND DEBUG] sending to:', email);
+    console.log('[RESEND DEBUG] subject:', 'Your Password Reset Code');
+
+    const response = await resend.emails.send(mailOptions);
+
+    console.log('[RESEND DEBUG] raw response:', JSON.stringify(response, null, 2));
+
+    if (response.data) {
+      console.log('[RESEND DEBUG] response.data:', JSON.stringify(response.data, null, 2));
+    }
+    if (response.data && response.data.id) {
+      console.log('[RESEND DEBUG] response.data.id:', response.data.id);
+    }
+    if (response.error) {
+      console.log('[RESEND DEBUG] response.error:', JSON.stringify(response.error, null, 2));
+    }
+
+    const { data, error } = response;
 
     if (error) {
       const err = new Error(error.message || 'Resend send failed');
