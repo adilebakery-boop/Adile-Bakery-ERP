@@ -12,7 +12,9 @@ const getResendClient = () => {
 };
 
 const sendOTPEmail = async (email, otp) => {
-  if (!RESEND_API_KEY) {
+  console.log('[FORGOT_TRACE] sendOTPEmail entered');
+
+  if (!EMAIL_USER || !EMAIL_PASS) {
     console.log('-----------------------------------------');
     console.log(`[EMAIL CONSOLE] To: ${email}`);
     console.log(`[OTP] Your password reset code is: ${otp}`);
