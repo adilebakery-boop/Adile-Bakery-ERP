@@ -14,11 +14,25 @@ const generateOTP = () => {
 
 // Create password reset request
 const createResetRequest = async (email) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
-  if (user.isBlocked) throw new AppError('Account is blocked', 403, 'AUTH_ROLE');
-  if (!user.isActive) throw new AppError('Account is deactivated', 403, 'AUTH_ROLE');
+  console.log('[FORGOT_TRACE] createResetRequest entered');
 
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    console.log('[FORGOT_TRACE] EARLY EXIT: user not found');
+    throw new AppError('User not found', 404, 'AUTH_TOKEN');
+  }
+  console.log('[FORGOT_TRACE] user found: id=' + user.id + ' email=' + user.email);
+
+  if (user.isBlocked) {
+    console.log('[FORGOT_TRACE] EARLY EXIT: user is blocked');
+    throw new AppError('Account is blocked', 403, 'AUTH_ROLE');
+  }
+  if (!user.isActive) {
+    console.log('[FORGOT_TRACE] EARLY EXIT: user is not active');
+    throw new AppError('Account is deactivated', 403, 'AUTH_ROLE');
+  }
+
+  console.log('[FORGOT_TRACE] generating otp');
   const otp = generateOTP();
 
   // 1. SEND EMAIL FIRST
@@ -27,6 +41,7 @@ if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
   const emailStart = Date.now();
 
   try {
+    console.log('[FORGOT_TRACE] calling sendOTPEmail');
     await sendOTPEmail(email, otp);
 
     console.log(
@@ -34,6 +49,7 @@ if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
       Date.now() - emailStart,
       'ms'
     );
+    console.log('[FORGOT_TRACE] sendOTPEmail returned successfully');
   } catch (err) {
     console.error(
       '[OTP_DIAG] sendOTPEmail threw after',
@@ -43,6 +59,7 @@ if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
       ', message=',
       err.message
     );
+    console.error('[FORGOT_TRACE] sendOTPEmail threw:', err.message);
 
     err.isEmailError = true;
     throw err;
