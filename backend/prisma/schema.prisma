@@ -122,6 +122,7 @@ model ProductionRecord {
   @@index([shift])
   @@index([createdBy])
   @@index([operationalDate])
+  @@index([branchId, operationalDate, productId, shift])
 }
 
 model RemainingRecord {
@@ -147,6 +148,7 @@ model RemainingRecord {
   @@index([productId])
   @@index([createdBy])
   @@index([status])
+  @@index([branchId, operationalDate, productId, status])
 }
 
 model WasteRecord {
@@ -187,6 +189,7 @@ model DailyClosure {
   @@unique([branchId, operationalDate])
   @@index([branchId])
   @@index([isClosed])
+  @@index([autoCloseAt])
 }
 
 model DailySnapshot {
@@ -264,15 +267,15 @@ model AuditLog {
 
 model RefreshToken {
   id        Int      @id @default(autoincrement())
-  token     String   @unique
+  tokenHash String   @unique
   userId    Int
   expiresAt DateTime
-  revoked   Boolean  @default(false)
   createdAt DateTime @default(now())
+  lastUsedAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
-  @@index([userId])
-  @@index([token])
+  @@unique([userId])
+  @@index([tokenHash])
 }
 
 model RateLimit {
@@ -290,7 +293,7 @@ model RolloverCache {
 
 model PasswordReset {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    Int  @unique
   otpHash   String
   expiresAt DateTime
   attempts  Int      @default(0)

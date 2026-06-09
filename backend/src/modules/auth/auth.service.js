@@ -2,6 +2,7 @@ const prisma = require('../../config/prisma');
 const bcrypt = require('bcrypt');
 const { generateToken } = require('../../utils/jwt');
 const refreshTokenUtil = require('../../utils/refreshToken');
+const AppError = require('../../utils/AppError');
 
 const SALT_ROUNDS = 10;
 
@@ -15,25 +16,25 @@ const login = async (username, password) => {
   });
 
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Invalid credentials', 401, 'AUTH_TOKEN');
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isPasswordValid) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Invalid credentials', 401, 'AUTH_TOKEN');
   }
 
   if (user.isBlocked) {
-    throw new Error('Your account has been blocked. Contact your manager.');
+    throw new AppError('Your account has been blocked. Contact your manager.', 403, 'AUTH_ROLE');
   }
 
   if (!user.isActive) {
-    throw new Error('Your account has been deactivated. Contact your manager.');
+    throw new AppError('Your account has been deactivated. Contact your manager.', 403, 'AUTH_ROLE');
   }
 
   if (user.branchId && user.branch && !user.branch.isActive) {
-    throw new Error('Your branch is currently inactive. Contact your manager.');
+    throw new AppError('Your branch is currently inactive. Contact your manager.', 403, 'AUTH_ROLE');
   }
 
   const token = generateToken({
@@ -63,7 +64,7 @@ const login = async (username, password) => {
 const refreshAccessToken = async (refreshTokenValue) => {
   const user = await refreshTokenUtil.verify(refreshTokenValue);
   if (!user) {
-    throw new Error('Invalid or expired refresh token');
+throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
   }
 
   const newRefresh = await refreshTokenUtil.rotate(refreshTokenValue, user.id);
@@ -96,10 +97,10 @@ const hashPassword = async (password) => {
 
 const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new Error('User not found');
+  if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
 
   const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!isValid) throw new Error('Current password is incorrect');
+  if (!isValid) throw new AppError('Current password is incorrect', 401, 'AUTH_TOKEN');
 
   const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   await prisma.user.update({
@@ -110,7 +111,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 
 const resetPassword = async (targetUserId, newPassword) => {
   const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-  if (!user) throw new Error('User not found');
+  if (!user) throw new AppError('User not found', 404, 'AUTH_TOKEN');
 
   const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   await prisma.user.update({

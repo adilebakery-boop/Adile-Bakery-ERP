@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+
 function errorHandler(err, req, res, next) {
   console.error('[ERROR]', {
     message: err.message,
@@ -6,6 +8,14 @@ function errorHandler(err, req, res, next) {
     method: req.method,
     timestamp: new Date().toISOString(),
   });
+
+  if (err instanceof AppError) {
+    return res.status(err.status).json({
+      success: false,
+      message: err.message,
+      type: err.type,
+    });
+  }
 
   if (err.name === 'ZodError' || err.errors) {
     return res.status(400).json({
@@ -32,7 +42,7 @@ function errorHandler(err, req, res, next) {
   if (err.status === 401) {
     return res.status(401).json({
       success: false,
-      message: 'Authentication required',
+      message: err.message,
     });
   }
 

@@ -20,7 +20,7 @@ const processQueue = (error, token = null) => {
 };
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://adile-bakery-erp-production.up.railway.app/api',
   timeout: DEFAULT_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
@@ -98,6 +98,9 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest.__isRetry) {
+      if (originalRequest.url && originalRequest.url.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -159,7 +162,7 @@ export const handleApiError = (error) => {
       message: error.response.data?.message || ERROR_MESSAGES[status] || 'An error occurred',
       errors: error.response.data?.errors || [],
       status,
-      retryable: [408, 429, 500, 502, 503, 504].includes(status),
+      retryable: [408, 500, 502, 503, 504].includes(status),
     };
   }
   if (error.request) {
@@ -210,7 +213,7 @@ export const isAuthError = (error) => {
 
 export const isRetryableError = (error) => {
   if (!error.response) return true;
-  return [408, 429, 500, 502, 503, 504].includes(error.response.status);
+  return [408, 500, 502, 503, 504].includes(error.response.status);
 };
 
 export default api;
