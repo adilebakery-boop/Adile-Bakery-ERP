@@ -1,58 +1,28 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns').promises;
+const { Resend } = require('resend');
 
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM;
 
-const GMAIL_SMTP_HOST = 'smtp.gmail.com';
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-let cachedIpv4 = null;
-let cacheExpiry = 0;
-
-const getGmailIpv4 = async () => {
-  if (cachedIpv4 && Date.now() < cacheExpiry) return cachedIpv4;
-  const addresses = await dns.resolve4(GMAIL_SMTP_HOST);
-  if (!addresses || addresses.length === 0) {
-    throw new Error('No IPv4 address could be resolved for smtp.gmail.com');
+let resendClient = null;
+const getResendClient = () => {
+  if (!resendClient) {
+    resendClient = new Resend(RESEND_API_KEY);
   }
-  cachedIpv4 = addresses[0];
-  cacheExpiry = Date.now() + CACHE_TTL_MS;
-  console.log('[OTP_DIAG] resolved', GMAIL_SMTP_HOST, 'to IPv4', cachedIpv4);
-  return cachedIpv4;
+  return resendClient;
 };
 
 const sendOTPEmail = async (email, otp) => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.log('-----------------------------------------');
-    console.log(`[EMAIL CONSOLE] To: ${email}`);
-    console.log(`[OTP] Your password reset code is: ${otp}`);
-    console.log('This code will expire in 5 minutes.');
-    console.log('-----------------------------------------');
-    throw new Error('EMAIL_USER and EMAIL_PASS must be configured');
+  if (!RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY missing');
   }
 
-  const ipv4Host = await getGmailIpv4();
+  console.log('[RESEND DEBUG] API key exists:', !!process.env.RESEND_API_KEY);
+  console.log('[RESEND DEBUG] FROM:', RESEND_FROM);
 
-  console.log('[SMTP DEBUG] FINAL IPv4 HOST:', ipv4Host);
-
-  const transporter = nodemailer.createTransport({
-    host: ipv4Host,
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    servername: GMAIL_SMTP_HOST,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 30000,
-  });
+  const resend = getResendClient();
 
   const mailOptions = {
-    from: `"Adile Bakery ERP" <${EMAIL_USER}>`,
+    from: RESEND_FROM,
     to: email,
     subject: 'Your Password Reset Code',
     html: `
@@ -71,36 +41,38 @@ const sendOTPEmail = async (email, otp) => {
     `,
   };
 
+  console.log('[RESEND] sending email to', email);
+
   console.log(
-    '[OTP_DIAG] sendMail: about to call with host=',
-    ipv4Host,
-    'port=587 secure=false requireTLS=true servername=',
-    GMAIL_SMTP_HOST
+    '[OTP_DIAG] sendMail: about to call via Resend HTTP API to=',
+    email,
+    'from=',
+    RESEND_FROM
   );
 
-  const smtpStart = Date.now();
+  const sendStart = Date.now();
 
   try {
-    const info = await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send(mailOptions);
+
+    if (error) {
+      const err = new Error(error.message || 'Resend send failed');
+      err.code = error.name || 'RESEND_ERROR';
+      throw err;
+    }
 
     console.log(
       '[OTP_DIAG] sendMail: completed in',
-      Date.now() - smtpStart,
+      Date.now() - sendStart,
       'ms, messageId=',
-      info.messageId
+      data && data.id
     );
   } catch (err) {
     console.error(
       '[OTP_DIAG] sendMail: failed after',
-      Date.now() - smtpStart,
+      Date.now() - sendStart,
       'ms, code=',
       err.code,
-      ', command=',
-      err.command,
-      ', responseCode=',
-      err.responseCode,
-      ', response=',
-      err.response,
       ', message=',
       err.message
     );
