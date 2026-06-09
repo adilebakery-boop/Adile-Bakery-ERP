@@ -243,6 +243,8 @@ async function closeDay(branchId, operationalDate, userId, note = null, options 
   const effectiveClosureType = options.closureType || 'MANUAL';
   const skipValidation = options.skipValidation === true;
 
+  await inventoryFlowService.resolveRollover(branchIdInt, operationalDate);
+
   if (!skipValidation) {
     const validation = await validateBeforeClose(branchIdInt, operationalDate);
 

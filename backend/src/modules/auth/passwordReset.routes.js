@@ -1,7 +1,9 @@
 const express = require('express');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { z, validate, passwordSchema } = require('../../utils/validation');
+const { otpLimiter } = require('../../middlewares/rateLimit.middleware');
 const passwordResetService = require('./passwordReset.service');
+const AppError = require('../../utils/AppError');
 
 const router = express.Router();
 
@@ -28,17 +30,27 @@ const resetPasswordSchema = validate(
 
 router.post(
   '/forgot-password',
+  otpLimiter,
   forgotPasswordSchema,
   asyncHandler(async (req, res) => {
     const { email } = req.body;
+    console.log('[FORGOT_TRACE] route entered');
+    console.log('[FORGOT_TRACE] email:', email);
     try {
       await passwordResetService.createResetRequest(email);
+      console.log('[FORGOT_TRACE] createResetRequest returned successfully, sending response');
       res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
     } catch (err) {
-      if (err.message === 'User not found') {
+      if (err instanceof AppError && err.message === 'User not found') {
+        console.log('[FORGOT_TRACE] user not found, sending generic response');
         return res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
       }
-      res.status(400).json({ success: false, message: err.message });
+      if (err.isEmailError) {
+        console.log('[FORGOT_TRACE] email error:', err.message);
+        return res.status(500).json({ success: false, message: err.message });
+      }
+      console.log('[FORGOT_TRACE] unexpected error:', err.message);
+      throw err;
     }
   })
 );
@@ -48,12 +60,8 @@ router.post(
   verifyOTPSchema,
   asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
-    try {
-      await passwordResetService.verifyAndGetActiveOTP(email, otp);
-      res.json({ success: true, message: 'OTP verified successfully' });
-    } catch (err) {
-      res.status(400).json({ success: false, message: err.message });
-    }
+    await passwordResetService.verifyAndGetActiveOTP(email, otp);
+    res.json({ success: true, message: 'OTP verified successfully' });
   })
 );
 
@@ -62,12 +70,8 @@ router.post(
   resetPasswordSchema,
   asyncHandler(async (req, res) => {
     const { email, otp, newPassword } = req.body;
-    try {
-      await passwordResetService.resetPassword(email, otp, newPassword);
-      res.json({ success: true, message: 'Password has been reset successfully' });
-    } catch (err) {
-      res.status(400).json({ success: false, message: err.message });
-    }
+    await passwordResetService.resetPassword(email, otp, newPassword);
+    res.json({ success: true, message: 'Password has been reset successfully' });
   })
 );
 

@@ -37,6 +37,10 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    if (!dbUser.role || !dbUser.role.name) {
+      throw Object.assign(new Error('User role configuration is invalid'), { status: 500 });
+    }
+
     if (dbUser.isBlocked) {
       return res.status(403).json({
         success: false,
@@ -63,25 +67,7 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token has expired',
-        errors: []
-      });
-    }
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token',
-        errors: []
-      });
-    }
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication failed',
-      errors: []
-    });
+    next(error);
   }
 };
 

@@ -4,7 +4,7 @@ const helmet = require('./middlewares/helmet.middleware');
 const sanitizeRequest = require('./middlewares/sanitize.middleware');
 const prisma = require('./config/prisma');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
-const { loginLimiter, apiLimiter, exportLimiter, otpLimiter } = require('./middlewares/rateLimit.middleware');
+const { loginLimiter, apiLimiter, exportLimiter } = require('./middlewares/rateLimit.middleware');
 const trafficMonitor = require('./middlewares/trafficMonitor.middleware');
 
 const app = express();
@@ -57,7 +57,6 @@ app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
 app.use('/api/auth/login', loginLimiter);
-app.use('/api/auth/forgot-password', otpLimiter);
 app.use('/api', apiLimiter);
 app.use('/api/reports/export', exportLimiter);
 

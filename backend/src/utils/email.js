@@ -1,34 +1,33 @@
-const nodemailer = require('nodemailer');
+﻿const { Resend } = require('resend');
 
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+let resendClient = null;
+const getResendClient = () => {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+};
 
 const sendOTPEmail = async (email, otp) => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.log('-----------------------------------------');
-    console.log(`[EMAIL CONSOLE] To: ${email}`);
-    console.log(`[OTP] Your password reset code is: ${otp}`);
-    console.log('This code will expire in 5 minutes.');
-    console.log('-----------------------------------------');
-    return;
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured');
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASS,
-    },
-  });
+  console.log('[RESEND DEBUG] API key exists:', !!process.env.RESEND_API_KEY);
+  console.log('[RESEND DEBUG] FROM:', process.env.RESEND_FROM);
+
+  const resend = getResendClient();
+
+  const from = process.env.RESEND_FROM || 'Adile Bakery <onboarding@resend.dev>';
 
   const mailOptions = {
-    from: `"Adile Bakery ERP" <${EMAIL_USER}>`,
+    from,
     to: email,
     subject: 'Your Password Reset Code',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background-color: #F9F7F2; border-radius: 16px;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <div style="display: inline-block; width: 64px; height: 64px; background-color: #001F3F; border-radius: 16px; line-height: 64px; font-size: 32px;">🥐</div>
+          <div style="display: inline-block; width: 64px; height: 64px; background-color: #001F3F; border-radius: 16px; line-height: 64px; font-size: 32px;">≡ƒÑÉ</div>
           <h2 style="color: #001F3F; margin: 16px 0 4px;">Adile Bakery</h2>
           <p style="color: #666; margin: 0; font-size: 14px;">Password Reset Code</p>
         </div>
@@ -41,7 +40,66 @@ const sendOTPEmail = async (email, otp) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  console.log('[RESEND] sending email to', email);
+
+  console.log(
+    '[OTP_DIAG] sendMail: about to call via Resend HTTP API to=',
+    email,
+    'from=',
+    from
+  );
+
+  const sendStart = Date.now();
+
+  try {
+    console.log('[RESEND DEBUG] sending to:', email);
+    console.log('[RESEND DEBUG] subject:', 'Your Password Reset Code');
+
+    const response = await resend.emails.send(mailOptions);
+
+    console.log('[RESEND DEBUG] raw response:', JSON.stringify(response, null, 2));
+
+    if (response.data) {
+      console.log('[RESEND DEBUG] response.data:', JSON.stringify(response.data, null, 2));
+    }
+    if (response.data && response.data.id) {
+      console.log('[RESEND DEBUG] response.data.id:', response.data.id);
+    }
+    if (response.error) {
+      console.log('[RESEND DEBUG] response.error:', JSON.stringify(response.error, null, 2));
+    }
+
+    const { data, error } = response;
+
+    if (error) {
+      const err = new Error(error.message || 'Resend send failed');
+      err.code = error.name || 'RESEND_ERROR';
+      throw err;
+    }
+
+    console.log(
+      '[OTP_DIAG] sendMail: completed in',
+      Date.now() - sendStart,
+      'ms, messageId=',
+      data && data.id
+    );
+  } catch (err) {
+    console.error(
+      '[OTP_DIAG] sendMail: failed after',
+      Date.now() - sendStart,
+      'ms, code=',
+      err.code,
+      ', message=',
+      err.message
+    );
+
+    console.error(
+      '[OTP_DIAG] sendMail: stack=',
+      err.stack
+    );
+
+    throw err;
+  }
 };
 
 module.exports = {
