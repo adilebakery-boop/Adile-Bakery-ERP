@@ -29,7 +29,6 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.8",
     "pg": "^8.21.0",
     "resend": "^6.12.4",
     "zod": "^4.4.3"
