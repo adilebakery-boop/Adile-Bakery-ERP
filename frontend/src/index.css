@@ -23,167 +23,195 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Initial dark mode check */
 html.dark {
   color-scheme: dark;
 }
 
 html.dark body {
-  background-color: #0f0f1a;
-  color: #e5e5e5;
+  background-color: #0D1B1E;
+  color: #CAEAFD;
 }
 
-/* Dark mode global styles */
 html.dark .bg-white {
-  background-color: #1a1a2e !important;
+  background-color: #12262A !important;
 }
 
-html.dark .bg-\\[\\#F9F7F2\\] {
-  background-color: #0f0f1a !important;
+html.dark .bg-\\[\\#DFEDE2\\] {
+  background-color: #002830 !important;
 }
 
-html.dark .text-\\[\\#001F3F\\] {
-  color: #ffffff !important;
+html.dark .text-\\[\\#024A5B\\] {
+  color: #CAEAFD !important;
+}
+
+html.dark .bg-\\[\\#4CB094\\] {
+  background-color: #4CB094 !important;
+}
+
+html.dark .hover\\:text-\\[\\#024A5B\\]:hover {
+  color: #CAEAFD !important;
+}
+
+html.dark .hover\\:bg-\\[\\#4CB094\\]:hover {
+  background-color: #4CB094 !important;
+}
+
+html.dark .focus\\:ring-\\[\\#4CB094\\]:focus {
+  --tw-ring-color: #4CB094 !important;
+}
+
+html.dark .border-\\[\\#4CB094\\] {
+  border-color: #4CB094 !important;
+}
+
+html.dark .hover\\:bg-\\[\\#3D9A7D\\]:hover {
+  background-color: #236B56 !important;
 }
 
 html.dark .text-gray-600 {
-  color: #d1d5db !important;
+  color: #8FB5C0 !important;
 }
 
 html.dark .text-gray-400 {
-  color: #9ca3af !important;
+  color: #8FB5C0 !important;
 }
 
 html.dark .text-gray-500 {
-  color: #9ca3af !important;
+  color: #8FB5C0 !important;
 }
 
 html.dark .border-\\[\\#E5E1D8\\] {
-  border-color: #2d2d4a !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark .border-t {
-  border-color: #2d2d4a !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark .divide-y > :not([style*="display: none"]) {
-  border-color: #2d2d4a !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark input,
 html.dark select,
 html.dark textarea {
-  background-color: #1a1a2e !important;
-  color: #e5e5e5 !important;
-  border-color: #2d2d4a !important;
+  color: #CAEAFD !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark input::placeholder {
-  color: #6b7280 !important;
+  color: #8FB5C0 !important;
 }
 
 html.dark .shadow-\\[0_4px_20px_-2px_rgba\\(0\\,31\\,63\\,0\\.05\\)\\] {
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Dark mode page content */
 html.dark .page-content {
-  background-color: #0f0f1a !important;
+  background-color: #002830 !important;
 }
 
 html.dark .page-content h1,
 html.dark .page-content h2,
 html.dark .page-content h3 {
-  color: #ffffff !important;
+  color: #CAEAFD !important;
 }
 
 html.dark .page-content p {
-  color: #d1d5db !important;
+  color: #8FB5C0 !important;
 }
 
 html.dark .page-content span {
-  color: #d1d5db !important;
+  color: #8FB5C0 !important;
 }
 
-/* Dark mode tables */
 html.dark table {
   background-color: transparent !important;
 }
 
 html.dark thead {
-  background-color: #1a1a2e !important;
+  background-color: #12262A !important;
 }
 
 html.dark th {
-  color: #9ca3af !important;
-  border-color: #2d2d4a !important;
+  color: #6A8E99 !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark td {
-  color: #e5e5e5 !important;
-  border-color: #2d2d4a !important;
+  color: #CAEAFD !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark tr:hover {
-  background-color: #1a1a2e !important;
+  background-color: #236B56 !important;
 }
 
-/* Dark mode cards */
 html.dark .card {
-  background-color: #1a1a2e !important;
-  border-color: #2d2d4a !important;
+  background-color: #12262A !important;
+  border-color: #1E3A3F !important;
 }
 
-/* Dark mode buttons */
 html.dark .btn-primary {
-  background-color: #D2B48C !important;
-  color: #0f0f1a !important;
+  background-color: #4CB094 !important;
+  color: #002830 !important;
 }
 
-/* Dark mode modals */
 html.dark .modal-content {
-  background-color: #1a1a2e !important;
-  border-color: #2d2d4a !important;
+  background-color: #12262A !important;
+  border-color: #1E3A3F !important;
 }
 
-/* Dark mode dropdowns */
 html.dark .dropdown-menu {
-  background-color: #1a1a2e !important;
-  border-color: #2d2d4a !important;
+  background-color: #12262A !important;
+  border-color: #1E3A3F !important;
 }
 
 html.dark .dropdown-item {
-  color: #e5e5e5 !important;
+  color: #CAEAFD !important;
 }
 
 html.dark .dropdown-item:hover {
-  background-color: #2d2d4a !important;
+  background-color: #1E3A3F !important;
 }
 
-/* Dark mode form labels */
 html.dark label {
-  color: #d1d5db !important;
+  color: #8FB5C0 !important;
 }
 
-/* Dark mode select options */
-html.dark select option {
-  background-color: #1a1a2e !important;
-  color: #e5e5e5 !important;
-}
 
-/* Dark mode placeholder text */
+
 html.dark ::placeholder {
-  color: #6b7280 !important;
+  color: #6A8E99 !important;
 }
 
-/* Dark mode focus ring on inputs */
 html.dark input:focus,
 html.dark select:focus,
 html.dark textarea:focus {
-  --tw-ring-color: #001F3F !important;
+  --tw-ring-color: #4CB094 !important;
 }
 
-/* Dark mode icon colors */
+html.dark .bg-blue-50 {
+  background-color: #236B56 !important;
+}
+
+html.dark .border-blue-200 {
+  border-color: #1E3A3F !important;
+}
+
+html.dark .text-blue-500,
+html.dark .text-blue-700 {
+  color: #8FB5C0 !important;
+}
+
+html.dark .bg-\[\#CAEAFD\] {
+  background-color: #236B56 !important;
+}
+
+html.dark .hover\:bg-\[\#B0D8E8\]:hover {
+  background-color: #236B56 !important;
+}
+
 html.dark .lucide-icon {
   color: inherit;
 }

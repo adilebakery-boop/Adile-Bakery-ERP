@@ -9,6 +9,6 @@ export default function LoadingSpinner({ size = 'md', className = '' }) {
   };
 
   return (
-    <Loader2 className={`animate-spin text-[#D2B48C] ${sizeClasses[size]} ${className}`} />
+    <Loader2 className={`animate-spin text-[#024A5B] ${sizeClasses[size]} ${className}`} />
   );
 }

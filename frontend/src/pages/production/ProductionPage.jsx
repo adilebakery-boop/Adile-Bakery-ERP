@@ -268,11 +268,11 @@ export default function ProductionPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('production.title')}</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('production.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">
             {t('production.productionDate')}: {productionDate ? formatOperationalDate(productionDate) : '-'}
             {calculatedOperationalDate && calculatedOperationalDate !== productionDate && (
-              <span className="ml-2 text-[#D2B48C]">→ {t('production.salesDay')}: {formatOperationalDate(calculatedOperationalDate)}</span>
+              <span className="ml-2 text-[#024A5B]">→ {t('production.salesDay')}: {formatOperationalDate(calculatedOperationalDate)}</span>
             )}
           </p>
         </div>
@@ -281,20 +281,20 @@ export default function ProductionPage() {
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('production.editProduction')}>
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.product')}</label>
             <input
               type="text"
               value={editingEntry?.product?.name || ''}
               disabled
-              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] border-0 rounded-xl text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.shift')}</label>
             <select
               value={editFormData.shift}
               disabled
-              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+              className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
               title={t('production.shiftLockedTooltip')}
             >
               <option value="">{t('production.selectShift')}</option>
@@ -302,12 +302,12 @@ export default function ProductionPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.quantity')}</label>
             <input
               type="number"
               value={editFormData.quantity}
               onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               required
               step={editingEntry?.product?.unitType === 'piece' ? '1' : '0.01'}
               min="0"
@@ -317,14 +317,14 @@ export default function ProductionPage() {
             <button
               type="button"
               onClick={() => setIsEditModalOpen(false)}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 rounded-xl font-medium hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors text-sm"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={updateMutation.isPending}
-              className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
+              className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
               {updateMutation.isPending ? t('production.saving') : t('common.save')}
             </button>
@@ -344,15 +344,15 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
           <div className="w-full md:w-44">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.productionDate')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.productionDate')}</label>
             <input
               type="date"
               value={productionDate}
               onChange={(e) => setProductionDate(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               required
               disabled={createMutation.isPending}
               min={minDateStr}
@@ -361,11 +361,11 @@ export default function ProductionPage() {
           </div>
 
           <div className="w-full md:flex-1 md:min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.product')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.product')}</label>
             {isLoadingProducts ? (
-              <div className="flex items-center gap-2 px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-xl">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-500" />
-                <span className="text-sm text-gray-400 dark:text-gray-500">{t('common.loading')}</span>
+              <div className="flex items-center gap-2 px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-500 dark:text-gray-500" />
+                <span className="text-sm text-gray-500 dark:text-gray-500">{t('common.loading')}</span>
               </div>
             ) : (
               <select
@@ -376,7 +376,7 @@ export default function ProductionPage() {
                   setSelectedProductUnitType(selected?.unitType || null);
                   setQuantity('');
                 }}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
                 disabled={createMutation.isPending}
               >
@@ -392,11 +392,11 @@ export default function ProductionPage() {
 
           {canManageAll && (
             <div className="w-full md:flex-1 md:min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.branch')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.branch')}</label>
               <select
                 value={inputBranch}
                 onChange={(e) => setInputBranch(e.target.value)}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
                 disabled={createMutation.isPending}
               >
@@ -409,11 +409,11 @@ export default function ProductionPage() {
           )}
 
           <div className="w-full md:flex-1 md:min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.shift')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.shift')}</label>
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               required
               disabled={createMutation.isPending}
             >
@@ -425,12 +425,12 @@ export default function ProductionPage() {
           </div>
 
           <div className="w-full md:w-40">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('production.quantity')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.quantity')}</label>
             <input
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               placeholder="0"
               required
               disabled={createMutation.isPending}
@@ -442,7 +442,7 @@ export default function ProductionPage() {
           <button
             type="submit"
             disabled={createMutation.isPending || isCreateFormClosed}
-            className="w-full md:w-auto px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center justify-center md:justify-start gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full md:w-auto px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center justify-center md:justify-start gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {createMutation.isPending ? (
               <>
@@ -467,20 +467,20 @@ export default function ProductionPage() {
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
           <input
             type="text"
             placeholder={t('production.searchProduction')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
         {canManageAll && (
           <select
             value={selectedFilterBranch}
             onChange={(e) => setSelectedFilterBranch(e.target.value)}
-            className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
           >
             <option value="">{t('production.allBranches')}</option>
             {(Array.isArray(branches) ? branches : []).map((b) => (
@@ -491,7 +491,7 @@ export default function ProductionPage() {
         <select
           value={selectedFilterProduct}
           onChange={(e) => setSelectedFilterProduct(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
         >
           <option value="">{t('production.allProducts')}</option>
           {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
@@ -500,17 +500,17 @@ export default function ProductionPage() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">
             {canManageAll ? t('production.allProductionRecords') : t('production.todaysEntries')}
           </h2>
           <button
             onClick={() => refetchEntries()}
-            className="p-2 hover:bg-[#F9F7F2] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#DFEDE2] rounded-lg transition-colors"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-4 h-4 text-gray-400" />
+            <RefreshCw className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
@@ -521,20 +521,20 @@ export default function ProductionPage() {
         ) : displayGroups.length > 0 ? (
           <div className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
-            <thead className="bg-[#F9F7F2]/50">
+            <thead className="bg-[#DFEDE2]/50">
               <tr>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider w-10"></th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider sticky left-0 bg-white dark:bg-[#1a1a2e] z-10">{t('production.product')}</th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.totalProduced')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider w-10"></th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider sticky left-0 bg-white dark:bg-[#12262A] z-10">{t('production.product')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.totalProduced')}</th>
                 {canManageAll && (
-                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.branch')}</th>
+                  <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.branch')}</th>
                 )}
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.actions')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
               {displayGroups.map((group) => {
                 const groupKey = getGroupKey(group);
                 const isExpanded = expandedGroups[groupKey];
@@ -543,26 +543,26 @@ export default function ProductionPage() {
                 return (
                   <Fragment key={groupKey}>
                     <tr
-                      className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] cursor-pointer transition-colors"
+                      className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] cursor-pointer transition-colors"
                       onClick={() => toggleGroupExpand(groupKey)}
                     >
                       <td className="px-6 py-3.5">
-                        <button className="p-1 text-gray-400 hover:text-[#001F3F] dark:hover:text-white transition-colors">
+                        <button className="p-1 text-gray-500 hover:text-[#024A5B] dark:hover:text-white transition-colors">
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                       </td>
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300 font-medium">
                         {formattedDate}
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-semibold text-[#001F3F] dark:text-white sticky left-0 bg-white dark:bg-[#1a1a2e] z-10">
+                      <td className="px-6 py-3.5 text-sm font-semibold text-[#024A5B] dark:text-white sticky left-0 bg-white dark:bg-[#12262A] z-10">
                         {getLocalizedName(group.product, i18n.language) || group.product?.name || t('common.na')}
                       </td>
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#F9F7F2] dark:bg-[#2d2d4a] text-gray-600 dark:text-gray-300">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#DFEDE2] dark:bg-[#1E3A3F] text-gray-600 dark:text-gray-300">
                           {group.entries.length} {group.entries.length === 1 ? t('production.entry') : t('production.entries')}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-bold text-[#001F3F] dark:text-white">
+                      <td className="px-6 py-3.5 text-sm font-bold text-[#024A5B] dark:text-white">
                         {Number(group.totalQuantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
                       {canManageAll && (
@@ -573,7 +573,7 @@ export default function ProductionPage() {
                       <td className="px-6 py-3.5">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleGroupExpand(groupKey); }}
-                          className="text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:underline"
+                          className="text-xs font-medium text-[#024A5B] dark:text-[#CAEAFD] hover:underline"
                         >
                           {isExpanded ? t('common.hide') : t('common.view')}
                         </button>
@@ -582,35 +582,35 @@ export default function ProductionPage() {
                     {isExpanded && (
                       <tr>
                         <td colSpan={canManageAll ? 7 : 6} className="p-0">
-                          <div className="bg-[#F9F7F2]/40 dark:bg-[#2d2d4a]/40 border-l-4 border-[#D2B48C] dark:border-[#D2B48C]/50 ml-6 mr-3 my-1 rounded-r-lg">
+                          <div className="bg-[#DFEDE2]/40 dark:bg-[#1E3A3F]/40 border-l-4 border-[#CAEAFD] dark:border-[#CAEAFD]/50 ml-6 mr-3 my-1 rounded-r-lg">
                             <table className="w-full">
                               <thead>
-                                <tr className="border-b border-[#E5E1D8]/50 dark:border-[#2d2d4a]/50">
-                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.timeDate')}</th>
-                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.shift')}</th>
-                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.quantity')}</th>
-                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.user')}</th>
-                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.action')}</th>
+                                <tr className="border-b border-[#E5E1D8]/50 dark:border-[#1E3A3F]/50">
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.timeDate')}</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.shift')}</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.quantity')}</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.user')}</th>
+                                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.action')}</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-[#E5E1D8]/30 dark:divide-[#2d2d4a]/30">
+                              <tbody className="divide-y divide-[#E5E1D8]/30 dark:divide-[#1E3A3F]/30">
                                 {group.entries.map((entry) => {
                                   const entryDate = new Date(entry.createdAt);
                                   const entryTime = entryDate.toLocaleTimeString('en-US', { timeZone: 'Africa/Addis_Ababa', hour: '2-digit', minute: '2-digit', hour12: true });
                                   const entryFormattedDate = entryDate.toLocaleDateString('en-GB', { timeZone: 'Africa/Addis_Ababa', day: '2-digit', month: '2-digit', year: 'numeric' });
                                   return (
-                                    <tr key={entry.id} className="hover:bg-[#F9F7F2]/60 dark:hover:bg-[#2d2d4a]/60">
+                                    <tr key={entry.id} className="hover:bg-[#DFEDE2]/60 dark:hover:bg-[#1E3A3F]/60">
                                       <td className="px-6 py-2.5 text-xs text-gray-600 dark:text-gray-300">
                                         <span className="font-medium">{entryTime}</span>
-                                        <span className="text-gray-400 dark:text-gray-500">&nbsp;{entryFormattedDate}</span>
+                                        <span className="text-gray-500 dark:text-gray-500">&nbsp;{entryFormattedDate}</span>
                                       </td>
                                       <td className="px-6 py-2.5 text-xs text-gray-600 dark:text-gray-300">
                                         {getShiftLabel(entry.shift)}
                                       </td>
-                                      <td className="px-6 py-2.5 text-xs font-semibold text-[#001F3F] dark:text-white">
+                                      <td className="px-6 py-2.5 text-xs font-semibold text-[#024A5B] dark:text-white">
                                         {Number(entry.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                       </td>
-                                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+                                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-500">
                                         {entry.creator?.name || entry.creator?.username || '-'}
                                       </td>
                                       <td className="px-6 py-2.5">
@@ -618,7 +618,7 @@ export default function ProductionPage() {
                                           <div className="flex items-center gap-1">
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
-                                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
+                                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#024A5B] dark:text-[#CAEAFD] hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-md transition-colors"
                                             >
                                               <Edit2 className="w-3 h-3" />
                                               {t('common.edit')}
@@ -632,7 +632,7 @@ export default function ProductionPage() {
                                             </button>
                                           </div>
                                         ) : (
-                                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-500">
                                             <Edit2 className="w-3 h-3" />
                                             {t('common.edit')}
                                           </span>
@@ -658,8 +658,8 @@ export default function ProductionPage() {
         )}
 
         {!isLoadingEntries && !entriesError && totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#1E3A3F]">
+            <div className="text-sm text-gray-500 dark:text-gray-500">
               {t('production.showing', {
                 from: ((currentPage - 1) * itemsPerPage) + 1,
                 to: Math.min(currentPage * itemsPerPage, totalGroups),
@@ -670,17 +670,17 @@ export default function ProductionPage() {
               <button
                 onClick={goToPreviousPage}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+              <span className="text-sm text-gray-600 dark:text-gray-500 px-2">
                 {t('production.pageOf', { current: currentPage, total: totalPages })}
               </span>
               <button
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

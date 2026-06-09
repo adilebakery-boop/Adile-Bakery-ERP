@@ -13,7 +13,7 @@ export default function PageSkeleton() {
         <Skeleton variant="button" className="w-32" />
       </div>
       
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]">
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]">
         <TableSkeleton rows={8} columns={4} />
       </div>
     </div>

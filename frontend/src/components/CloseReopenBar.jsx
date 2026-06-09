@@ -61,18 +61,18 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
 
   if (noBranch) {
     return (
-      <div className="flex items-center gap-2 px-4 py-3 mb-6 bg-gray-50 dark:bg-[#1a1a2e]/50 rounded-xl border border-gray-200 dark:border-[#2d2d4a]">
-        <AlertCircle className="w-4 h-4 text-gray-400" />
-        <span className="text-sm text-gray-500 dark:text-gray-400">{t('closure.selectBranch')}</span>
+      <div className="flex items-center gap-2 px-4 py-3 mb-6 bg-gray-50 dark:bg-[#12262A]/50 rounded-xl border border-gray-200 dark:border-[#1E3A3F]">
+        <AlertCircle className="w-4 h-4 text-gray-500" />
+        <span className="text-sm text-gray-500 dark:text-gray-500">{t('closure.selectBranch')}</span>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-white dark:bg-[#1a1a2e] rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
-        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-        <span className="text-sm text-gray-400">{t('common.loading')}</span>
+      <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-white dark:bg-[#12262A] rounded-xl border border-[#E5E1D8] dark:border-[#1E3A3F]">
+        <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+        <span className="text-sm text-gray-500">{t('common.loading')}</span>
       </div>
     );
   }
@@ -141,7 +141,7 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
 
       <Modal isOpen={isConfirmOpen} onClose={() => { if (!processing) setIsConfirmOpen(false); }} title={t('closure.confirmCloseTitle')}>
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">{t('closure.confirmCloseMessage')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-500">{t('closure.confirmCloseMessage')}</p>
           {actionError && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -152,7 +152,7 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
             <button
               onClick={() => setIsConfirmOpen(false)}
               disabled={processing}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 rounded-xl font-medium hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors text-sm"
             >
               {t('common.cancel')}
             </button>
@@ -170,11 +170,11 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
 
       <Modal isOpen={isReopenOpen} onClose={() => { if (!processing) setIsReopenOpen(false); setActionError(''); setReopenReason(''); }} title={t('closure.confirmReopenTitle')}>
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">{t('closure.reopenReasonPrompt')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-500">{t('closure.reopenReasonPrompt')}</p>
           <textarea
             value={reopenReason}
             onChange={(e) => setReopenReason(e.target.value)}
-            className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white resize-none"
+            className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white resize-none"
             rows={3}
             placeholder={t('closure.reopenReasonPlaceholder')}
             maxLength={500}
@@ -194,7 +194,7 @@ export default function CloseReopenBar({ branchId, operationalDate, disabled }) 
             <button
               onClick={() => { setIsReopenOpen(false); setReopenReason(''); setActionError(''); }}
               disabled={processing}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 rounded-xl font-medium hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors text-sm"
             >
               {t('common.cancel')}
             </button>
