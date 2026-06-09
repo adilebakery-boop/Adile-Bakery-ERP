@@ -34,16 +34,22 @@ router.post(
   forgotPasswordSchema,
   asyncHandler(async (req, res) => {
     const { email } = req.body;
+    console.log('[FORGOT_TRACE] route entered');
+    console.log('[FORGOT_TRACE] email:', email);
     try {
       await passwordResetService.createResetRequest(email);
+      console.log('[FORGOT_TRACE] createResetRequest returned successfully, sending response');
       res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
     } catch (err) {
       if (err instanceof AppError && err.message === 'User not found') {
+        console.log('[FORGOT_TRACE] user not found, sending generic response');
         return res.json({ success: true, message: 'If an account exists, a 6-digit OTP has been sent' });
       }
       if (err.isEmailError) {
+        console.log('[FORGOT_TRACE] email error:', err.message);
         return res.status(500).json({ success: false, message: err.message });
       }
+      console.log('[FORGOT_TRACE] unexpected error:', err.message);
       throw err;
     }
   })
