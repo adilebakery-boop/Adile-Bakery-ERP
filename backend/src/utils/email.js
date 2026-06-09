@@ -1,28 +1,27 @@
 const { Resend } = require('resend');
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Adile Bakery <onboarding@resend.dev>';
-
 let resendClient = null;
 const getResendClient = () => {
   if (!resendClient) {
-    resendClient = new Resend(RESEND_API_KEY);
+    resendClient = new Resend(process.env.RESEND_API_KEY);
   }
   return resendClient;
 };
 
 const sendOTPEmail = async (email, otp) => {
-  if (!RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY missing');
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured');
   }
 
   console.log('[RESEND DEBUG] API key exists:', !!process.env.RESEND_API_KEY);
-  console.log('[RESEND DEBUG] FROM:', RESEND_FROM);
+  console.log('[RESEND DEBUG] FROM:', process.env.RESEND_FROM);
 
   const resend = getResendClient();
 
+  const from = process.env.RESEND_FROM || 'Adile Bakery <onboarding@resend.dev>';
+
   const mailOptions = {
-    from: RESEND_FROM,
+    from,
     to: email,
     subject: 'Your Password Reset Code',
     html: `
@@ -47,7 +46,7 @@ const sendOTPEmail = async (email, otp) => {
     '[OTP_DIAG] sendMail: about to call via Resend HTTP API to=',
     email,
     'from=',
-    RESEND_FROM
+    from
   );
 
   const sendStart = Date.now();
