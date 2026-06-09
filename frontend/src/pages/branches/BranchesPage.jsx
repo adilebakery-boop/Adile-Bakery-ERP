@@ -92,7 +92,7 @@ export default function BranchesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('branches.title')}</h1>
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('branches.title')}</h1>
         {canManage && (
           <div className="flex items-center gap-3">
             <button
@@ -104,7 +104,7 @@ export default function BranchesPage() {
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2"
+              className="px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               {t('branches.addBranch')}
@@ -119,19 +119,19 @@ export default function BranchesPage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
+            <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
               <tr>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.branchName')}</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.address')}</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('branches.phone')}</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
-                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.branchName')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.address')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.phone')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
+                {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+            <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
               {isLoading ? (
                 <tr>
                   <td colSpan={canManage ? 5 : 4}>
@@ -152,15 +152,15 @@ export default function BranchesPage() {
                 </tr>
               ) : (
                 branches.map((branch) => (
-                  <tr key={branch.id} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#001F3F] dark:text-white">{getLocalizedName(branch, i18n.language)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.address || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{branch.phone || '-'}</td>
+                  <tr key={branch.id} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
+                    <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(branch, i18n.language)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.address || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.phone || '-'}</td>
                     <td className="px-6 py-4">
 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           branch.isActive !== false
                             ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500'
                         }`}>
                         {branch.isActive !== false ? t('common.active') : t('common.inactive')}
                       </span>
@@ -168,10 +168,10 @@ export default function BranchesPage() {
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors">
+                          <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(branch.id)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                          <button onClick={() => handleDelete(branch.id)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -194,7 +194,7 @@ export default function BranchesPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
               placeholder="Enter branch name"
               required
             />
@@ -205,7 +205,7 @@ export default function BranchesPage() {
               type="text"
               value={formData.name_am || ''}
               onChange={(e) => setFormData({ ...formData, name_am: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
               placeholder="የአማርኛ ስም (አማራጭ)"
             />
           </div>
@@ -215,7 +215,7 @@ export default function BranchesPage() {
               type="text"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
               placeholder="Enter full address"
             />
           </div>
@@ -225,7 +225,7 @@ export default function BranchesPage() {
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
               placeholder="Enter phone number"
             />
           </div>
@@ -233,14 +233,14 @@ export default function BranchesPage() {
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={addBranch.isPending}
-              className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
+              className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
               {addBranch.isPending ? 'Saving...' : 'Save'}
             </button>
@@ -257,7 +257,7 @@ export default function BranchesPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
 required
             />
           </div>
@@ -267,7 +267,7 @@ required
               type="text"
               value={formData.name_am || ''}
               onChange={(e) => setFormData({ ...formData, name_am: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
             />
           </div>
           <div>
@@ -276,7 +276,7 @@ required
               type="text"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
               placeholder="Enter full address"
             />
           </div>
@@ -286,21 +286,21 @@ required
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
             />
           </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={() => setIsEditModalOpen(false)}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#F9F7F2] transition-colors text-sm"
+              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={editBranch.isPending}
-              className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70"
+              className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
               {editBranch.isPending ? 'Saving...' : 'Save'}
             </button>
@@ -312,16 +312,16 @@ required
       <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title="Deleted Branches">
         {deletedLoading ? (
           <div className="py-8 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-500" />
           </div>
         ) : deletedBranches.length === 0 ? (
           <div className="py-8 text-center text-gray-500">No deleted branches</div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {deletedBranches.map((branch) => (
-              <div key={branch.id} className="flex items-center justify-between p-3 bg-[#F9F7F2] rounded-xl">
+              <div key={branch.id} className="flex items-center justify-between p-3 bg-[#DFEDE2] rounded-xl">
                 <div>
-                  <div className="font-medium text-[#001F3F]">{getLocalizedName(branch, i18n.language)}</div>
+                  <div className="font-medium text-[#024A5B]">{getLocalizedName(branch, i18n.language)}</div>
                   <div className="text-sm text-gray-500">{branch.address || 'No address'}</div>
                 </div>
                 <button
@@ -338,7 +338,7 @@ required
         <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
           <button
             onClick={() => setIsDeletedModalOpen(false)}
-            className="w-full px-6 py-3 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm"
+            className="w-full px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm"
           >
             Close
           </button>

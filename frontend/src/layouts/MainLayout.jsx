@@ -86,13 +86,13 @@ export default function MainLayout() {
   };
 
   const SidebarContent = () => (
-    <div className="h-full flex flex-col bg-white dark:bg-[#1a1a2e]">
-      <div className="h-16 flex items-center justify-center border-b border-[#E5E1D8] dark:border-[#2d2d4a] shrink-0">
+    <div className="h-full flex flex-col bg-white dark:bg-[#12262A]">
+      <div className="h-16 flex items-center justify-center border-b border-[#E5E1D8] dark:border-[#1E3A3F] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#001F3F] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#4CB094] rounded-lg flex items-center justify-center">
             <span className="text-lg">🥐</span>
           </div>
-          <span className="text-lg font-bold text-[#001F3F] dark:text-white">Adile Bakery</span>
+          <span className="text-lg font-bold text-[#024A5B] dark:text-white">Adile Bakery</span>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -104,8 +104,8 @@ export default function MainLayout() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 isActive 
-                  ? 'bg-[#001F3F] text-white' 
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]'
+                  ? 'bg-[#4CB094] text-[#002830]' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]'
               }`
             }
           >
@@ -120,13 +120,13 @@ export default function MainLayout() {
         <div className="relative">
           <button
             onClick={() => setLangMenuOpen(!langMenuOpen)}
-            className="w-full py-2 px-3 bg-transparent border border-[#E5E1D8] dark:border-[#2d2d4a] text-[#001F3F] dark:text-gray-300 rounded-full flex items-center justify-center gap-2 transition-colors hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]"
+            className="w-full py-2 px-3 bg-transparent border border-[#E5E1D8] dark:border-[#1E3A3F] text-[#024A5B] dark:text-gray-300 rounded-full flex items-center justify-center gap-2 transition-colors hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]"
           >
             <Globe className="w-3.5 h-3.5" />
             <span className="font-medium text-xs">{languages.find(l => l.code === language)?.label}</span>
           </button>
           {langMenuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#1a1a2e] rounded-[12px] shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden">
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#12262A] rounded-[12px] shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden">
               {languages.map((lang) => (
                 <button
                   key={lang.code}
@@ -136,8 +136,8 @@ export default function MainLayout() {
                     i18n.changeLanguage(lang.code);
                     setLangMenuOpen(false);
                   }}
-                  className={`w-full px-3 py-2 text-left text-sm hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors ${
-                    language === lang.code ? 'text-[#001F3F] dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors ${
+                    language === lang.code ? 'text-[#024A5B] dark:text-white font-medium' : 'text-gray-600 dark:text-gray-500'
                   }`}
                 >
                   {lang.code === 'en' ? 'English' : 'አማርኛ'}
@@ -149,10 +149,10 @@ export default function MainLayout() {
       </div>
       
       {/* Logout */}
-      <div className="p-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a] shrink-0">
+      <div className="p-4 border-t border-[#E5E1D8] dark:border-[#1E3A3F] shrink-0">
         <button
           onClick={handleLogout}
-          className="w-full px-4 py-2 text-[#001F3F]/70 dark:text-gray-400 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-xl transition-colors flex items-center gap-3"
+          className="w-full px-4 py-2 text-[#024A5B]/70 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-xl transition-colors flex items-center gap-3"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">{t('logout')}</span>
@@ -162,7 +162,7 @@ export default function MainLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] flex">
+    <div className="min-h-screen bg-[#DFEDE2] flex">
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/30 z-40 lg:hidden"
@@ -173,10 +173,10 @@ export default function MainLayout() {
       {/* Mobile Sidebar */}
       <div className={`lg:hidden`}>
         {sidebarOpen && (
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-[#1a1a2e] border-r border-[#E5E1D8] dark:border-[#2d2d4a]">
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-[#12262A] border-r border-[#E5E1D8] dark:border-[#1E3A3F]">
             <button
               onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-4 p-2 text-[#001F3F] dark:text-gray-300"
+              className="absolute top-4 right-4 p-2 text-[#024A5B] dark:text-gray-300"
             >
               <X className="w-5 h-5" />
             </button>
@@ -186,15 +186,15 @@ export default function MainLayout() {
       </div>
 
       {/* Desktop Sidebar - Fixed/Sticky */}
-      <aside className="hidden lg:block w-72 bg-white dark:bg-[#1a1a2e] border-r border-[#E5E1D8] dark:border-[#2d2d4a] sticky top-0 h-screen overflow-hidden">
+      <aside className="hidden lg:block w-72 bg-white dark:bg-[#12262A] border-r border-[#E5E1D8] dark:border-[#1E3A3F] sticky top-0 h-screen overflow-hidden">
         <SidebarContent />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white dark:bg-[#1a1a2e] border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center justify-between px-6 lg:px-8 shrink-0">
+        <header className="h-16 bg-white dark:bg-[#12262A] border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center justify-between px-6 lg:px-8 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 text-[#001F3F] dark:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg"
+            className="lg:hidden p-2 text-[#024A5B] dark:text-white hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -208,17 +208,17 @@ export default function MainLayout() {
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-3 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] px-3 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-3 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] px-3 py-2 rounded-lg transition-colors"
             >
               <span className="text-sm text-gray-600 dark:text-gray-300">{getUserDisplayName()}</span>
-              <div className="w-8 h-8 bg-[#001F3F] rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#4CB094] rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-medium">{getUserInitial()}</span>
               </div>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto bg-[#F9F7F2] dark:bg-[#0f0f1a]">
+        <main className="flex-1 p-6 lg:p-8 overflow-y-auto bg-[#DFEDE2] dark:bg-[#1a1410]">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
