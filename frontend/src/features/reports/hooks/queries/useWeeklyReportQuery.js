@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../../utils/queryKeys';
 import { reportService } from '../../../../services/reportService';
 
-export function useWeeklyReportQuery(branchId, date, filters = {}) {
+export function useWeeklyReportQuery(branchId, date, filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.reports.weekly(branchId, date, filters),
     queryFn: async () => {
@@ -15,5 +15,6 @@ export function useWeeklyReportQuery(branchId, date, filters = {}) {
     staleTime: 5 * 60 * 1000,
     gcTime: 2 * 60 * 1000,
     enabled: !!date,
+    ...options,
   });
 }
