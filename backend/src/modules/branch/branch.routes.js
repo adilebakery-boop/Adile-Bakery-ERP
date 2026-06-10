@@ -65,7 +65,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validate(createBranchSchema),
   branchController.create
 );
@@ -73,7 +73,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(branchIdSchema),
   validate(updateBranchSchema),
   branchController.update
@@ -82,7 +82,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(branchIdSchema),
   branchController.delete
 );
@@ -90,7 +90,7 @@ router.delete(
 router.patch(
   '/:id/restore',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(branchIdSchema),
   branchController.restore
 );

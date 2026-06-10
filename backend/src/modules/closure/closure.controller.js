@@ -34,7 +34,8 @@ const close = asyncHandler(async (req, res) => {
     branchId,
     operationalDate,
     req.user.userId,
-    note
+    note,
+    req.user
   );
   res.json({
     success: true,

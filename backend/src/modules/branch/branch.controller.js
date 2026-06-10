@@ -11,7 +11,7 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const findActive = asyncHandler(async (req, res) => {
-  const branches = await branchService.findActive();
+  const branches = await branchService.findActive(req.user);
   res.json({
     success: true,
     message: 'Active branches retrieved successfully',
@@ -20,7 +20,7 @@ const findActive = asyncHandler(async (req, res) => {
 });
 
 const findAll = asyncHandler(async (req, res) => {
-  const result = await branchService.findAll(req.query);
+  const result = await branchService.findAll(req.query, req.user);
   res.json({
     success: true,
     message: 'Branches retrieved successfully',
