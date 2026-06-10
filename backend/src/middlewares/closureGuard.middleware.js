@@ -9,7 +9,7 @@ function closureGuard(req, res, next) {
 
   if (!operationalDate) return next();
 
-  const resolvedBranchId = req.user?.role === 'MANAGER' ? req.user.branchId : branchId;
+  const resolvedBranchId = req.user?.role === 'MANAGER' ? req.user.branchId : (branchId || req.user?.branchId);
   if (!resolvedBranchId) return next();
 
   getDayStatus(resolvedBranchId, operationalDate)
