@@ -268,7 +268,7 @@ export default function ReportsPage() {
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
                     disabled={!category && productList.length === 0}
-                    className="px-4 py-2.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[180px] disabled:opacity-50"
+                    className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[180px] disabled:opacity-50 dark:text-white"
                   >
                     <option value="">All Products</option>
                     {productList.map((p) => (
