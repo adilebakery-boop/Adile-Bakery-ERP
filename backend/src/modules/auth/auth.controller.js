@@ -1,7 +1,7 @@
 const authService = require('./auth.service');
 const prisma = require('../../config/prisma');
 const { asyncHandler } = require('../../middlewares/errorHandler');
-const { incrementLoginAttempts } = require('../../middlewares/rateLimit.middleware');
+
 
 const login = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
@@ -14,7 +14,6 @@ const login = asyncHandler(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    await incrementLoginAttempts(req.ip);
     throw error;
   }
 });
