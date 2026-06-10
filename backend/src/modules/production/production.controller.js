@@ -100,7 +100,8 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 const getToday = asyncHandler(async (req, res) => {
-  const productions = await productionService.getTodayProductions(req.query.branchId, req.user);
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.query.branchId || req.user.branchId);
+  const productions = await productionService.getTodayProductions(resolvedBranchId, req.user);
   res.json({
     success: true,
     data: productions,

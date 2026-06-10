@@ -188,6 +188,10 @@ async function getAllBranchesStatus(operationalDate) {
 async function getRecentActivity(branchId, operationalDate, limit = 10, userId, userRole) {
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
 
+  if ((!branchId || branchId === 'all') && userRole && userRole !== 'ADMIN') {
+    return [];
+  }
+
   if (!branchId || branchId === 'all') {
 
     const [recentProductions, recentRemainings, recentWastes, recentClosures] = await Promise.all([
@@ -379,6 +383,12 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
 async function getDashboardOverview(branchId, operationalDate, userId, userRole) {
   const isAllBranches = !branchId || branchId === 'all' || branchId === 'null' || branchId === 'undefined' || branchId === '';
   const isManager = userRole === 'ADMIN' || userRole === 'MANAGER';
+
+  if (isAllBranches && userRole === 'MANAGER') {
+    const error = new Error('Managers can only view their own branch dashboard');
+    error.status = 403;
+    throw error;
+  }
   
   if (isAllBranches) {
     const allBranchesData = await getAllBranchesOverview(operationalDate, userId, userRole);
