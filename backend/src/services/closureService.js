@@ -272,6 +272,8 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
     }
   }
 
+  const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchIdInt, operationalDate);
+
   const result = await prisma.$transaction(async (tx) => {
     const existingClosure = await tx.dailyClosure.findUnique({
       where: { branchId_operationalDate: { branchId: branchIdInt, operationalDate: opDate } },
@@ -282,8 +284,6 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
       error.status = 400;
       throw error;
     }
-
-    const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branchIdInt, operationalDate);
 
     let closure = existingClosure;
     
