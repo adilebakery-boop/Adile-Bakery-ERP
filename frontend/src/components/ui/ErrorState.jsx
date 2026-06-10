@@ -13,17 +13,17 @@ export default function ErrorState({
       <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
         <XCircle className="w-8 h-8 text-red-500" />
       </div>
-      <h3 className="text-lg font-semibold text-[#001F3F] dark:text-white mb-2">
+      <h3 className="text-lg font-semibold text-[#024A5B] dark:text-white mb-2">
         {title}
       </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
+      <p className="text-sm text-gray-500 dark:text-gray-500 text-center max-w-md mb-6">
         {message}
       </p>
       <div className="flex items-center gap-3">
         {onRetry && (
           <button
             onClick={onRetry}
-            className="px-4 py-2.5 bg-[#001F3F] text-white rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#001a35] transition-colors"
+            className="px-4 py-2.5 bg-[#4CB094] text-[#002830] rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#236B56] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -32,7 +32,7 @@ export default function ErrorState({
         {showHomeButton && (
           <button
             onClick={onHome || (() => window.location.href = '/dashboard')}
-            className="px-4 py-2.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors"
+            className="px-4 py-2.5 border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors"
           >
             <Home className="w-4 h-4" />
             Go Home

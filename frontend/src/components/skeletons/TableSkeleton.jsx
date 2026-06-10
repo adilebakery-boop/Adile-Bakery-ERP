@@ -8,9 +8,9 @@ export default function TableSkeleton({
 }) {
   return (
     <div className={`space-y-4 ${className}`}>
-      <div className="overflow-hidden rounded-2xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+      <div className="overflow-hidden rounded-2xl border border-[#E5E1D8] dark:border-[#1E3A3F]">
         <table className="w-full">
-          <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a]">
+          <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
             <tr>
               {Array.from({ length: columns }).map((_, i) => (
                 <th key={i} className="px-6 py-4 text-left">
@@ -19,9 +19,9 @@ export default function TableSkeleton({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+          <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
             {Array.from({ length: rows }).map((_, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a]">
+              <tr key={rowIndex} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
                 {Array.from({ length: columns }).map((_, colIndex) => (
                   <td key={colIndex} className="px-6 py-4">
                     <Skeleton 
@@ -37,7 +37,7 @@ export default function TableSkeleton({
       </div>
       
       {showPagination && (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a]">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#1E3A3F]">
           <Skeleton variant="text" className="w-48" />
           <div className="flex items-center gap-2">
             <Skeleton variant="text" className="w-8 h-8 rounded-lg" />

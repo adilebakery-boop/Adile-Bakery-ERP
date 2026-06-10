@@ -16,25 +16,25 @@ export default function OperationalPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className={`flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#2d2d4a] ${className}`}>
-      <div className="text-sm text-gray-500 dark:text-gray-400">
+    <div className={`flex items-center justify-between px-6 py-4 border-t border-[#E5E1D8] dark:border-[#1E3A3F] ${className}`}>
+      <div className="text-sm text-gray-500 dark:text-gray-500">
         {children}
       </div>
       <div className="flex items-center gap-2">
         <button
           onClick={onPrevious}
           disabled={disabledPrev}
-          className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+        <span className="text-sm text-gray-600 dark:text-gray-500 px-2">
           {currentPage} / {totalPages}
         </span>
         <button
           onClick={onNext}
           disabled={disabledNext}
-          className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
