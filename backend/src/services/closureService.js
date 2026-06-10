@@ -378,6 +378,12 @@ async function reopenDay(branchId, operationalDate, user, reason) {
     throw error;
   }
 
+  if (user.role === 'MANAGER' && Number(branchId) !== Number(user.branchId)) {
+    const error = new Error('You can only reopen days for your assigned branch');
+    error.status = 403;
+    throw error;
+  }
+
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
 
