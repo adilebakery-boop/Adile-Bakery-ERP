@@ -49,7 +49,7 @@ router.get(
 router.get(
   '/deleted',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   productController.getDeleted
 );
 
@@ -64,7 +64,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validate(createProductSchema),
   productController.create
 );
@@ -72,7 +72,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(productIdSchema),
   validate(updateProductSchema),
   productController.update
@@ -81,7 +81,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(productIdSchema),
   productController.delete
 );
@@ -89,7 +89,7 @@ router.delete(
 router.patch(
   '/:id/restore',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles('ADMIN'),
   validateParams(productIdSchema),
   productController.restore
 );

@@ -38,7 +38,7 @@ export default function ProductionPage() {
   const [inputBranch, setInputBranch] = useState(() => {
     const role = getUserRole();
     const uid = getUserBranchId();
-    return (role !== 'ROLE_MANAGER' && role !== 'ROLE_ADMIN') && uid ? uid.toString() : '';
+    return (role !== 'MANAGER' && role !== 'ADMIN') && uid ? uid.toString() : '';
   });
   const [selectedFilterBranch, setSelectedFilterBranch] = useState(() => {
     const uid = getUserBranchId();
