@@ -15,7 +15,10 @@ const getToday = asyncHandler(async (req, res) => {
 const getAllBranchesStatus = asyncHandler(async (req, res) => {
   const { operationalDate } = req.query;
   const date = operationalDate || new Date().toISOString().split('T')[0];
-  const statuses = await dashboardService.getAllBranchesStatus(date);
+  let statuses = await dashboardService.getAllBranchesStatus(date);
+  if (req.user.role === 'MANAGER') {
+    statuses = statuses.filter(s => s.branchId === Number(req.user.branchId));
+  }
   res.json({
     success: true,
     data: statuses,
