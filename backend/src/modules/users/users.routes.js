@@ -184,7 +184,7 @@ router.post(
 
     if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
       const user = await prisma.user.create({
-        data: { name, username, passwordHash, roleId, branchId: null, email: email || null },
+        data: { name, username, passwordHash, roleId, branchId: branchId || null, email: email || null },
         include: { role: true }
       });
       return res.status(201).json({ success: true, message: 'User created successfully', data: user });
@@ -264,7 +264,7 @@ router.put(
             name, 
             username,
             roleId, 
-            branchId: null, 
+            branchId: branchId || null, 
             isBlocked,
             email: email === undefined ? undefined : (email || null)
           },
