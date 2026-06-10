@@ -236,6 +236,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const targetUserId = parseInt(req.params.id);
     const { name, username, roleId, branchId, isBlocked, email } = req.body;
+    const currentUserRole = req.user.role;
 
     const canManage = await canManageTargetUser(req.user, targetUserId);
     if (!canManage) {
