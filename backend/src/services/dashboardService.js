@@ -18,7 +18,7 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
   let allFinalized = true;
   const branchData = [];
 
-  for (const branch of branches) {
+  const branchResults = await Promise.all(branches.map(async (branch) => {
     const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branch.id, operationalDate);
     const totals = inventoryFlowService.getTotals(flows);
 
@@ -40,7 +40,7 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
       allFinalized = false;
     }
 
-    branchData.push({
+    return {
       branchId: branch.id,
       branchName: branch.name,
       production: totalBranchProduction,
@@ -48,8 +48,10 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
       remaining: totals.totalRemainingStock || 0,
       pendingDrafts,
       isFinalized: pendingDrafts === 0,
-    });
-  }
+    };
+  }));
+
+  branchData.push(...branchResults);
 
   return {
     isAllBranches: true,

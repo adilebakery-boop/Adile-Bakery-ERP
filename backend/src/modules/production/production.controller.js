@@ -50,7 +50,8 @@ const findAllGrouped = asyncHandler(async (req, res) => {
 });
 
 const findById = asyncHandler(async (req, res) => {
-  const production = await productionService.findById(req.params.id);
+  const accessFilter = buildProductionAccessFilter(req.user);
+  const production = await productionService.findById(req.params.id, accessFilter);
   res.json({
     success: true,
     data: production,
@@ -59,8 +60,9 @@ const findById = asyncHandler(async (req, res) => {
 
 const findByOperationalDate = asyncHandler(async (req, res) => {
   const { branchId, shift } = req.query;
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
   const productions = await productionService.findByOperationalDate(
-    branchId || req.user.branchId,
+    resolvedBranchId,
     req.params.operationalDate,
     shift
   );
