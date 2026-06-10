@@ -62,7 +62,6 @@ router.post(
   '/reopen',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
-  closureGuard,
   validate(reopenDaySchema),
   closureController.reopen
 );
