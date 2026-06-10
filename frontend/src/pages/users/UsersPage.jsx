@@ -73,7 +73,7 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [branchFilter, setBranchFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState(isManager ? String(currentUser?.branchId ?? '') : '');
   const [roleFilter, setRoleFilter] = useState('');
 
   const { data, isLoading: loading, isError } = useUsersQuery({
@@ -88,6 +88,10 @@ export default function UsersPage() {
   const totalUsers = pagination?.total || 0;
 
   const { data: branches = [] } = useActiveBranchesQuery();
+  const userBranch = branches.find(b => b.id === currentUser?.branchId);
+  const filteredBranches = isManager
+    ? (userBranch ? [userBranch] : [])
+    : branches;
 
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
@@ -112,8 +116,8 @@ export default function UsersPage() {
       email: formData.email || null,
     };
 
-    if (formData.role === 'MANAGER' && isAdmin) {
-      submitData.branchId = null;
+    if (isManager) {
+      submitData.branchId = currentUser?.branchId ?? null;
     } else if (formData.branchId) {
       submitData.branchId = parseInt(formData.branchId);
     }
@@ -134,7 +138,7 @@ export default function UsersPage() {
       username: user.username,
       password: '',
       role: user.role?.name || '',
-      branchId: user.branchId ? String(user.branchId) : '',
+      branchId: isManager ? String(currentUser?.branchId ?? '') : (user.branchId ? String(user.branchId) : ''),
       email: user.email || ''
     });
     setIsEditModalOpen(true);
@@ -152,8 +156,8 @@ export default function UsersPage() {
       email: formData.email || null,
     };
 
-    if (formData.role === 'MANAGER' && isAdmin) {
-      submitData.branchId = null;
+    if (isManager) {
+      submitData.branchId = currentUser?.branchId ?? null;
     } else if (formData.branchId) {
       submitData.branchId = parseInt(formData.branchId);
     }
@@ -218,9 +222,10 @@ export default function UsersPage() {
             value={branchFilter}
             onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
             className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            disabled={isManager}
           >
-            <option value="">{t('users.allBranches')}</option>
-            {branches.map((branch) => (
+            {!isManager && <option value="">{t('users.allBranches')}</option>}
+            {filteredBranches.map((branch) => (
               <option key={branch.id} value={branch.id}>
                 {getLocalizedName(branch, i18n.language)}
               </option>
@@ -369,17 +374,23 @@ export default function UsersPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">
-              Branch {formData.role === 'MANAGER' && isAdmin ? '(All Branches)' : ''}
+              Branch {isManager ? `(${userBranch?.name || ''})` : ''}
             </label>
             <select
               value={formData.branchId}
               onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
-              required={!(formData.role === 'MANAGER' && isAdmin)}
-              disabled={formData.role === 'MANAGER' && isAdmin || createMutation.isPending}
+              required={!isManager}
+              disabled={isManager || createMutation.isPending}
             >
-              <option value="">{formData.role === 'MANAGER' && isAdmin ? 'All Branches' : 'Select branch'}</option>
-              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+              {isManager ? (
+                <option value={currentUser?.branchId ?? ''}>{userBranch?.name || 'My Branch'}</option>
+              ) : (
+                <>
+                  <option value="">Select branch</option>
+                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </>
+              )}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
@@ -412,17 +423,23 @@ export default function UsersPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">
-              Branch {formData.role === 'MANAGER' ? '(All Branches)' : ''}
+              Branch {isManager ? `(${userBranch?.name || ''})` : ''}
             </label>
             <select
               value={formData.branchId}
               onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
               className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
-              required={formData.role !== 'MANAGER'}
-              disabled={formData.role === 'MANAGER' || updateMutation.isPending}
+              required={!isManager}
+              disabled={isManager || updateMutation.isPending}
             >
-              <option value="">{formData.role === 'MANAGER' ? 'All Branches' : 'Select branch'}</option>
-              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+              {isManager ? (
+                <option value={currentUser?.branchId ?? ''}>{userBranch?.name || 'My Branch'}</option>
+              ) : (
+                <>
+                  <option value="">Select branch</option>
+                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </>
+              )}
             </select>
           </div>
           <div>

@@ -30,7 +30,7 @@ export default function ProductsPage() {
   const getCategoryLabel = (labelKey) => t(labelKey);
   const getUnitLabel = (unit) => t(`units.${unit}`);
   const user = getUser();
-  const canManage = user && ['ADMIN', 'MANAGER'].includes(user.role);
+  const canManage = user?.role === 'ADMIN';
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');

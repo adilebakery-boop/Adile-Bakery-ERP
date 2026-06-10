@@ -33,6 +33,7 @@ const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { requireBranchAccess } = require('../utils/accessFilters');
 
 async function getStatus(branchId, operationalDate) {
   const branchIdInt = parseInt(branchId);
@@ -230,9 +231,13 @@ async function validateBeforeClose(branchId, operationalDate) {
 // If the day was previously closed and reopened, the existing snapshot
 // (found by closureId) is reused — items are replaced, not accumulated.
 // snapshotPrice is set from inventoryFlowService (PriceHistory) at close time.
-async function closeDay(branchId, operationalDate, userId, note = null) {
+async function closeDay(branchId, operationalDate, userId, note = null, user = null) {
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
+
+  if (user) {
+    requireBranchAccess(branchIdInt, user, 'closure');
+  }
 
   await inventoryFlowService.resolveRollover(branchIdInt, operationalDate);
 
@@ -372,14 +377,10 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
 }
 
 async function reopenDay(branchId, operationalDate, user, reason) {
+  requireBranchAccess(branchId, user, 'closure');
+
   if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
     const error = new Error('Only ADMIN or MANAGER can reopen closed days');
-    error.status = 403;
-    throw error;
-  }
-
-  if (user.role === 'MANAGER' && Number(branchId) !== Number(user.branchId)) {
-    const error = new Error('You can only reopen days for your assigned branch');
     error.status = 403;
     throw error;
   }

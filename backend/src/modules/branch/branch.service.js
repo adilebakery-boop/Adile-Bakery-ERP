@@ -3,16 +3,24 @@ const cache = require('../../utils/cache');
 const auditService = require('../../services/auditService');
 
 const branchService = {
-  async findActive() {
-    const cached = cache.get('branches:active');
+  async findActive(user) {
+    const isManager = user?.role === 'MANAGER';
+    const cacheKey = isManager ? `branches:active:${user.branchId}` : 'branches:active';
+
+    const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    const where = { isActive: true };
+    if (isManager && user?.branchId) {
+      where.id = Number(user.branchId);
+    }
+
     const branches = await prisma.branch.findMany({
-      where: { isActive: true },
+      where,
       orderBy: { name: 'asc' },
     });
 
-    cache.set('branches:active', branches, 5 * 60 * 1000);
+    cache.set(cacheKey, branches, 5 * 60 * 1000);
     return branches;
   },
 
@@ -42,13 +50,17 @@ const branchService = {
     return branch;
   },
 
-  async findAll(options = {}) {
+  async findAll(options = {}, user) {
     const { page = 1, limit = 10, search, sortBy = 'id', sortOrder = 'desc', isActive } = options;
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
     const where = {};
+
+    if (user?.role === 'MANAGER' && user?.branchId) {
+      where.id = Number(user.branchId);
+    }
 
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
