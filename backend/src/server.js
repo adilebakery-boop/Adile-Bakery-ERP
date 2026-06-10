@@ -3,11 +3,13 @@ require('dotenv').config();
 
 const app = require('./app');
 const prisma = require('./config/prisma');
+const { startClosureScheduler } = require('./services/closureScheduler');
 
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  startClosureScheduler();
 });
 
 async function shutdown(signal) {
