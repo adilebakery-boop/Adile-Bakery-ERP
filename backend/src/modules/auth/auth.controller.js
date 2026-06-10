@@ -14,7 +14,7 @@ const login = asyncHandler(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    incrementLoginAttempts(req.ip);
+    await incrementLoginAttempts(req.ip);
     throw error;
   }
 });
