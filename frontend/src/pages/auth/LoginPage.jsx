@@ -98,7 +98,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                  className="w-full pl-12 pr-4 py-4 bg-[#DFEDE2] border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
                   placeholder="Enter username"
                   required
                   disabled={isLoading}
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                  className="w-full pl-12 pr-12 py-4 bg-[#DFEDE2] border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
                   placeholder="Enter password"
                   required
                   disabled={isLoading}
