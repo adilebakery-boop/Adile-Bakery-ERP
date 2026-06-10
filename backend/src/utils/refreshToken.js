@@ -6,11 +6,11 @@ const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
 const HMAC_KEY = process.env.REFRESH_TOKEN_SECRET;
 if (!HMAC_KEY) {
-  throw new Error('REFRESH_TOKEN_SECRET environment variable is required');
+  throw new Error("REFRESH_TOKEN_SECRET environment variable is required");
 }
 
 function hashToken(token) {
-  return crypto.createHmac('sha256', HMAC_KEY).update(token).digest('hex');
+  return crypto.createHmac("sha256", HMAC_KEY).update(token).digest("hex");
 }
 
 function generateToken() {
@@ -20,7 +20,9 @@ function generateToken() {
 function buildToken() {
   const raw = generateToken();
   const tokenHash = hashToken(raw);
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
+  );
   return { raw, tokenHash, expiresAt };
 }
 
@@ -35,13 +37,16 @@ async function replaceToken(userId) {
   });
 
   if (!result) {
-    throw new Error('Refresh token upsert failed unexpectedly');
+    throw new Error("Refresh token upsert failed unexpectedly");
   }
 
-  console.log('[AUTH] REFRESH_TOKEN_REPLACED', JSON.stringify({
-    userId,
-    timestamp: new Date().toISOString(),
-  }));
+  console.log(
+    "[AUTH] REFRESH_TOKEN_REPLACED",
+    JSON.stringify({
+      userId,
+      timestamp: new Date().toISOString(),
+    }),
+  );
 
   return { token: raw, expiresAt };
 }
@@ -57,7 +62,11 @@ async function rotate(oldRawToken, userId) {
     where: { tokenHash: oldHash },
   });
   if (!existing) {
-    throw new Error('Refresh token not found');
+    throw new Error("Refresh token not found");
+  }
+  // Fix #3: verify the token belongs to the requesting user
+  if (existing.userId !== userId) {
+    throw new Error("Refresh token does not belong to this user");
   }
 
   return replaceToken(userId);
@@ -75,10 +84,15 @@ async function verify(rawToken) {
   if (record.expiresAt < new Date()) return null;
   if (!record.user.isActive || record.user.isBlocked) return null;
 
-  prisma.refreshToken.update({
-    where: { tokenHash },
-    data: { lastUsedAt: new Date() },
-  }).catch(() => {});
+  // Fix #4: log instead of silently swallowing the error
+  prisma.refreshToken
+    .update({
+      where: { tokenHash },
+      data: { lastUsedAt: new Date() },
+    })
+    .catch((err) => {
+      console.warn("[REFRESH_TOKEN] lastUsedAt update failed", err);
+    });
 
   return record.user;
 }

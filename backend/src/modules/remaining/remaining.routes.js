@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { allowRoles } = require('../../middlewares/role.middleware');
+const closureGuard = require('../../middlewares/closureGuard.middleware');
 const remainingController = require('./remaining.controller');
 const { createRemainingSchema, createBulkSchema, updateRemainingSchema, remainingIdSchema, querySchema } = require('./remaining.validation');
 
@@ -88,6 +89,7 @@ router.post(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(createRemainingSchema),
   remainingController.create
 );
@@ -96,6 +98,7 @@ router.post(
   '/bulk',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(createBulkSchema),
   remainingController.createBulk
 );
@@ -104,6 +107,7 @@ router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(updateRemainingSchema),
   validateIdParam,
   remainingController.update
@@ -113,6 +117,7 @@ router.delete(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  closureGuard,
   validateIdParam,
   remainingController.remove
 );

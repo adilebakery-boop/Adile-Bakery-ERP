@@ -415,7 +415,7 @@ export default function WastePage() {
         >
           <option value="">{t('waste.allProducts')}</option>
           {(Array.isArray(filteredProducts) ? filteredProducts : []).map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
           ))}
         </select>
 

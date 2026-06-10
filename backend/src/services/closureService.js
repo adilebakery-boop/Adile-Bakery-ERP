@@ -33,6 +33,7 @@ const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
 const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { requireBranchAccess } = require('../utils/accessFilters');
 
 async function getStatus(branchId, operationalDate) {
   const branchIdInt = parseInt(branchId);
@@ -230,37 +231,45 @@ async function validateBeforeClose(branchId, operationalDate) {
 // If the day was previously closed and reopened, the existing snapshot
 // (found by closureId) is reused — items are replaced, not accumulated.
 // snapshotPrice is set from inventoryFlowService (PriceHistory) at close time.
-async function closeDay(branchId, operationalDate, userId, note = null) {
+// closureType param: 'MANUAL' (default) runs full validation; 'AUTO_FINALIZE'
+// skips validation for scheduler-driven auto-close (forgotten or expired days).
+async function closeDay(branchId, operationalDate, userId, note = null, user = null, closureType = 'MANUAL') {
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
 
-  await inventoryFlowService.resolveRollover(branchIdInt, operationalDate);
-
-  const validation = await validateBeforeClose(branchIdInt, operationalDate);
-
-  if (!validation.valid) {
-    const error = new Error('Cannot close day. Validation failed.');
-    error.status = 400;
-    error.data = validation;
-    throw error;
+  if (user) {
+    requireBranchAccess(branchIdInt, user, 'closure');
   }
 
-  // Auto-create zero-quantity FINAL remaining records for products that had
-  // no activity (sellableStock = 0).  These products do not need manual entry
-  // because remaining = 0 is mathematically certain.
-  if (validation.autoFinalizeProductIds?.length > 0) {
-    const now = new Date();
-    const records = validation.autoFinalizeProductIds.map(productId => ({
-      productId,
-      branchId: branchIdInt,
-      operationalDate: opDate,
-      quantity: 0,
-      status: 'FINAL',
-      createdBy: userId,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    await prisma.remainingRecord.createMany({ data: records });
+  await inventoryFlowService.resolveRollover(branchIdInt, operationalDate);
+
+  if (closureType !== 'AUTO_FINALIZE') {
+    const validation = await validateBeforeClose(branchIdInt, operationalDate);
+
+    if (!validation.valid) {
+      const error = new Error('Cannot close day. Validation failed.');
+      error.status = 400;
+      error.data = validation;
+      throw error;
+    }
+
+    // Auto-create zero-quantity FINAL remaining records for products that had
+    // no activity (sellableStock = 0).  These products do not need manual entry
+    // because remaining = 0 is mathematically certain.
+    if (validation.autoFinalizeProductIds?.length > 0) {
+      const now = new Date();
+      const records = validation.autoFinalizeProductIds.map(productId => ({
+        productId,
+        branchId: branchIdInt,
+        operationalDate: opDate,
+        quantity: 0,
+        status: 'FINAL',
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      await prisma.remainingRecord.createMany({ data: records });
+    }
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -284,10 +293,12 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
           branchId: branchIdInt,
           operationalDate: opDate,
           isClosed: true,
-          closureType: 'MANUAL',
+          closureType,
           closedBy: userId,
           closedAt: new Date(),
           note,
+          reopenedAt: null,
+          autoCloseAt: null,
         },
       });
     } else {
@@ -295,10 +306,12 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
         where: { id: existingClosure.id },
         data: {
           isClosed: true,
-          closureType: 'MANUAL',
+          closureType,
           closedBy: userId,
           closedAt: new Date(),
           note,
+          reopenedAt: null,
+          autoCloseAt: null,
         },
       });
     }
@@ -360,7 +373,7 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
         entityId: closure.id,
         action: 'CLOSE',
         oldValue: null,
-        newValue: JSON.parse(JSON.stringify({ branchId: branchIdInt, operationalDate: toDateString(opDate), note })),
+        newValue: JSON.parse(JSON.stringify({ branchId: branchIdInt, operationalDate: toDateString(opDate), closureType, note })),
         userId,
       },
     });
@@ -372,6 +385,8 @@ async function closeDay(branchId, operationalDate, userId, note = null) {
 }
 
 async function reopenDay(branchId, operationalDate, user, reason) {
+  requireBranchAccess(branchId, user, 'closure');
+
   if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
     const error = new Error('Only ADMIN or MANAGER can reopen closed days');
     error.status = 403;
@@ -416,12 +431,17 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       });
     }
 
+    const now = new Date();
+    const autoCloseAt = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
     const updatedClosure = await tx.dailyClosure.update({
       where: { id: closure.id },
       data: {
         isClosed: false,
         closedBy: null,
         closedAt: null,
+        reopenedAt: now,
+        autoCloseAt,
       },
     });
 

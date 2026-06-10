@@ -3,8 +3,9 @@ const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const getStatus = asyncHandler(async (req, res) => {
   const { branchId, operationalDate } = req.query;
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
   const status = await closureService.getStatus(
-    branchId || req.user.branchId,
+    resolvedBranchId,
     operationalDate || new Date().toISOString().split('T')[0]
   );
   res.json({
@@ -15,8 +16,9 @@ const getStatus = asyncHandler(async (req, res) => {
 
 const validate = asyncHandler(async (req, res) => {
   const { branchId, operationalDate } = req.query;
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
   const validation = await closureService.validateBeforeClose(
-    branchId || req.user.branchId,
+    resolvedBranchId,
     operationalDate || new Date().toISOString().split('T')[0]
   );
   res.json({
@@ -27,12 +29,13 @@ const validate = asyncHandler(async (req, res) => {
 
 const close = asyncHandler(async (req, res) => {
   const { operationalDate, note } = req.body;
-  const branchId = req.body.branchId || req.user.branchId;
+  const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.body.branchId || req.user.branchId);
   const result = await closureService.closeDay(
     branchId,
     operationalDate,
     req.user.userId,
-    note
+    note,
+    req.user
   );
   res.json({
     success: true,
@@ -47,7 +50,7 @@ const close = asyncHandler(async (req, res) => {
 
 const reopen = asyncHandler(async (req, res) => {
   const { operationalDate, reason } = req.body;
-  const branchId = req.body.branchId || req.user.branchId;
+  const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.body.branchId || req.user.branchId);
   const result = await closureService.reopenDay(
     branchId,
     operationalDate,

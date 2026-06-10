@@ -25,7 +25,8 @@ const findAll = asyncHandler(async (req, res) => {
 });
 
 const findById = asyncHandler(async (req, res) => {
-  const waste = await wasteService.findById(req.params.id);
+  const accessFilter = buildWasteAccessFilter(req.user);
+  const waste = await wasteService.findById(req.params.id, accessFilter);
   res.json({
     success: true,
     data: waste,
