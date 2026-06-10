@@ -28,16 +28,21 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    const { page: pageQ, limit: limitQ, branchId, roleId } = req.query;
+    const { page: pageQ, limit: limitQ, branchId: queryBranchId, roleId } = req.query;
     const page = parseInt(pageQ) || 1;
     const limit = parseInt(limitQ) || 10;
     const skip = (page - 1) * limit;
 
     const where = {
       isActive: true,
-      ...(branchId && { branchId: Number(branchId) }),
       ...(roleId && { roleId: Number(roleId) }),
     };
+
+    if (req.user.role === 'MANAGER') {
+      where.branchId = Number(req.user.branchId);
+    } else if (queryBranchId) {
+      where.branchId = Number(queryBranchId);
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
@@ -86,8 +91,12 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
+    const where = { isActive: false };
+    if (req.user.role === 'MANAGER') {
+      where.branchId = Number(req.user.branchId);
+    }
     const users = await prisma.user.findMany({
-      where: { isActive: false },
+      where,
       include: { role: true, branch: true },
       orderBy: { deletedAt: 'desc' }
     });
@@ -104,8 +113,12 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
+    const where = { id: parseInt(req.params.id) };
+    if (req.user.role === 'MANAGER') {
+      where.branchId = Number(req.user.branchId);
+    }
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where,
       include: { role: true, branch: true }
     });
     if (!user) {
@@ -117,16 +130,19 @@ router.get(
 
 const OPERATIONAL_ROLES = ['BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'];
 
-const canManageTargetUser = async (currentUserRole, targetUserId) => {
-  if (currentUserRole === 'ADMIN') return true;
+const canManageTargetUser = async (currentUser, targetUserId) => {
+  if (currentUser.role === 'ADMIN') return true;
   
-  if (currentUserRole === 'MANAGER') {
+  if (currentUser.role === 'MANAGER') {
     const targetUser = await prisma.user.findUnique({
       where: { id: targetUserId },
       include: { role: true }
     });
     if (!targetUser) return false;
     if (targetUser.role.name === 'MANAGER' || targetUser.role.name === 'ADMIN') {
+      return false;
+    }
+    if (currentUser.branchId && targetUser.branchId !== Number(currentUser.branchId)) {
       return false;
     }
     return true;
@@ -159,13 +175,16 @@ router.post(
       if (!branchId) {
         return res.status(400).json({ success: false, message: 'Branch is required for operational users' });
       }
+      if (Number(branchId) !== Number(req.user.branchId)) {
+        return res.status(403).json({ success: false, message: 'Managers can only create users for their assigned branch' });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
       const user = await prisma.user.create({
-        data: { name, username, passwordHash, roleId, branchId: null, email: email || null },
+        data: { name, username, passwordHash, roleId, branchId: branchId || null, email: email || null },
         include: { role: true }
       });
       return res.status(201).json({ success: true, message: 'User created successfully', data: user });
@@ -185,9 +204,8 @@ router.put(
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id);
-    const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, userId);
+    const canManage = await canManageTargetUser(req.user, userId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }
@@ -220,7 +238,7 @@ router.put(
     const { name, username, roleId, branchId, isBlocked, email } = req.body;
     const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, targetUserId);
+    const canManage = await canManageTargetUser(req.user, targetUserId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }
@@ -247,7 +265,7 @@ router.put(
             name, 
             username,
             roleId, 
-            branchId: null, 
+            branchId: branchId || null, 
             isBlocked,
             email: email === undefined ? undefined : (email || null)
           },
@@ -279,9 +297,8 @@ router.delete(
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id);
-    const currentUserRole = req.user.role;
 
-    const canManage = await canManageTargetUser(currentUserRole, userId);
+    const canManage = await canManageTargetUser(req.user, userId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }

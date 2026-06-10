@@ -18,7 +18,7 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
   let allFinalized = true;
   const branchData = [];
 
-  for (const branch of branches) {
+  const branchResults = await Promise.all(branches.map(async (branch) => {
     const flows = await inventoryFlowService.getInventoryFlowForAllProducts(branch.id, operationalDate);
     const totals = inventoryFlowService.getTotals(flows);
 
@@ -40,7 +40,7 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
       allFinalized = false;
     }
 
-    branchData.push({
+    return {
       branchId: branch.id,
       branchName: branch.name,
       production: totalBranchProduction,
@@ -48,8 +48,10 @@ async function getAllBranchesOverview(operationalDate, userId, userRole) {
       remaining: totals.totalRemainingStock || 0,
       pendingDrafts,
       isFinalized: pendingDrafts === 0,
-    });
-  }
+    };
+  }));
+
+  branchData.push(...branchResults);
 
   return {
     isAllBranches: true,
@@ -185,6 +187,10 @@ async function getAllBranchesStatus(operationalDate) {
 
 async function getRecentActivity(branchId, operationalDate, limit = 10, userId, userRole) {
   const opDateStr = operationalDate || new Date().toISOString().split('T')[0];
+
+  if ((!branchId || branchId === 'all') && userRole && userRole !== 'ADMIN') {
+    return [];
+  }
 
   if (!branchId || branchId === 'all') {
 
@@ -377,6 +383,12 @@ async function getRecentActivity(branchId, operationalDate, limit = 10, userId, 
 async function getDashboardOverview(branchId, operationalDate, userId, userRole) {
   const isAllBranches = !branchId || branchId === 'all' || branchId === 'null' || branchId === 'undefined' || branchId === '';
   const isManager = userRole === 'ADMIN' || userRole === 'MANAGER';
+
+  if (isAllBranches && userRole === 'MANAGER') {
+    const error = new Error('Managers can only view their own branch dashboard');
+    error.status = 403;
+    throw error;
+  }
   
   if (isAllBranches) {
     const allBranchesData = await getAllBranchesOverview(operationalDate, userId, userRole);
