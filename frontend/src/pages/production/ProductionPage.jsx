@@ -525,7 +525,7 @@ export default function ProductionPage() {
               <tr>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider w-10"></th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
-                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider sticky left-0 bg-white dark:bg-[#12262A] z-10 min-w-[160px]">{t('production.product')}</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.product')}</th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
                 <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.totalProduced')}</th>
                 {canManageAll && (
@@ -554,7 +554,7 @@ export default function ProductionPage() {
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300 font-medium">
                         {formattedDate}
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-semibold text-[#024A5B] dark:text-white sticky left-0 bg-white dark:bg-[#12262A] z-10 min-w-[160px] truncate">
+                      <td className="px-6 py-3.5 text-sm font-semibold text-[#024A5B] dark:text-white">
                         {getLocalizedName(group.product, i18n.language) || group.product?.name || t('common.na')}
                       </td>
                       <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
