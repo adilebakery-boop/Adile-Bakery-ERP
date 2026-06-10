@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { allowRoles } = require('../../middlewares/role.middleware');
+const closureGuard = require('../../middlewares/closureGuard.middleware');
 const productionController = require('./production.controller');
 const { createProductionSchema, updateProductionSchema, productionIdSchema } = require('./production.validation');
 
@@ -72,6 +73,7 @@ router.post(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(createProductionSchema),
   productionController.create
 );
@@ -80,6 +82,7 @@ router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(updateProductionSchema),
   validateIdParam,
   productionController.update
@@ -89,6 +92,7 @@ router.delete(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  closureGuard,
   validateIdParam,
   productionController.remove
 );

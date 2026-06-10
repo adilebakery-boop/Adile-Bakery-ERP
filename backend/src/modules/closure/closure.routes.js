@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { allowRoles } = require('../../middlewares/role.middleware');
+const closureGuard = require('../../middlewares/closureGuard.middleware');
 const closureController = require('./closure.controller');
 const { closeDaySchema, reopenDaySchema, querySchema } = require('./closure.validation');
 
@@ -52,6 +53,7 @@ router.post(
   '/close',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  closureGuard,
   validate(closeDaySchema),
   closureController.close
 );

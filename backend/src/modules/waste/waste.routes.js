@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { allowRoles } = require('../../middlewares/role.middleware');
+const closureGuard = require('../../middlewares/closureGuard.middleware');
 const wasteController = require('./waste.controller');
 const { createWasteSchema, updateWasteSchema, wasteIdSchema, querySchema } = require('./waste.validation');
 
@@ -65,6 +66,7 @@ router.post(
   '/',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(createWasteSchema),
   wasteController.create
 );
@@ -73,6 +75,7 @@ router.put(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  closureGuard,
   validate(updateWasteSchema),
   validateIdParam,
   wasteController.update
@@ -82,6 +85,7 @@ router.delete(
   '/:id',
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
+  closureGuard,
   validateIdParam,
   wasteController.remove
 );
