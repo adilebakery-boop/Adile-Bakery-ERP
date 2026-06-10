@@ -67,10 +67,10 @@ export default function ReportsPage() {
   if (category) filters.category = category;
   if (productId) filters.productId = productId;
 
-  const dailyQuery = useDailyReportQuery(effectiveBranchId, date, activeTab === 'daily' ? filters : {});
-  const weeklyQuery = useWeeklyReportQuery(effectiveBranchId, date, activeTab === 'weekly' ? filters : {});
-  const monthlyQuery = useMonthlyReportQuery(effectiveBranchId, date, activeTab === 'monthly' ? filters : {});
-  const yearlyQuery = useYearlyReportQuery(effectiveBranchId, date, activeTab === 'yearly' ? filters : {});
+  const dailyQuery = useDailyReportQuery(effectiveBranchId, date, activeTab === 'daily' ? filters : {}, { enabled: activeTab === 'daily' && !!date });
+  const weeklyQuery = useWeeklyReportQuery(effectiveBranchId, date, activeTab === 'weekly' ? filters : {}, { enabled: activeTab === 'weekly' && !!date });
+  const monthlyQuery = useMonthlyReportQuery(effectiveBranchId, date, activeTab === 'monthly' ? filters : {}, { enabled: activeTab === 'monthly' && !!date });
+  const yearlyQuery = useYearlyReportQuery(effectiveBranchId, date, activeTab === 'yearly' ? filters : {}, { enabled: activeTab === 'yearly' && !!date });
 
   const activeQuery = activeTab === 'daily' ? dailyQuery
     : activeTab === 'weekly' ? weeklyQuery

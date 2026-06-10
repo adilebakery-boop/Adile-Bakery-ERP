@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../../utils/queryKeys';
 import { reportService } from '../../../../services/reportService';
 
-export function useYearlyReportQuery(branchId, date, filters = {}) {
+export function useYearlyReportQuery(branchId, date, filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.reports.yearly(branchId, date, filters),
     queryFn: async () => {
@@ -15,5 +15,6 @@ export function useYearlyReportQuery(branchId, date, filters = {}) {
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 1000,
     enabled: !!date,
+    ...options,
   });
 }
