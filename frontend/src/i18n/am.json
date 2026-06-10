@@ -145,7 +145,8 @@
     "skippedInactive": "ንቁ ያልሆኑ ምርቶች ተዘለሉ",
     "noProductsAvailable": "ለእርስዎ ሚና ምርት የለም",
     "selectBranch": "ቅርንጫፍ ምረጥ",
-    "branch": "ቅርንጫፍ"
+    "branch": "ቅርንጫፍ",
+    "today": "ዛሬ"
   },
   "products": {
     "title": "ምርቶች",
@@ -216,7 +217,6 @@
     "allBranches": "ሁሉም ቅርንጫፎች",
     "allCategories": "ሁሉም ምድቦች",
     "allProducts": "ሁሉም ምርቶች",
-
     "noDataForPeriod": "ለዚህ ጊዜ መረጃ የለም",
     "product": "ምርት",
     "category": "ምድብ",
@@ -236,7 +236,6 @@
     "monthlyTotals": "ወርሃዊ ጠቅላላ:",
     "yearlyTotals": "ዓመታዊ ጠቅላላ:",
     "production": "ምርት",
-    "sellable": "ለመሸጥ የሚችል",
     "week": "ሳምንት",
     "month": "ወር",
     "showingProducts": "ከ{{start}} እስከ {{end}} ከ{{total}} ምርቶች እየታዩ ናቸው",
@@ -300,7 +299,7 @@
     "DRINKS_AND_RETAIL_ITEMS": "መጠጦችና የሽያጭ እቃዎች"
   },
   "units": {
-    "piece": "ነገር",
+    "piece": "በቁጥር",
     "kg": "ኪሎ"
   },
   "closure": {
