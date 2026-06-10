@@ -58,6 +58,7 @@ router.post(
 router.post(
   '/verify-otp',
   verifyOTPSchema,
+  otpLimiter,
   asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
     await passwordResetService.verifyAndGetActiveOTP(email, otp);
@@ -68,6 +69,7 @@ router.post(
 router.post(
   '/reset-password',
   resetPasswordSchema,
+  otpLimiter,
   asyncHandler(async (req, res) => {
     const { email, otp, newPassword } = req.body;
     await passwordResetService.resetPassword(email, otp, newPassword);

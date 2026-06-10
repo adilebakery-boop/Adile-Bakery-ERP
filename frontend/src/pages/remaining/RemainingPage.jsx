@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
-import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
+import { getUser, getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
@@ -34,6 +34,7 @@ export default function RemainingPage() {
   const [success, setSuccess] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(null);
 
+  const user = getUser();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
@@ -298,7 +299,7 @@ export default function RemainingPage() {
           {!canManageAll && (
             <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
               <Building2 className="w-4 h-4" />
-              {t('remaining.branch')}: {userBranchId || 'N/A'}
+              {t('remaining.branch')}: {user?.branch ? getLocalizedName(user.branch, i18n.language) : userBranchId || 'N/A'}
             </span>
           )}
           <div className="flex items-center gap-2 bg-white dark:bg-[#1E3A3F] px-3 py-2 rounded-xl border border-[#CAEAFD] dark:border-[#1E3A3F]">
