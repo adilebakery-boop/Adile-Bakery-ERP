@@ -52,6 +52,9 @@ function buildRemainingAccessFilter(user) {
     if (categories.length > 0) {
       where.product = { category: { in: categories } };
     }
+    if (user.branchId) {
+      where.branchId = parseInt(user.branchId);
+    }
   }
 
   return where;

@@ -61,9 +61,9 @@ async function findAll(filters = {}, user) {
   return { data, total };
 }
 
-async function findById(id) {
+async function findById(id, accessFilter = {}) {
   const production = await prisma.productionRecord.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(id), ...accessFilter },
     include: {
       product: true,
       branch: { select: { id: true, name: true } },

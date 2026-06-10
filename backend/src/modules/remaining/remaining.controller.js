@@ -4,14 +4,14 @@ const { buildRemainingAccessFilter } = require('../../utils/accessFilters');
 
 const findAll = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, status, startDate, endDate } = req.query;
-  const { role, userId } = req.user;
+  const { role, userId, branchId: userBranchId } = req.user;
 
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, parseInt(req.query.limit) || 20);
 
   const filters = { branchId, operationalDate, status, startDate, endDate, page, limit };
 
-  const accessFilter = buildRemainingAccessFilter({ role, userId });
+  const accessFilter = buildRemainingAccessFilter({ role, userId, branchId: userBranchId });
   Object.assign(filters, accessFilter);
 
   const { data, total } = await remainingService.findAll(filters);
@@ -28,7 +28,8 @@ const findAll = asyncHandler(async (req, res) => {
 });
 
 const findById = asyncHandler(async (req, res) => {
-  const remaining = await remainingService.findById(req.params.id);
+  const accessFilter = buildRemainingAccessFilter(req.user);
+  const remaining = await remainingService.findById(req.params.id, accessFilter);
   res.json({
     success: true,
     data: remaining,
@@ -37,8 +38,8 @@ const findById = asyncHandler(async (req, res) => {
 
 const findByOperationalDate = asyncHandler(async (req, res) => {
   const { branchId } = req.query;
-  const { role, userId } = req.user;
-  const accessFilter = buildRemainingAccessFilter({ role, userId });
+  const { role, userId, branchId: userBranchId } = req.user;
+  const accessFilter = buildRemainingAccessFilter({ role, userId, branchId: userBranchId });
 
   const remainings = await remainingService.findByOperationalDate(
     branchId || req.user.branchId,
