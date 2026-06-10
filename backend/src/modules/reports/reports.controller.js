@@ -2,7 +2,8 @@ const reportService = require('../../services/reportService');
 const exportService = require('../../services/exportService');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
-function resolveBranchId(branchId) {
+function resolveBranchId(branchId, user) {
+  if (user?.role === 'MANAGER') return parseInt(user.branchId);
   if (!branchId || branchId === 'all') return null;
   return parseInt(branchId);
 }
@@ -16,7 +17,7 @@ function getProductName(productId, products) {
 const getInventoryFlow = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, category, productId } = req.query;
   const report = await reportService.getInventoryFlowReport(
-    resolveBranchId(branchId),
+    resolveBranchId(branchId, req.user),
     operationalDate || new Date().toISOString().split('T')[0],
     category || undefined,
     productId ? parseInt(productId) : undefined
@@ -27,7 +28,7 @@ const getInventoryFlow = asyncHandler(async (req, res) => {
 const getDaily = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, category, productId } = req.query;
   const report = await reportService.getDailyReport(
-    resolveBranchId(branchId),
+    resolveBranchId(branchId, req.user),
     operationalDate || new Date().toISOString().split('T')[0],
     category || undefined,
     productId ? parseInt(productId) : undefined
@@ -38,7 +39,7 @@ const getDaily = asyncHandler(async (req, res) => {
 const getWeekly = asyncHandler(async (req, res) => {
   const { branchId, operationalDate, category, productId } = req.query;
   const report = await reportService.getWeeklyReport(
-    resolveBranchId(branchId),
+    resolveBranchId(branchId, req.user),
     operationalDate || new Date().toISOString().split('T')[0],
     category || undefined,
     productId ? parseInt(productId) : undefined
@@ -51,7 +52,7 @@ const getMonthly = asyncHandler(async (req, res) => {
   const date = operationalDate || new Date().toISOString().split('T')[0];
   const [year, month] = date.split('-');
   const report = await reportService.getMonthlyReport(
-    resolveBranchId(branchId),
+    resolveBranchId(branchId, req.user),
     parseInt(year),
     parseInt(month),
     category || undefined,
@@ -65,7 +66,7 @@ const getYearly = asyncHandler(async (req, res) => {
   const date = operationalDate || new Date().toISOString().split('T')[0];
   const [year] = date.split('-');
   const report = await reportService.getYearlyReport(
-    resolveBranchId(branchId),
+    resolveBranchId(branchId, req.user),
     parseInt(year),
     category || undefined,
     productId || undefined
@@ -74,11 +75,13 @@ const getYearly = asyncHandler(async (req, res) => {
 });
 const exportReport = asyncHandler(async (req, res) => {
   const { type, branchId, operationalDate, category, productId } = req.query;
-  const resolvedBranchId = resolveBranchId(branchId);
+  const resolvedBranchId = resolveBranchId(branchId, req.user);
   const dateStr = operationalDate || new Date().toISOString().split('T')[0];
 
   let exportMode = 'SINGLE_BRANCH';
-  if (!branchId || branchId === '') {
+  if (req.user.role === 'MANAGER') {
+    exportMode = 'SINGLE_BRANCH';
+  } else if (!branchId || branchId === '') {
     exportMode = 'ALL_BRANCHES';
   } else if (branchId === 'comparison') {
     exportMode = 'COMPARISON';

@@ -4,7 +4,7 @@ const auditService = require('./auditService');
 const { addDays, subDays } = require('date-fns');
 const { calculateOperationalDate, canEditOperationalRecord, getAddisDateString, startOfDay } = require('../utils/dateUtils');
 const { requireDayNotClosed, getClosureMap } = require('./closureService');
-const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories } = require('../utils/accessFilters');
+const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories, requireBranchAccess } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
 
@@ -61,9 +61,9 @@ async function findAll(filters = {}, user) {
   return { data, total };
 }
 
-async function findById(id) {
+async function findById(id, accessFilter = {}) {
   const production = await prisma.productionRecord.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(id), ...accessFilter },
     include: {
       product: true,
       branch: { select: { id: true, name: true } },
@@ -143,7 +143,7 @@ async function create(data, user) {
     throw error;
   }
 
-  const assignedBranchId = isAdminOrManager(user.role)
+  const assignedBranchId = user.role === 'ADMIN'
     ? (parseInt(branchId) || user.branchId)
     : user.branchId;
 
@@ -213,6 +213,8 @@ async function create(data, user) {
 async function update(id, data, user) {
   const existing = await findById(id);
 
+  requireBranchAccess(existing.branchId, user, 'production');
+
   if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
     const error = new Error('Production records can only be edited within the 3-day edit window');
     error.status = 403;
@@ -268,6 +270,8 @@ async function update(id, data, user) {
 async function remove(id, user) {
   const existing = await findById(id);
 
+  requireBranchAccess(existing.branchId, user, 'production');
+
   if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
     const error = new Error('Production records can only be deleted within the 3-day edit window');
     error.status = 403;
@@ -293,15 +297,16 @@ async function getTodayProductions(branchId, user) {
     operationalDate: today,
   };
 
-  if (!isAdminOrManager(user.role)) {
+  if (user.role !== 'ADMIN') {
     const allowedCategories = getAllowedCategories(user.role);
     if (allowedCategories.length > 0) {
       where.product = { category: { in: allowedCategories } };
     }
   }
 
-  if (branchId) {
-    where.branchId = parseInt(branchId);
+  const resolvedBranchId = user.role === 'MANAGER' ? user.branchId : (branchId || user.branchId);
+  if (resolvedBranchId) {
+    where.branchId = parseInt(resolvedBranchId);
   }
 
   const productions = await prisma.productionRecord.findMany({

@@ -85,24 +85,44 @@ async function resolveRollover(branchId, operationalDate) {
 
   const prevDay = getPreviousDay(currentDate);
 
-  const MAX_LOOKBACK = 30;
+  const LOOKBACK_DAYS = 60;
   const daysToProcess = [];
+
+  const startDate = new Date(prevDay.getTime() - (LOOKBACK_DAYS - 1) * 24 * 60 * 60 * 1000);
+
+  const dates = [];
   let cursor = prevDay;
-
-  for (let i = 0; i < MAX_LOOKBACK; i++) {
-    const closure = await prisma.dailyClosure.findUnique({
-      where: { branchId_operationalDate: { branchId, operationalDate: cursor } },
-    });
-    if (closure?.isClosed) break;
-
-    const draftCount = await prisma.remainingRecord.count({
-      where: { branchId, operationalDate: cursor, status: 'DRAFT' },
-    });
-    if (draftCount > 0) {
-      daysToProcess.push({ date: new Date(cursor), draftCount });
-    }
-
+  while (cursor >= startDate) {
+    dates.push(cursor);
     cursor = getPreviousDay(cursor);
+  }
+
+  const closures = await prisma.dailyClosure.findMany({
+    where: { branchId, operationalDate: { in: dates } },
+    select: { operationalDate: true, isClosed: true },
+  });
+  const closureMap = {};
+  for (const c of closures) {
+    closureMap[toDateString(c.operationalDate)] = c.isClosed;
+  }
+
+  const draftCounts = await prisma.remainingRecord.groupBy({
+    by: ['operationalDate'],
+    where: { branchId, operationalDate: { in: dates }, status: 'DRAFT' },
+    _count: { id: true },
+  });
+  const draftCountMap = {};
+  for (const d of draftCounts) {
+    draftCountMap[toDateString(d.operationalDate)] = d._count.id;
+  }
+
+  for (let i = dates.length - 1; i >= 0; i--) {
+    const dateStr = toDateString(dates[i]);
+    if (closureMap[dateStr]) break;
+    const draftCount = draftCountMap[dateStr] || 0;
+    if (draftCount > 0) {
+      daysToProcess.push({ date: dates[i], draftCount });
+    }
   }
 
   if (daysToProcess.length === 0) {
@@ -312,38 +332,61 @@ async function buildSnapshotItems(tx, branchId, date) {
 
   const items = [];
 
+  const prevRemainingRecords = await tx.remainingRecord.findMany({
+    where: { branchId, productId: { in: allIds }, operationalDate: prevDay, status: 'FINAL' },
+    select: { productId: true, quantity: true },
+  });
+  const openingStockMap = {};
+  for (const r of prevRemainingRecords) {
+    openingStockMap[r.productId] = toDecimal(r.quantity);
+  }
+
+  const dayProductionGroup = await tx.productionRecord.groupBy({
+    by: ['productId'],
+    where: { branchId, operationalDate: date, shift: 'DAY', productId: { in: allIds } },
+    _sum: { quantity: true },
+  });
+  const dayProductionMap = {};
+  for (const g of dayProductionGroup) {
+    dayProductionMap[g.productId] = g._sum.quantity ? toDecimal(g._sum.quantity) : ZERO;
+  }
+
+  const nightProductionGroup = await tx.productionRecord.groupBy({
+    by: ['productId'],
+    where: { branchId, operationalDate: date, shift: 'NIGHT', productId: { in: allIds } },
+    _sum: { quantity: true },
+  });
+  const nightProductionMap = {};
+  for (const g of nightProductionGroup) {
+    nightProductionMap[g.productId] = g._sum.quantity ? toDecimal(g._sum.quantity) : ZERO;
+  }
+
+  const remainingRecords = await tx.remainingRecord.findMany({
+    where: { branchId, productId: { in: allIds }, operationalDate: date, status: 'FINAL' },
+    select: { productId: true, quantity: true },
+  });
+  const remainingStockMap = {};
+  for (const r of remainingRecords) {
+    remainingStockMap[r.productId] = toDecimal(r.quantity);
+  }
+
+  const wasteGroup = await tx.wasteRecord.groupBy({
+    by: ['productId'],
+    where: { branchId, operationalDate: date, productId: { in: allIds } },
+    _sum: { quantity: true },
+  });
+  const wasteMap = {};
+  for (const g of wasteGroup) {
+    wasteMap[g.productId] = g._sum.quantity ? toDecimal(g._sum.quantity) : ZERO;
+  }
+
   for (const productId of allIds) {
-    const prevRemaining = await tx.remainingRecord.findFirst({
-      where: { branchId, productId, operationalDate: prevDay, status: 'FINAL' },
-      select: { quantity: true },
-    });
-    const openingStock = prevRemaining ? toDecimal(prevRemaining.quantity) : ZERO;
-
-    const dayResult = await tx.productionRecord.aggregate({
-      where: { branchId, operationalDate: date, shift: 'DAY', productId },
-      _sum: { quantity: true },
-    });
-    const dayProduction = dayResult._sum.quantity ? toDecimal(dayResult._sum.quantity) : ZERO;
-
-    const nightResult = await tx.productionRecord.aggregate({
-      where: { branchId, operationalDate: date, shift: 'NIGHT', productId },
-      _sum: { quantity: true },
-    });
-    const nightProduction = nightResult._sum.quantity ? toDecimal(nightResult._sum.quantity) : ZERO;
-
+    const openingStock = openingStockMap[productId] || ZERO;
+    const dayProduction = dayProductionMap[productId] || ZERO;
+    const nightProduction = nightProductionMap[productId] || ZERO;
     const sellableStock = safePlus(safePlus(openingStock, dayProduction), nightProduction);
-
-    const remainingRec = await tx.remainingRecord.findFirst({
-      where: { branchId, operationalDate: date, productId, status: 'FINAL' },
-      select: { quantity: true },
-    });
-    const remainingStock = remainingRec ? toDecimal(remainingRec.quantity) : ZERO;
-
-    const wasteResult = await tx.wasteRecord.aggregate({
-      where: { branchId, operationalDate: date, productId },
-      _sum: { quantity: true },
-    });
-    const wasteQty = wasteResult._sum.quantity ? toDecimal(wasteResult._sum.quantity) : ZERO;
+    const remainingStock = remainingStockMap[productId] || ZERO;
+    const wasteQty = wasteMap[productId] || ZERO;
 
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQty);
     if (estimatedSold.lt(ZERO)) estimatedSold = ZERO;
