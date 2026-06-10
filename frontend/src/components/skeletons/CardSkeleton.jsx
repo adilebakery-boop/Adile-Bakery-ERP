@@ -2,7 +2,7 @@ import Skeleton from '../ui/Skeleton';
 
 export default function CardSkeleton({ className = '' }) {
   return (
-    <div className={`bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a] ${className}`}>
+    <div className={`bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F] ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <Skeleton variant="text" className="w-32" />
         <Skeleton variant="thumbnail" className="w-10 h-10 rounded-xl" />
@@ -25,7 +25,7 @@ export function DashboardCardsSkeleton({ count = 4 }) {
 
 export function ActivitySkeleton() {
   return (
-    <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]">
+    <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]">
       <Skeleton variant="title" className="w-40 mb-6" />
       <div className="space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (

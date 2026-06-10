@@ -55,39 +55,39 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white mb-8">{t('profile.title')}</h1>
+      <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white mb-8">{t('profile.title')}</h1>
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="flex items-center gap-3 mb-6">
-          <User className="w-5 h-5 text-[#001F3F] dark:text-white" />
-          <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">{t('profile.accountOverview')}</h2>
+          <User className="w-5 h-5 text-[#024A5B] dark:text-white" />
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">{t('profile.accountOverview')}</h2>
         </div>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
-            <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[80px]">{t('profile.name')}</span>
-            <span className="text-[#001F3F] dark:text-white font-medium">{user?.name || '-'}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
+            <span className="text-sm text-gray-500 dark:text-gray-500 min-w-[80px]">{t('profile.name')}</span>
+            <span className="text-[#024A5B] dark:text-white font-medium">{user?.name || '-'}</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
-            <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[80px]">{t('profile.username')}</span>
-            <span className="text-[#001F3F] dark:text-white">{user?.username || '-'}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
+            <span className="text-sm text-gray-500 dark:text-gray-500 min-w-[80px]">{t('profile.username')}</span>
+            <span className="text-[#024A5B] dark:text-white">{user?.username || '-'}</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#2d2d4a]">
-            <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[80px]">{t('profile.branch')}</span>
-            <span className="text-[#001F3F] dark:text-white">{user?.branchName || '-'}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8 pb-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
+            <span className="text-sm text-gray-500 dark:text-gray-500 min-w-[80px]">{t('profile.branch')}</span>
+            <span className="text-[#024A5B] dark:text-white">{user?.branchName || '-'}</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
-            <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[80px]">{t('profile.role')}</span>
-            <span className="px-3 py-1 bg-[#001F3F] text-white text-xs font-medium rounded-full inline-block w-fit">
+            <span className="text-sm text-gray-500 dark:text-gray-500 min-w-[80px]">{t('profile.role')}</span>
+            <span className="px-3 py-1 bg-[#4CB094] text-[#002830] text-xs font-medium rounded-full inline-block w-fit">
               {user?.role || '-'}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="flex items-center gap-3 mb-6">
-          <Lock className="w-5 h-5 text-[#001F3F] dark:text-white" />
-          <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">{t('profile.changePassword')}</h2>
+          <Lock className="w-5 h-5 text-[#024A5B] dark:text-white" />
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">{t('profile.changePassword')}</h2>
         </div>
 
         {error && <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">{error}</div>}
@@ -95,36 +95,36 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('profile.currentPassword')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('profile.currentPassword')}</label>
             <div className="relative">
-              <input type={showPasswords.current ? 'text' : 'password'} name="currentPassword" value={passwords.currentPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white" placeholder={t('profile.currentPasswordPlaceholder')} required />
-              <button type="button" onClick={() => togglePassword('current')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white">
+              <input type={showPasswords.current ? 'text' : 'password'} name="currentPassword" value={passwords.currentPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white" placeholder={t('profile.currentPasswordPlaceholder')} required />
+              <button type="button" onClick={() => togglePassword('current')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white">
                 {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('profile.newPassword')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('profile.newPassword')}</label>
             <div className="relative">
-              <input type={showPasswords.new ? 'text' : 'password'} name="newPassword" value={passwords.newPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white" placeholder={t('profile.newPasswordPlaceholder')} required />
-              <button type="button" onClick={() => togglePassword('new')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white">
+              <input type={showPasswords.new ? 'text' : 'password'} name="newPassword" value={passwords.newPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white" placeholder={t('profile.newPasswordPlaceholder')} required />
+              <button type="button" onClick={() => togglePassword('new')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white">
                 {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('profile.confirmNewPassword')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('profile.confirmNewPassword')}</label>
             <div className="relative">
-              <input type={showPasswords.confirm ? 'text' : 'password'} name="confirmPassword" value={passwords.confirmPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white" placeholder={t('profile.confirmPasswordPlaceholder')} required />
-              <button type="button" onClick={() => togglePassword('confirm')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white">
+              <input type={showPasswords.confirm ? 'text' : 'password'} name="confirmPassword" value={passwords.confirmPassword} onChange={handlePasswordChange} className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white" placeholder={t('profile.confirmPasswordPlaceholder')} required />
+              <button type="button" onClick={() => togglePassword('confirm')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white">
                 {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full sm:w-auto px-8 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70 flex items-center gap-2">
+          <button type="submit" disabled={loading} className="w-full sm:w-auto px-8 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70 flex items-center gap-2">
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {t('profile.updatePassword')}
           </button>

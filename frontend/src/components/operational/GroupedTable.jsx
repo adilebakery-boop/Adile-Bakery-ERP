@@ -46,11 +46,11 @@ export default function GroupedTable({
     <div className="overflow-x-auto">
       <table className="w-full">
         {renderHeader && (
-          <thead className="bg-[#F9F7F2]/50 dark:bg-[#2d2d4a] sticky top-0 z-10">
+          <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F] sticky top-0 z-10">
             {renderHeader()}
           </thead>
         )}
-        <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#2d2d4a]">
+        <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
           {groups.map((group) => {
             const groupKey = getGroupKey(group);
             const isExpanded = !!expandedGroups[groupKey];
@@ -60,7 +60,7 @@ export default function GroupedTable({
                 {isExpanded && renderEntryTable && (
                   <tr>
                     <td colSpan={colSpan} className="p-0">
-                      <div className="bg-[#F9F7F2]/40 dark:bg-[#2d2d4a]/40 border-l-4 border-[#D2B48C] dark:border-[#D2B48C]/50 ml-6 mr-3 my-1 rounded-r-lg overflow-hidden">
+                      <div className="bg-[#DFEDE2]/40 dark:bg-[#1E3A3F]/40 border-l-4 border-[#CAEAFD] dark:border-[#CAEAFD]/50 ml-6 mr-3 my-1 rounded-r-lg overflow-hidden">
                         <table className="w-full">
                           {renderEntryTable(group)}
                         </table>

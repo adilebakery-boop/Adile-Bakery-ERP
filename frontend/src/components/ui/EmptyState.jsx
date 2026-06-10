@@ -33,16 +33,16 @@ export default function EmptyState({
   
   return (
     <div className={`flex flex-col items-center justify-center py-12 px-4 ${className}`}>
-      <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+      <div className="w-16 h-16 bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-full flex items-center justify-center mb-4">
+        <Icon className="w-8 h-8 text-gray-500 dark:text-gray-500" />
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md">
+      <p className="text-sm text-gray-500 dark:text-gray-500 text-center max-w-md">
         {message || defaultMessage}
       </p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 px-4 py-2.5 bg-[#D2B48C] text-white rounded-xl text-sm font-medium hover:bg-[#c1a278] transition-colors"
+          className="mt-4 px-4 py-2.5 bg-[#4CB094] text-[#002830] rounded-xl text-sm font-medium hover:bg-[#236B56] transition-colors"
         >
           {actionLabel}
         </button>

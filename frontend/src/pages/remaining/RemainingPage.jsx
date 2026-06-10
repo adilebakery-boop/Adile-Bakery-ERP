@@ -250,18 +250,18 @@ export default function RemainingPage() {
       <div>
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
+            <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('remaining.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
           </div>
         </div>
         {canManageAll && branches.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#D2B48C]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#024A5B]" />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20">
-            <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-400 text-sm">{t('remaining.selectBranch')}</p>
+            <Building2 className="w-12 h-12 text-gray-500 mb-4" />
+            <p className="text-gray-500 text-sm">{t('remaining.selectBranch')}</p>
           </div>
         )}
       </div>
@@ -274,17 +274,17 @@ export default function RemainingPage() {
     <div className="pb-28">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('remaining.title')}</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
+          <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('remaining.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           {canManageAll && (
-            <div className="flex items-center gap-2 bg-[#F9F7F2] dark:bg-[#0f0f1a] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
-              <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1E3A3F] px-3 py-2 rounded-xl border border-[#CAEAFD] dark:border-[#1E3A3F]">
+              <Building2 className="w-4 h-4 text-gray-500 dark:text-gray-500" />
               <select
                 value={selectedBranchId || ''}
                 onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
-                className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+                className="bg-transparent border-none outline-none text-sm font-medium text-[#024A5B] dark:text-white cursor-pointer"
               >
                 <option value="">{t('common.selectBranch')}</option>
                 {branches.map(branch => (
@@ -296,16 +296,16 @@ export default function RemainingPage() {
             </div>
           )}
           {!canManageAll && (
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
               <Building2 className="w-4 h-4" />
               {t('remaining.branch')}: {userBranchId || 'N/A'}
             </span>
           )}
-          <div className="flex items-center gap-2 bg-[#F9F7F2] dark:bg-[#0f0f1a] px-3 py-2 rounded-xl border border-[#E5E1D8] dark:border-[#2d2d4a]">
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1E3A3F] px-3 py-2 rounded-xl border border-[#CAEAFD] dark:border-[#1E3A3F]">
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-medium text-[#001F3F] dark:text-white cursor-pointer"
+              className="bg-transparent border-none outline-none text-sm font-medium text-[#024A5B] dark:text-white cursor-pointer"
             >
               {availableDates.map(d => (
                 <option key={d} value={d}>{dateLabels[d]}</option>
@@ -320,10 +320,10 @@ export default function RemainingPage() {
           )}
           <button
             onClick={() => refetchRemainings()}
-            className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors"
+            className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <RefreshCw className="w-5 h-5 text-gray-500 dark:text-gray-500" />
           </button>
         </div>
       </div>
@@ -348,21 +348,21 @@ export default function RemainingPage() {
 
       {isLoadingProducts || isLoadingRemainings ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-[#D2B48C]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#024A5B]" />
         </div>
       ) : remainingsError ? (
         <ApiErrorState error={remainingsErrorObj} onRetry={() => refetchRemainings()} />
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          <div className="w-16 h-16 bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-500 dark:text-gray-500" />
           </div>
-          <p className="text-gray-400 dark:text-gray-500 text-sm">{t('remaining.noProductsAvailable')}</p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm">{t('remaining.noProductsAvailable')}</p>
         </div>
       ) : (
         Object.entries(grouped).map(([category, prods]) => (
           <div key={category} className="mb-8">
-            <h2 className="text-xl font-bold text-[#001F3F] dark:text-white mb-4">
+            <h2 className="text-xl font-bold text-[#024A5B] dark:text-white mb-4">
               {t(CATEGORY_LABELS[category] || category)}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -371,12 +371,12 @@ export default function RemainingPage() {
                 return (
                   <div
                     key={p.id}
-                    className={`relative bg-white dark:bg-[#1a1a2e] p-5 rounded-[24px] border transition-all ${
+                    className={`relative bg-white dark:bg-[#12262A] p-5 rounded-[24px] border transition-all ${
                       status === 'FINAL'
                         ? 'border-green-300 dark:border-green-800 bg-green-50/30 dark:bg-green-900/10'
                         : status === 'DRAFT'
                         ? 'border-amber-200 dark:border-amber-700 bg-amber-50/20 dark:bg-amber-900/10'
-                        : 'border-[#E5E1D8] dark:border-[#2d2d4a]'
+                        : 'border-[#E5E1D8] dark:border-[#1E3A3F]'
                     }`}
                     style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}
                   >
@@ -388,12 +388,12 @@ export default function RemainingPage() {
                         {status}
                       </div>
                     )}
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">{getProductName(p)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 font-medium">{getProductName(p)}</p>
                     <input
                       type="number"
                       value={getValue(p.id)}
                       onChange={(e) => handleQuantityChange(p.id, e.target.value)}
-                      className="w-full px-4 py-4 bg-[#F9F7F2] dark:bg-[#0f0f1a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-3xl font-bold text-center text-[#001F3F] dark:text-white"
+                      className="w-full px-4 py-4 bg-[#DFEDE2] dark:bg-[#1a1410] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-3xl font-bold text-center text-[#024A5B] dark:text-white"
                       placeholder="0"
                       min="0"
                       step={p.unitType === 'piece' ? '1' : '0.01'}
@@ -407,7 +407,7 @@ export default function RemainingPage() {
         ))
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a2e] border-t border-[#E5E1D8] dark:border-[#2d2d4a] p-4 lg:left-72 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#12262A] border-t border-[#E5E1D8] dark:border-[#1E3A3F] p-4 lg:left-72 z-10">
         <div className="max-w-7xl mx-auto flex justify-end gap-3">
           {hasUnfinalizedChanges && isEditable && (
             <button
@@ -423,7 +423,7 @@ export default function RemainingPage() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-8 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="px-8 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {t('remaining.saveRemaining')}

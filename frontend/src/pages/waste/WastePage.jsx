@@ -278,13 +278,13 @@ export default function WastePage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('waste.title')}</h1>
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('waste.title')}</h1>
       </div>
 
-        <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
           <form onSubmit={handleCreate} className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.product')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.product')}</label>
               <select
                 value={createForm.productId}
                 onChange={(e) => {
@@ -292,7 +292,7 @@ export default function WastePage() {
                   const selected = filteredProducts.find(p => p.id === parseInt(e.target.value));
                   setSelectedProductUnitType(selected?.unitType || null);
                 }}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
                 autoFocus
                 disabled={createWaste.isPending}
@@ -305,11 +305,11 @@ export default function WastePage() {
             </div>
             {canManage && (
               <div className="flex-1 min-w-[180px]">
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.branch')}</label>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.branch')}</label>
                 <select
                   value={createForm.branchId}
                   onChange={(e) => setCreateForm({ ...createForm, branchId: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                   required
                   disabled={createWaste.isPending}
                 >
@@ -321,12 +321,12 @@ export default function WastePage() {
               </div>
             )}
             <div className="w-44">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.operationalDate')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.operationalDate')}</label>
               <input
                 type="date"
                 value={createForm.operationalDate}
                 onChange={(e) => setCreateForm({ ...createForm, operationalDate: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
                 disabled={createWaste.isPending}
                 min={minCreateDateStr}
@@ -334,13 +334,13 @@ export default function WastePage() {
               />
             </div>
             <div className="w-40">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.quantity')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.quantity')}</label>
               <input
                 type="number"
               step={selectedProductUnitType === 'piece' ? '1' : 'any'}
                 value={createForm.quantity}
                 onChange={(e) => setCreateForm({ ...createForm, quantity: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 placeholder="0"
                 required
                 disabled={createWaste.isPending}
@@ -348,11 +348,11 @@ export default function WastePage() {
               />
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.reason')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.reason')}</label>
               <textarea
                 value={createForm.reason}
                 onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white resize-none"
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white resize-none"
                 rows={2}
                 placeholder={t('waste.enterReason')}
                 maxLength={500}
@@ -362,7 +362,7 @@ export default function WastePage() {
             <button
               type="submit"
               disabled={createWaste.isPending || isCreateFormClosed}
-              className="px-6 py-3.5 bg-[#D2B48C] text-white rounded-xl font-medium hover:bg-[#c1a278] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {createWaste.isPending ? (
                 <>
@@ -387,20 +387,20 @@ export default function WastePage() {
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
           <input
             type="text"
             placeholder={t('waste.searchWaste')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
         {canManage && (
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
-            className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
           >
             <option value="">{t('waste.allBranches')}</option>
             {(Array.isArray(branches) ? branches : []).map((b) => (
@@ -411,7 +411,7 @@ export default function WastePage() {
         <select
           value={selectedProduct}
           onChange={(e) => setSelectedProduct(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#1a1a2e] border border-[#E5E1D8] dark:border-[#2d2d4a] rounded-xl focus:ring-2 focus:ring-[#001F3F] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
         >
           <option value="">{t('waste.allProducts')}</option>
           {(Array.isArray(filteredProducts) ? filteredProducts : []).map((p) => (
@@ -433,17 +433,17 @@ export default function WastePage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#2d2d4a] flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">
             {t('waste.title')}
           </h2>
           <button
             onClick={() => refetch()}
-            className="p-2 hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-4 h-4 text-gray-400" />
+            <RefreshCw className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
@@ -462,13 +462,13 @@ export default function WastePage() {
           colSpan={canManage ? 7 : 6}
           renderHeader={() => (
             <tr>
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider w-10"></th>
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.product')}</th>
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.quantity')}</th>
-              {canManage && <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.branch')}</th>}
-              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider w-10"></th>
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.product')}</th>
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.entries')}</th>
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.quantity')}</th>
+              {canManage && <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.branch')}</th>}
+              <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
             </tr>
           )}
           renderGroupRow={(group, { isExpanded }) => {
@@ -477,26 +477,26 @@ export default function WastePage() {
             const groupKey = getGroupKey(group);
             return (
               <tr
-                className="hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] cursor-pointer transition-colors"
+                className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] cursor-pointer transition-colors"
                 onClick={() => toggleGroupExpand(groupKey)}
               >
                 <td className="px-6 py-3.5">
-                  <button className="p-1 text-gray-400 hover:text-[#001F3F] dark:hover:text-white transition-colors">
+                  <button className="p-1 text-gray-500 hover:text-[#024A5B] dark:hover:text-white transition-colors">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                 </td>
                 <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300 font-medium">
                   {formattedDate}
                 </td>
-                <td className="px-6 py-3.5 text-sm font-semibold text-[#001F3F] dark:text-white">
+                <td className="px-6 py-3.5 text-sm font-semibold text-[#024A5B] dark:text-white">
                   {getLocalizedName(group.product, i18n.language) || group.product?.name || t('common.na')}
                 </td>
                 <td className="px-6 py-3.5 text-sm text-gray-600 dark:text-gray-300">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#F9F7F2] dark:bg-[#2d2d4a] text-gray-600 dark:text-gray-300">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#DFEDE2] dark:bg-[#1E3A3F] text-gray-600 dark:text-gray-300">
                     {group.entries.length} {group.entries.length === 1 ? t('production.entry') : t('production.entries')}
                   </span>
                 </td>
-                <td className="px-6 py-3.5 text-sm font-bold text-[#001F3F] dark:text-white">
+                <td className="px-6 py-3.5 text-sm font-bold text-[#024A5B] dark:text-white">
                   {Number(group.entries.reduce((sum, e) => sum + Number(e.quantity || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </td>
                 {canManage && (
@@ -507,7 +507,7 @@ export default function WastePage() {
                 <td className="px-6 py-3.5">
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleGroupExpand(groupKey); }}
-                    className="text-xs font-medium text-[#001F3F] dark:text-[#D2B48C] hover:underline"
+                    className="text-xs font-medium text-[#024A5B] dark:text-[#CAEAFD] hover:underline"
                   >
                     {isExpanded ? t('common.hide') : t('common.view')}
                   </button>
@@ -518,30 +518,30 @@ export default function WastePage() {
           renderEntryTable={(group) => (
             <>
               <thead>
-                <tr className="border-b border-[#E5E1D8]/50 dark:border-[#2d2d4a]/50">
-                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('production.timeDate')}</th>
-                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.quantity')}</th>
-                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.reason')}</th>
-                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('waste.recordedBy')}</th>
-                  {canManage && <th className="px-6 py-2.5 text-right text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
+                <tr className="border-b border-[#E5E1D8]/50 dark:border-[#1E3A3F]/50">
+                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.timeDate')}</th>
+                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.quantity')}</th>
+                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.reason')}</th>
+                  <th className="px-6 py-2.5 text-left text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.recordedBy')}</th>
+                  {canManage && <th className="px-6 py-2.5 text-right text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5E1D8]/30 dark:divide-[#2d2d4a]/30">
+              <tbody className="divide-y divide-[#E5E1D8]/30 dark:divide-[#1E3A3F]/30">
                 {group.entries.map((waste) => {
                   const entryDate = new Date(waste.createdAt);
                   const entryTime = entryDate.toLocaleTimeString('en-US', { timeZone: 'Africa/Addis_Ababa', hour: '2-digit', minute: '2-digit', hour12: true });
                   const entryFormattedDate = entryDate.toLocaleDateString('en-US', { timeZone: 'Africa/Addis_Ababa', day: '2-digit', month: '2-digit', year: 'numeric' });
                   return (
-                    <tr key={waste.id} className="hover:bg-[#F9F7F2]/60 dark:hover:bg-[#2d2d4a]/60">
+                    <tr key={waste.id} className="hover:bg-[#DFEDE2]/60 dark:hover:bg-[#1E3A3F]/60">
                       <td className="px-6 py-2.5 text-xs text-gray-600 dark:text-gray-300">
                         <span className="font-medium">{entryTime}</span>
-                        <span className="text-gray-400 dark:text-gray-500">&nbsp;{entryFormattedDate}</span>
+                        <span className="text-gray-500 dark:text-gray-500">&nbsp;{entryFormattedDate}</span>
                       </td>
-                      <td className="px-6 py-2.5 text-xs font-semibold text-[#D2B48C]">{waste.quantity}</td>
-                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">
+                      <td className="px-6 py-2.5 text-xs font-semibold text-[#024A5B]">{waste.quantity}</td>
+                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-500 max-w-[200px] truncate">
                         {waste.reason || '-'}
                       </td>
-                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+                      <td className="px-6 py-2.5 text-xs text-gray-500 dark:text-gray-500">
                         {waste.creator?.name || waste.creator?.username || `#${waste.createdBy}`}
                       </td>
                       <td className="px-6 py-2.5 text-right">
@@ -550,19 +550,19 @@ export default function WastePage() {
                             <>
                               <button
                                 onClick={() => handleEditClick(waste)}
-                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-[#001F3F] dark:hover:text-white hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] rounded-md transition-colors"
+                                className="p-1.5 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-md transition-colors"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(waste.id, waste.branchId)}
-                                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                className="p-1.5 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-500">
                               <Edit2 className="w-3 h-3" />
                               {t('common.edit')}
                             </span>
@@ -599,42 +599,42 @@ export default function WastePage() {
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.product')}</label>
-              <div className="px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] rounded-xl text-sm text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.product')}</label>
+              <div className="px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] rounded-xl text-sm text-gray-700 dark:text-gray-300">
                 {editingWaste?.product?.name || `#${editingWaste?.productId}`}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.branch')}</label>
-              <div className="px-4 py-3.5 bg-gray-100 dark:bg-[#2d2d4a] rounded-xl text-sm text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.branch')}</label>
+              <div className="px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] rounded-xl text-sm text-gray-700 dark:text-gray-300">
                 {editingWaste?.branch?.name || `#${editingWaste?.branchId}`}
               </div>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.quantity')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.quantity')}</label>
             <input
               type="number"
               step={editingWaste?.product?.unitType === 'piece' ? '1' : 'any'}
               value={editForm.quantity}
               onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('waste.reason')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.reason')}</label>
             <textarea
               value={editForm.reason}
               onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#F9F7F2] dark:bg-[#2d2d4a] border-0 rounded-xl focus:ring-2 focus:ring-[#001F3F] outline-none text-sm dark:text-white resize-none"
+              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white resize-none"
               rows={3}
               maxLength={500}
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => { setIsEditOpen(false); setEditingWaste(null); }} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#2d2d4a] text-gray-600 dark:text-gray-400 rounded-xl font-medium hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors text-sm">{t('common.cancel')}</button>
-            <button type="submit" disabled={updateWaste.isPending} className="flex-1 px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-medium hover:bg-[#001a35] transition-colors text-sm disabled:opacity-70">{updateWaste.isPending ? t('waste.saving') : t('common.save')}</button>
+            <button type="button" onClick={() => { setIsEditOpen(false); setEditingWaste(null); }} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] dark:border-[#1E3A3F] text-gray-600 dark:text-gray-500 rounded-xl font-medium hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors text-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={updateWaste.isPending} className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70">{updateWaste.isPending ? t('waste.saving') : t('common.save')}</button>
           </div>
         </form>
       </Modal>

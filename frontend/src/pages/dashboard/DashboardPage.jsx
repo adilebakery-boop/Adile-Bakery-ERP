@@ -73,17 +73,17 @@ export default function DashboardPage() {
     <div className="px-4 sm:px-6 md:px-8 lg:px-10 max-w-screen-2xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[32px] font-bold text-[#001F3F] dark:text-white">{t('dashboard.title')}</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
+          <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('dashboard.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{formatOperationalDate(operationalDate)}</p>
           {lastUpdated && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               {t('dashboard.updated')} {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handleRefresh} className="p-2 hover:bg-[#F9F7F2] rounded-xl transition-colors">
-            <RefreshCw className="w-5 h-5 text-gray-400" />
+          <button onClick={handleRefresh} className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors">
+            <RefreshCw className="w-5 h-5 text-gray-500" />
           </button>
         </div>
       </div>
@@ -132,48 +132,48 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+            <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.todayProduction')}</span>
-                <div className="w-10 h-10 bg-[#D2B48C]/20 rounded-xl flex items-center justify-center">
-                  <Package className="w-5 h-5 text-[#D2B48C]" />
+                <span className="text-sm text-gray-500 dark:text-gray-500 font-medium">{t('dashboard.todayProduction')}</span>
+                <div className="w-10 h-10 bg-[#CAEAFD]/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5 text-[#024A5B]" />
                 </div>
               </div>
-              <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.production}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsProducedToday')}</p>
+              <p className="text-4xl font-bold text-[#024A5B] dark:text-white">{kpis.production}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t('dashboard.itemsProducedToday')}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+            <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.estimatedSales')}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-500 font-medium">{t('dashboard.estimatedSales')}</span>
                 <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-green-500" />
                 </div>
               </div>
-              <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.sales}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsSoldToday')}</p>
+              <p className="text-4xl font-bold text-[#024A5B] dark:text-white">{kpis.sales}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t('dashboard.itemsSoldToday')}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+            <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.remaining')}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-500 font-medium">{t('dashboard.remaining')}</span>
                 <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
                   <Package className="w-5 h-5 text-blue-500" />
                 </div>
               </div>
-              <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.remaining}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('dashboard.itemsInStock')}</p>
+              <p className="text-4xl font-bold text-[#024A5B] dark:text-white">{kpis.remaining}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t('dashboard.itemsInStock')}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+            <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('dashboard.pendingDrafts')}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-500 font-medium">{t('dashboard.pendingDrafts')}</span>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpis.pendingDrafts > 0 ? 'bg-red-50' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                  <AlertCircle className={`w-5 h-5 ${kpis.pendingDrafts > 0 ? 'text-red-500' : 'text-gray-400'}`} />
+                  <AlertCircle className={`w-5 h-5 ${kpis.pendingDrafts > 0 ? 'text-red-500' : 'text-gray-500'}`} />
                 </div>
               </div>
-              <p className="text-4xl font-bold text-[#001F3F] dark:text-white">{kpis.pendingDrafts}</p>
-              <p className={`text-sm mt-1 ${kpis.allFinalized ? 'text-gray-400 dark:text-gray-500' : 'text-red-500'}`}>
+              <p className="text-4xl font-bold text-[#024A5B] dark:text-white">{kpis.pendingDrafts}</p>
+              <p className={`text-sm mt-1 ${kpis.allFinalized ? 'text-gray-500 dark:text-gray-500' : 'text-red-500'}`}>
                 {kpis.allFinalized ? t('dashboard.allFinalized') : t('dashboard.needsAttention')}
               </p>
             </div>
@@ -181,8 +181,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-[#1a1a2e] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#2d2d4a]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white mb-6">{t('dashboard.recentActivity')}</h2>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white mb-6">{t('dashboard.recentActivity')}</h2>
         {activity.isLoading ? (
           <ActivitySkeleton />
         ) : activity.isError ? (
@@ -190,17 +190,17 @@ export default function DashboardPage() {
         ) : recentActivity.length > 0 ? (
           <div className="space-y-3">
             {recentActivity.slice(0, 8).map((activity, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F9F7F2] dark:hover:bg-[#2d2d4a] transition-colors">
+              <div key={idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  activity.type?.toLowerCase() === 'production' ? 'bg-[#D2B48C]/10 text-[#D2B48C]' :
+                  activity.type?.toLowerCase() === 'production' ? 'bg-[#CAEAFD]/10 text-[#024A5B]' :
                   activity.type?.toLowerCase() === 'remaining' ? 'bg-green-50 text-green-500' :
-                  'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                  'bg-gray-100 dark:bg-gray-800 text-gray-500'
                 }`}>
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-[#001F3F] dark:text-white">{getActivityLabel(activity)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  <p className="text-sm font-medium text-[#024A5B] dark:text-white">{getActivityLabel(activity)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                     {new Date(activity.time || activity.createdAt || activity.timestamp).toLocaleString('en-US', {
                       timeZone: 'Africa/Addis_Ababa',
                       hour: '2-digit',
@@ -213,10 +213,10 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 bg-[#F9F7F2] dark:bg-[#2d2d4a] rounded-full flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-full flex items-center justify-center mb-4">
+              <Package className="w-8 h-8 text-gray-500" />
             </div>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">{t('dashboard.noRecentActivity')}</p>
+            <p className="text-gray-500 dark:text-gray-500 text-sm">{t('dashboard.noRecentActivity')}</p>
           </div>
         )}
       </div>
