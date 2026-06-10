@@ -392,7 +392,7 @@ function computeDisplayPrice(allPrices) {
   return '0';
 }
 
-function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter) {
+function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter, productYearlyTotals = {}) {
   const snapshotPriceSetsLocal = snapshotPriceSets || {};
 
   const dayProdByDate = {};
