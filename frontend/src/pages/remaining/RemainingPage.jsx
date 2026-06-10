@@ -284,9 +284,9 @@ export default function RemainingPage() {
               onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
               className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white cursor-pointer min-w-[140px]"
             >
-              <option value="">{t('common.selectBranch')}</option>
+              <option value="" style={{ color: '#111827', background: '#fff' }}>{t('common.selectBranch')}</option>
               {branches.map(branch => (
-                <option key={branch.id} value={branch.id}>
+                <option key={branch.id} value={branch.id} style={{ color: '#111827', background: '#fff' }}>
                   {branch.name}
                 </option>
               ))}
@@ -304,7 +304,7 @@ export default function RemainingPage() {
             className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white cursor-pointer"
           >
             {availableDates.map(d => (
-              <option key={d} value={d}>{dateLabels[d]}</option>
+              <option key={d} value={d} style={{ color: '#111827', background: '#fff' }}>{dateLabels[d]}</option>
             ))}
           </select>
           {hasUnsavedChanges && (
