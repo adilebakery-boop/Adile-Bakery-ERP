@@ -50,7 +50,8 @@ const findAllGrouped = asyncHandler(async (req, res) => {
 });
 
 const findById = asyncHandler(async (req, res) => {
-  const production = await productionService.findById(req.params.id);
+  const accessFilter = buildProductionAccessFilter(req.user);
+  const production = await productionService.findById(req.params.id, accessFilter);
   res.json({
     success: true,
     data: production,
