@@ -40,9 +40,10 @@ const findByOperationalDate = asyncHandler(async (req, res) => {
   const { branchId } = req.query;
   const { role, userId, branchId: userBranchId } = req.user;
   const accessFilter = buildRemainingAccessFilter({ role, userId, branchId: userBranchId });
+  const resolvedBranchId = role === 'MANAGER' ? userBranchId : (branchId || userBranchId);
 
   const remainings = await remainingService.findByOperationalDate(
-    branchId || req.user.branchId,
+    resolvedBranchId,
     req.params.operationalDate,
     accessFilter
   );
@@ -91,8 +92,9 @@ const remove = asyncHandler(async (req, res) => {
 
 const getDrafts = asyncHandler(async (req, res) => {
   const { branchId, operationalDate } = req.query;
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
   const drafts = await remainingService.getDraftRemainings(
-    branchId || req.user.branchId,
+    resolvedBranchId,
     operationalDate
   );
   res.json({
@@ -104,8 +106,9 @@ const getDrafts = asyncHandler(async (req, res) => {
 
 const getPending = asyncHandler(async (req, res) => {
   const { branchId } = req.query;
+  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
   const pending = await remainingService.getPendingRemainings(
-    branchId || req.user.branchId
+    resolvedBranchId
   );
   res.json({
     success: true,
