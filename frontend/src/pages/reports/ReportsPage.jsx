@@ -363,33 +363,33 @@ export default function ReportsPage() {
                   </div>
                 )}
 
-                <div className="bg-[#CAEAFD] p-6">
+                <div className="bg-[#CAEAFD] dark:bg-[#1E3A3F] p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-sm font-semibold text-[#024A5B] uppercase tracking-wider">{t('reports.totalSummary')}</span>
+                    <span className="text-sm font-semibold text-[#024A5B] dark:text-white uppercase tracking-wider">{t('reports.totalSummary')}</span>
                     <div className="flex flex-wrap gap-6 lg:gap-10">
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.dayProduction')}</p>
-                        <p className="text-xl font-bold text-[#024A5B]">{totals.totalDayProduction || 0}</p>
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.dayProduction')}</p>
+                        <p className="text-xl font-bold text-[#024A5B] dark:text-white">{totals.totalDayProduction || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.nightProduction')}</p>
-                        <p className="text-xl font-bold text-[#024A5B]">{totals.totalNightProduction || 0}</p>
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.nightProduction')}</p>
+                        <p className="text-xl font-bold text-[#024A5B] dark:text-white">{totals.totalNightProduction || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.remaining')}</p>
-                        <p className="text-xl font-bold text-[#024A5B]">{totals.totalRemainingStock || 0}</p>
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.remaining')}</p>
+                        <p className="text-xl font-bold text-[#024A5B] dark:text-white">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.waste')}</p>
-                        <p className="text-xl font-bold text-[#024A5B]">{totals.totalWaste || 0}</p>
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.waste')}</p>
+                        <p className="text-xl font-bold text-[#024A5B] dark:text-white">{totals.totalWaste || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.estSold')}</p>
-                        <p className="text-xl font-bold text-[#024A5B]">{totals.totalEstSold || 0}</p>
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.estSold')}</p>
+                        <p className="text-xl font-bold text-[#024A5B] dark:text-white">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#024A5B]/60">{t('reports.revenue')}</p>
-                        <p className="text-2xl font-bold text-[#024A5B]">
+                        <p className="text-xs text-[#024A5B]/60 dark:text-gray-400">{t('reports.revenue')}</p>
+                        <p className="text-2xl font-bold text-[#024A5B] dark:text-white">
                           {totals.totalRevenue ? `${totals.totalRevenue.toLocaleString()} ETB` : '-'}
                         </p>
                       </div>
@@ -403,31 +403,31 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {days.map((day, idx) => (
-                    <div key={idx} className="bg-[#DFEDE2] rounded-xl p-4">
+                    <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-[#024A5B]">{i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`}</span>
-                        <span className="text-xs text-gray-500">{day.date || '-'}</span>
+                        <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{day.date || '-'}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">{t('reports.dayProduction')}</span>
-                          <span className="font-medium text-gray-700">{day.totals?.totalDayProduction || 0}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('reports.dayProduction')}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-200">{day.totals?.totalDayProduction || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">{t('reports.nightProduction')}</span>
-                          <span className="font-medium text-gray-700">{day.totals?.totalNightProduction || 0}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('reports.nightProduction')}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-200">{day.totals?.totalNightProduction || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">{t('reports.remaining')}</span>
-                          <span className="font-medium text-gray-700">{day.totals?.totalRemainingStock || 0}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('reports.remaining')}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-200">{day.totals?.totalRemainingStock || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">{t('reports.estSold')}</span>
-                          <span className="font-medium text-[#024A5B]">{day.totals?.totalEstimatedSold || 0}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('reports.estSold')}</span>
+                          <span className="font-medium text-[#024A5B] dark:text-[#CAEAFD]">{day.totals?.totalEstimatedSold || 0}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">{t('reports.revenue')}</span>
-                          <span className="font-semibold text-[#024A5B]">
+                          <span className="text-gray-500 dark:text-gray-400">{t('reports.revenue')}</span>
+                          <span className="font-semibold text-[#024A5B] dark:text-[#CAEAFD]">
                             {day.totals?.totalEstimatedRevenue ? `${day.totals.totalEstimatedRevenue.toLocaleString()}` : '0'} ETB
                           </span>
                         </div>
@@ -436,29 +436,30 @@ export default function ReportsPage() {
                   ))}
                 </div>
 
-                <div className="bg-[#4CB094] rounded-xl p-6 text-[#002830]">
+                <div className="bg-[#4CB094] dark:bg-[#236B56] rounded-xl p-6 text-[#002830] dark:text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.weeklyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.production')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.production')}</p>
                         <p className="text-xl font-bold">{(totals.totalDayProduction || 0) + (totals.totalNightProduction || 0)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.remaining')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.estSold')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.revenue')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">{totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             )}
 
@@ -466,31 +467,31 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="overflow-x-auto mb-6">
                   <table className="w-full">
-                    <thead className="bg-[#DFEDE2]/50">
+                    <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.week')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.production')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.remaining')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.waste')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.estSold')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.revenue')}</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.week')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.production')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.waste')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.estSold')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.revenue')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5E1D8]">
+                    <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
                       {weeks.map((week, idx) => {
                         const wTotals = week.totals || {};
                         return (
-                          <tr key={idx} className="hover:bg-[#DFEDE2]">
-                            <td className="px-6 py-4 text-sm font-semibold text-[#024A5B]">
-                              {t('reports.week')} {idx + 1} <span className="text-gray-500 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
+                          <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
+                            <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">
+                              {t('reports.week')} {idx + 1} <span className="text-gray-500 dark:text-gray-400 font-normal text-xs ml-2">({week.weekStartDate || '-'})</span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">
                               {(wTotals.totalDayProduction || 0) + (wTotals.totalNightProduction || 0)}
                             </td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{wTotals.totalRemainingStock || 0}</td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{wTotals.totalWasteQuantity || 0}</td>
-                            <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B]">{wTotals.totalEstimatedSold || 0}</td>
-                            <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B]">
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{wTotals.totalRemainingStock || 0}</td>
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{wTotals.totalWasteQuantity || 0}</td>
+                            <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B] dark:text-[#CAEAFD]">{wTotals.totalEstimatedSold || 0}</td>
+                            <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B] dark:text-[#CAEAFD]">
                               {wTotals.totalEstimatedRevenue ? `${wTotals.totalEstimatedRevenue.toLocaleString()} ETB` : '-'}
                             </td>
                           </tr>
@@ -500,24 +501,24 @@ export default function ReportsPage() {
                   </table>
                 </div>
 
-                <div className="bg-[#4CB094] rounded-xl p-6 text-[#002830]">
+                <div className="bg-[#4CB094] dark:bg-[#236B56] rounded-xl p-6 text-[#002830] dark:text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.monthlyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.production')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.production')}</p>
                         <p className="text-xl font-bold">{(totals.totalDayProduction || 0)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.remaining')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{totals.totalRemainingStock || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.estSold')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{totals.totalEstSold || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.revenue')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">{totals.totalRevenue ? totals.totalRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
@@ -530,30 +531,30 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="overflow-x-auto mb-6">
                   <table className="w-full">
-                    <thead className="bg-[#DFEDE2]/50">
+                    <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.month')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.production')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.sellable')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.remaining')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.waste')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.estSold')}</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.revenue')}</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.month')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.production')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.sellable')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.waste')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.estSold')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('reports.revenue')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E5E1D8]">
+                    <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
                       {months.map((month, idx) => {
                         const mTotals = month.totals || {};
                         const production = (mTotals.totalDayProduction || 0) + (mTotals.totalNightProduction || 0);
                         return (
-                          <tr key={idx} className="hover:bg-[#DFEDE2]">
-                            <td className="px-6 py-4 text-sm font-semibold text-[#024A5B]">{i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName}</td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{production.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{(mTotals.totalSellableStock || 0).toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{(mTotals.totalRemainingStock || 0).toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-right text-gray-600">{(mTotals.totalWasteQuantity || 0).toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B]">{(mTotals.totalEstimatedSold || 0).toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B]">
+                          <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
+                            <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName}</td>
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{production.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{(mTotals.totalSellableStock || 0).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{(mTotals.totalRemainingStock || 0).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{(mTotals.totalWasteQuantity || 0).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B] dark:text-[#CAEAFD]">{(mTotals.totalEstimatedSold || 0).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B] dark:text-[#CAEAFD]">
                               {mTotals.totalEstimatedRevenue ? `${mTotals.totalEstimatedRevenue.toLocaleString()} ETB` : '-'}
                             </td>
                           </tr>
@@ -563,32 +564,32 @@ export default function ReportsPage() {
                   </table>
                 </div>
 
-                <div className="bg-[#4CB094] rounded-xl p-6 text-[#002830]">
+                <div className="bg-[#4CB094] dark:bg-[#236B56] rounded-xl p-6 text-[#002830] dark:text-white">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <span className="text-sm font-semibold uppercase tracking-wider">{t('reports.yearlyTotals')}</span>
                     <div className="flex flex-wrap gap-8">
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.production')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.production')}</p>
                         <p className="text-xl font-bold">{(totals.totalDayProduction || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.sellable')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.sellable')}</p>
                         <p className="text-xl font-bold">{(totals.totalSellableStock || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.remaining')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.remaining')}</p>
                         <p className="text-xl font-bold">{(totals.totalRemainingStock || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.waste')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.waste')}</p>
                         <p className="text-xl font-bold">{(totals.totalWasteQuantity || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.estSold')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.estSold')}</p>
                         <p className="text-xl font-bold">{(totals.totalEstimatedSold || 0).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#002830]">{t('reports.revenue')}</p>
+                        <p className="text-xs text-[#002830] dark:text-white/70">{t('reports.revenue')}</p>
                         <p className="text-2xl font-bold">{totals.totalEstimatedRevenue ? totals.totalEstimatedRevenue.toLocaleString() : '0'} ETB</p>
                       </div>
                     </div>
