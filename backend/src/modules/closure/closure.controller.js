@@ -27,7 +27,7 @@ const validate = asyncHandler(async (req, res) => {
 
 const close = asyncHandler(async (req, res) => {
   const { operationalDate, note } = req.body;
-  const branchId = req.body.branchId || req.user.branchId;
+  const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.body.branchId || req.user.branchId);
   const result = await closureService.closeDay(
     branchId,
     operationalDate,
@@ -47,7 +47,7 @@ const close = asyncHandler(async (req, res) => {
 
 const reopen = asyncHandler(async (req, res) => {
   const { operationalDate, reason } = req.body;
-  const branchId = req.body.branchId || req.user.branchId;
+  const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.body.branchId || req.user.branchId);
   const result = await closureService.reopenDay(
     branchId,
     operationalDate,
