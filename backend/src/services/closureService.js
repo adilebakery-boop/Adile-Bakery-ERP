@@ -131,9 +131,10 @@ async function validateBeforeClose(branchId, operationalDate) {
   }
 
   if (blockingMissingProducts.length > 0) {
+    const names = blockingMissingProducts.map(p => p.name).join(', ');
     errors.push({
       type: 'MISSING_REMAINING',
-      message: `Missing remaining records for ${blockingMissingProducts.length} products with activity`,
+      message: `Missing remaining records for ${blockingMissingProducts.length} product(s): ${names}. Enter remaining quantity for each product, or enter 0 if fully sold.`,
       productIds: blockingMissingProducts.map(p => p.id),
       productNames: blockingMissingProducts.map(p => p.name),
     });
