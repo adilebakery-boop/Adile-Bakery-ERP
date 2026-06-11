@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const prisma = require("../config/prisma");
 const closureService = require("./closureService");
+const { subDays } = require("date-fns");
 const { toDateString, getPreviousDay } = require("../utils/dateUtils");
 
 let adminUserId = null;
@@ -34,18 +35,23 @@ async function autoCloseOldOpenDays() {
     getPreviousDay(getPreviousDay(new Date())),
   );
 
+  const dateFilter = { gte: subDays(new Date(), 30) };
+
   const [productionPairs, wastePairs, remainingPairs] = await Promise.all([
     prisma.productionRecord.findMany({
       select: { branchId: true, operationalDate: true },
       distinct: ["branchId", "operationalDate"],
+      where: { operationalDate: dateFilter },
     }),
     prisma.wasteRecord.findMany({
       select: { branchId: true, operationalDate: true },
       distinct: ["branchId", "operationalDate"],
+      where: { operationalDate: dateFilter },
     }),
     prisma.remainingRecord.findMany({
       select: { branchId: true, operationalDate: true },
       distinct: ["branchId", "operationalDate"],
+      where: { operationalDate: dateFilter },
     }),
   ]);
 
@@ -178,8 +184,10 @@ async function autoCloseExpiredReopenedDays() {
 
 async function runClosureScheduler() {
   console.log("[CLOSURE_SCHEDULER] Starting scheduled run...");
-  await autoCloseOldOpenDays();
-  await autoCloseExpiredReopenedDays();
+  await Promise.all([
+    autoCloseOldOpenDays(),
+    autoCloseExpiredReopenedDays(),
+  ]);
   console.log("[CLOSURE_SCHEDULER] Scheduled run complete");
 }
 
