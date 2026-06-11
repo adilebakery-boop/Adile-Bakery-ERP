@@ -30,6 +30,8 @@ async function replaceToken(userId) {
   const { raw, tokenHash, expiresAt } = buildToken();
   const now = new Date();
 
+  await prisma.refreshToken.deleteMany({ where: { userId } });
+
   const result = await prisma.refreshToken.create({
     data: { userId, tokenHash, expiresAt, lastUsedAt: now },
   });
