@@ -148,7 +148,11 @@ async function processRolloverDay(branchId, date, draftCount) {
     where: { role: { name: 'ADMIN' } },
     select: { id: true },
   });
-  const rolloverUserId = adminUser?.id;
+  if (!adminUser) {
+    console.log(`[ROLLOVER] skipped branchId=${branchId} date=${dateStr} — no ADMIN user found`);
+    return;
+  }
+  const rolloverUserId = adminUser.id;
 
   try {
     await prisma.$transaction(async (tx) => {

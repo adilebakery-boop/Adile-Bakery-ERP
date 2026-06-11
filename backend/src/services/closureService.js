@@ -385,6 +385,12 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
 }
 
 async function reopenDay(branchId, operationalDate, user, reason) {
+  if (!user) {
+    const error = new Error('User is required to reopen a day');
+    error.status = 401;
+    throw error;
+  }
+
   requireBranchAccess(branchId, user, 'closure');
 
   if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
