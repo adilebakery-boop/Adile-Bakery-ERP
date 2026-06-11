@@ -42,7 +42,6 @@ app.use(cors({
       process.env.FRONTEND_URL,
     ];
     if (allowed.indexOf(origin) !== -1) return cb(null, true);
-    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
     if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.split(',').indexOf(origin) !== -1) return cb(null, true);
     cb(Error('Origin not allowed: ' + origin));
   },

@@ -1,13 +1,22 @@
 const prisma = require('../config/prisma');
 
+function safeClone(value) {
+  if (value === null || value === undefined) return null;
+  try {
+    return structuredClone(value);
+  } catch {
+    return JSON.parse(JSON.stringify(value));
+  }
+}
+
 async function logAudit(entityType, entityId, action, oldValue, newValue, userId) {
   return prisma.auditLog.create({
     data: {
       entityType,
       entityId: parseInt(entityId),
       action,
-      oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
-      newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
+      oldValue: safeClone(oldValue),
+      newValue: safeClone(newValue),
       userId: parseInt(userId),
     },
   });
