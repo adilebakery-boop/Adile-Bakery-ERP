@@ -1,13 +1,15 @@
 const AppError = require('../utils/AppError');
 
 function errorHandler(err, req, res, next) {
-  console.error('[ERROR]', {
-    message: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method,
-    timestamp: new Date().toISOString(),
-  });
+  if (err.name !== 'TokenExpiredError' && err.name !== 'JsonWebTokenError') {
+    console.error('[ERROR]', {
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   if (err instanceof AppError) {
     return res.status(err.status).json({
