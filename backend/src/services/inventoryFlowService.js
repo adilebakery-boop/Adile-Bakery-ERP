@@ -72,6 +72,10 @@ async function resolveRollover(branchId, operationalDate) {
   const currentDate = new Date(operationalDate);
   const currentStr = toDateString(currentDate);
 
+  await prisma.rolloverCache.deleteMany({
+    where: { processedAt: { lt: new Date(Date.now() - ROLLOVER_TTL) } },
+  });
+
   if (await isRolloverRecentlyProcessed(branchId, currentStr)) {
     return;
   }

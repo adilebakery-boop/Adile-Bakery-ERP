@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
   const [wasLockedOut, setWasLockedOut] = useState(false);
   const lockoutTimerRef = useRef(null);
-  const isSubmittingRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,41 +20,36 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmittingRef.current) return;
     setError('');
     setIsLoading(true);
-    isSubmittingRef.current = true;
 
-    try {
-      const result = await authService.login({
-        username,
-        password,
-      });
+    const result = await authService.login({
+      username,
+      password,
+    });
 
-      if (result.success) {
-        setWasLockedOut(false);
-        setLockoutCountdown(0);
-        navigate('/dashboard');
-      } else if (result.message && result.message.includes('Too many login attempts')) {
-        setLockoutCountdown(60);
-        setWasLockedOut(true);
-        setError('');
-        clearInterval(lockoutTimerRef.current);
-        lockoutTimerRef.current = setInterval(() => {
-          setLockoutCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(lockoutTimerRef.current);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        setError('Invalid username or password');
-      }
-    } finally {
-      isSubmittingRef.current = false;
-      setIsLoading(false);
+    setIsLoading(false);
+
+    if (result.success) {
+      setWasLockedOut(false);
+      setLockoutCountdown(0);
+      navigate('/dashboard');
+    } else if (result.message && result.message.includes('Too many login attempts')) {
+      setLockoutCountdown(60);
+      setWasLockedOut(true);
+      setError('');
+      clearInterval(lockoutTimerRef.current);
+      lockoutTimerRef.current = setInterval(() => {
+        setLockoutCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(lockoutTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setError('Invalid username or password');
     }
   };
 
@@ -104,7 +98,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                  className="w-full pl-12 pr-4 py-4 bg-[#DFEDE2] border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
                   placeholder="Enter username"
                   required
                   disabled={isLoading}
@@ -121,7 +115,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                  className="w-full pl-12 pr-12 py-4 bg-[#DFEDE2] border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
                   placeholder="Enter password"
                   required
                   disabled={isLoading}

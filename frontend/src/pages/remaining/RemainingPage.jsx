@@ -280,21 +280,18 @@ export default function RemainingPage() {
         </div>
         <div className="flex items-center gap-3">
           {canManageAll && (
-            <div className="flex items-center gap-2 bg-white dark:bg-[#1E3A3F] px-3 py-2 rounded-xl border border-[#CAEAFD] dark:border-[#1E3A3F]">
-              <Building2 className="w-4 h-4 text-gray-500 dark:text-gray-500" />
-              <select
-                value={selectedBranchId || ''}
-                onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
-                className="bg-transparent border-none outline-none text-sm font-medium text-[#024A5B] dark:text-white cursor-pointer"
-              >
-                <option value="">{t('common.selectBranch')}</option>
-                {branches.map(branch => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={selectedBranchId || ''}
+              onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
+              className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            >
+              <option value="">{t('common.selectBranch')}</option>
+              {branches.map(branch => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
           )}
           {!canManageAll && (
             <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
@@ -302,17 +299,15 @@ export default function RemainingPage() {
               {t('remaining.branch')}: {user?.branch ? getLocalizedName(user.branch, i18n.language) : userBranchId || 'N/A'}
             </span>
           )}
-          <div className="flex items-center gap-2 bg-white dark:bg-[#1E3A3F] px-3 py-2 rounded-xl border border-[#CAEAFD] dark:border-[#1E3A3F]">
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-medium text-[#024A5B] dark:text-white cursor-pointer"
-            >
-              {availableDates.map(d => (
-                <option key={d} value={d}>{dateLabels[d]}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
+          >
+            {availableDates.map(d => (
+              <option key={d} value={d}>{dateLabels[d]}</option>
+            ))}
+          </select>
           {hasUnsavedChanges && (
             <span className="text-sm text-amber-500 flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
