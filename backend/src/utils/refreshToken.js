@@ -84,15 +84,14 @@ async function verify(rawToken) {
   if (record.expiresAt < new Date()) return null;
   if (!record.user.isActive || record.user.isBlocked) return null;
 
-  // Fix #4: log instead of silently swallowing the error
-  prisma.refreshToken
-    .update({
+  try {
+    await prisma.refreshToken.update({
       where: { tokenHash },
       data: { lastUsedAt: new Date() },
-    })
-    .catch((err) => {
-      console.warn("[REFRESH_TOKEN] lastUsedAt update failed", err);
     });
+  } catch (err) {
+    console.warn('[AUTH] Failed to update refresh token lastUsedAt', err);
+  }
 
   return record.user;
 }
