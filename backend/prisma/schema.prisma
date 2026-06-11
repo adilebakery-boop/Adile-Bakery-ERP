@@ -274,8 +274,8 @@ model RefreshToken {
   lastUsedAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
-  @@unique([userId])
   @@index([tokenHash])
+  @@index([userId])
 }
 
 model RateLimit {

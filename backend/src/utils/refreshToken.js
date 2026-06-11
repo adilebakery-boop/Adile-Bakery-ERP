@@ -30,14 +30,12 @@ async function replaceToken(userId) {
   const { raw, tokenHash, expiresAt } = buildToken();
   const now = new Date();
 
-  const result = await prisma.refreshToken.upsert({
-    where: { userId },
-    update: { tokenHash, expiresAt, lastUsedAt: now },
-    create: { userId, tokenHash, expiresAt, lastUsedAt: now },
+  const result = await prisma.refreshToken.create({
+    data: { userId, tokenHash, expiresAt, lastUsedAt: now },
   });
 
   if (!result) {
-    throw new Error("Refresh token upsert failed unexpectedly");
+    throw new Error("Refresh token create failed unexpectedly");
   }
 
   console.log(
@@ -64,10 +62,13 @@ async function rotate(oldRawToken, userId) {
   if (!existing) {
     throw new Error("Refresh token not found");
   }
-  // Fix #3: verify the token belongs to the requesting user
   if (existing.userId !== userId) {
     throw new Error("Refresh token does not belong to this user");
   }
+
+  await prisma.refreshToken.delete({
+    where: { id: existing.id },
+  });
 
   return replaceToken(userId);
 }
@@ -97,7 +98,7 @@ async function verify(rawToken) {
 }
 
 async function revokeAll(userId) {
-  await prisma.refreshToken.delete({ where: { userId } }).catch(() => {});
+  await prisma.refreshToken.deleteMany({ where: { userId } });
 }
 
 module.exports = { create, rotate, verify, revokeAll };
