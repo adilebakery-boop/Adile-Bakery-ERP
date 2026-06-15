@@ -49,39 +49,24 @@ async function getCombinedBranchReport(branchId, operationalDate) {
     isClosed: r.isClosed,
   }));
 
-  const allProducts = new Map();
+  const allProducts = [];
   for (const r of branchReports) {
     for (const p of r.products) {
-      const key = `${p.productId}`;
-      if (allProducts.has(key)) {
-        const existing = allProducts.get(key);
-        existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
-        existing.dayProduction = decimalToNumber(safePlus(existing.dayProduction, p.dayProduction));
-        existing.nightProduction = decimalToNumber(safePlus(existing.nightProduction, p.nightProduction));
-        existing.sellableStock = decimalToNumber(safePlus(existing.sellableStock, p.sellableStock));
-        existing.remainingStock = decimalToNumber(safePlus(existing.remainingStock, p.remainingStock));
-        existing.wasteQuantity = decimalToNumber(safePlus(existing.wasteQuantity, p.wasteQuantity));
-        existing.estimatedSold = decimalToNumber(safePlus(existing.estimatedSold, p.estimatedSold));
-        existing.estimatedRevenue = decimalToNumber(safePlus(existing.estimatedRevenue, p.estimatedRevenue));
-        existing.branchNames.push(r.branchName);
-      } else {
-        allProducts.set(key, {
-          ...p,
-          branchName: r.branchName,
-          branchNames: [r.branchName],
-        });
-      }
+      allProducts.push({
+        ...p,
+        branchId: r.branchId,
+        branchName: r.branchName,
+      });
     }
   }
-  const combined = Array.from(allProducts.values());
-  const totals = inventoryFlowService.getTotals(combined);
+  const totals = inventoryFlowService.getTotals(allProducts);
   return {
     source: 'combined',
     branchId: null,
     branchName: 'All Branches',
     operationalDate: toDateString(new Date(operationalDate)),
     isClosed: false,
-    products: combined,
+    products: allProducts,
     totals,
     branchesData,
   };
