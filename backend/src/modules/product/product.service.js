@@ -37,8 +37,8 @@ const productService = {
       search,
       category,
       isActive,
-      sortBy = 'id',
-      sortOrder = 'desc',
+      sortBy = 'name',
+      sortOrder = 'asc',
     } = options;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
