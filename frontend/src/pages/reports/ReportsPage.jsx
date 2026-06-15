@@ -30,9 +30,12 @@ export default function ReportsPage() {
   const [category, setCategory] = useState('');
   const [productId, setProductId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAllProducts, setShowAllProducts] = useState(false);
   const itemsPerPage = 10;
 
   const canManageAll = isManagerOrAdmin();
+  const isAllBranches = branchId === '' || branchId === 'all';
+  const showBranchColumn = isAllBranches;
   const effectiveBranchId = canManageAll ? branchId : null;
 
   const getProductNameDisplay = (product) => {
@@ -81,7 +84,16 @@ export default function ReportsPage() {
   const loading = activeQuery.isLoading;
   const error = activeQuery.error;
 
-  const products = reportData.products || [];
+  const products = (reportData.products || []).filter(p => {
+    if (showAllProducts) return true;
+    return (
+      (p.openingStock || 0) > 0 ||
+      (p.dayProduction || 0) > 0 ||
+      (p.nightProduction || 0) > 0 ||
+      (p.wasteQuantity || 0) > 0 ||
+      (p.remainingStock || 0) > 0
+    );
+  });
   const days = reportData.days || [];
   const weeks = reportData.weeks || [];
   const months = reportData.months || [];
@@ -278,6 +290,19 @@ export default function ReportsPage() {
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
               )}
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <span className="text-sm text-gray-500 dark:text-gray-500">{t('reports.showAllProducts')}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showAllProducts}
+                  onClick={() => setShowAllProducts(v => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </label>
             </div>
           </div>
         </div>
@@ -303,7 +328,7 @@ export default function ReportsPage() {
                       <tr>
                         <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.product')}</th>
                         <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.category')}</th>
-                        {canManageAll && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.branch')}</th>}
+                        {canManageAll && showBranchColumn && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.branch')}</th>}
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.opening')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.dayProd')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.nightProd')}</th>
@@ -319,7 +344,7 @@ export default function ReportsPage() {
                         <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
                           <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getProductNameDisplay(p)}</td>
                           <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.category}`)}</td>
-                          {canManageAll && <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
+                          {canManageAll && showBranchColumn && <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.dayProduction || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
