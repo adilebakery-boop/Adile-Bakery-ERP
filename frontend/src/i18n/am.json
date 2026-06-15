@@ -239,7 +239,8 @@
     "week": "ሳምንት",
     "month": "ወር",
     "showingProducts": "ከ{{start}} እስከ {{end}} ከ{{total}} ምርቶች እየታዩ ናቸው",
-    "pageOf": "ገጽ {{current}} ከ {{total}}"
+    "pageOf": "ገጽ {{current}} ከ {{total}}",
+    "showAllProducts": "ሁሉንም ምርቶች አሳይ"
   },
   "profile": {
     "title": "ፕሮፋይል ቅንብሮች",
