@@ -30,6 +30,7 @@ export default function ReportsPage() {
   const [category, setCategory] = useState('');
   const [productId, setProductId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAllProducts, setShowAllProducts] = useState(false);
   const itemsPerPage = 10;
 
   const canManageAll = isManagerOrAdmin();
@@ -81,7 +82,16 @@ export default function ReportsPage() {
   const loading = activeQuery.isLoading;
   const error = activeQuery.error;
 
-  const products = reportData.products || [];
+  const products = (reportData.products || []).filter(p => {
+    if (showAllProducts) return true;
+    return (
+      (p.openingStock || 0) > 0 ||
+      (p.dayProduction || 0) > 0 ||
+      (p.nightProduction || 0) > 0 ||
+      (p.wasteQuantity || 0) > 0 ||
+      (p.remainingStock || 0) > 0
+    );
+  });
   const days = reportData.days || [];
   const weeks = reportData.weeks || [];
   const months = reportData.months || [];
@@ -278,6 +288,19 @@ export default function ReportsPage() {
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
               )}
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <span className="text-sm text-gray-500 dark:text-gray-500">{t('reports.showAllProducts')}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showAllProducts}
+                  onClick={() => setShowAllProducts(v => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </label>
             </div>
           </div>
         </div>
