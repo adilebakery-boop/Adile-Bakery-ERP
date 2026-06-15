@@ -809,6 +809,7 @@ async function getInventoryFlowReport(branchId, operationalDate) {
     });
 
     if (snapshot) {
+      console.log('[DEBUG snapshot] branch=%s firstProduct.branchName=%s', snapshot.branch.name, snapshot.items[0]?.product?.name);
       return {
         source: 'snapshot',
         snapshotId: snapshot.id,
@@ -858,6 +859,8 @@ async function getInventoryFlowReport(branchId, operationalDate) {
     flow.branchId = branch?.id;
     flow.branchName = branch?.name || '';
   }
+
+  console.log('[DEBUG] getInventoryFlowReport branch=%s products[0].branchName=%s products[0].branchId=%s count=%d', branch?.name, flows[0]?.branchName, flows[0]?.branchId, flows.length);
 
   return {
     source: 'live',
