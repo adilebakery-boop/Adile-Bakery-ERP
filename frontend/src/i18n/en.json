@@ -240,7 +240,8 @@
     "week": "Week",
     "month": "Month",
     "showingProducts": "Showing {{start}} to {{end}} of {{total}} products",
-    "pageOf": "Page {{current}} of {{total}}"
+    "pageOf": "Page {{current}} of {{total}}",
+    "showAllProducts": "Show All Products"
   },
   "profile": {
     "title": "Profile Settings",
