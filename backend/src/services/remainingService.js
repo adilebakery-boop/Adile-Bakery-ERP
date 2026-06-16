@@ -210,7 +210,10 @@ async function create(data, user) {
 }
 
 async function createBulk(data, user) {
+  const start = Date.now();
   const { branchId, operationalDate: opDateParam, items } = data;
+
+  console.log('[BULK START] items:', items.length);
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
@@ -254,7 +257,8 @@ async function createBulk(data, user) {
     });
     const existingMap = new Map(existingRecords.map(r => [r.productId, r]));
 
-    const results = [];
+    const updateItems = [];
+    const createItemData = [];
     const auditLogs = [];
 
     for (const item of items) {
@@ -287,67 +291,82 @@ async function createBulk(data, user) {
 
       const existing = existingMap.get(parseInt(item.productId));
 
-      let remaining;
-
       if (existing) {
-        const oldValue = { ...existing };
-        remaining = await tx.remainingRecord.update({
-          where: { id: existing.id },
-          data: {
-            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-            status: item.status || 'FINAL',
-            updatedBy: user.userId,
-          },
-          include: {
-            product: { select: { id: true, name: true, category: true } },
-            branch: { select: { id: true, name: true } },
-          },
-        });
-
-        auditLogs.push({
-          entityType: 'remaining',
-          entityId: remaining.id,
-          action: 'UPDATE',
-          oldValue: JSON.parse(JSON.stringify(oldValue)),
-          newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: user.userId,
-        });
+        updateItems.push({ item, existing });
       } else {
-        remaining = await tx.remainingRecord.create({
-          data: {
-            productId: parseInt(item.productId),
-            branchId: parseInt(branchId),
-            operationalDate: opDate,
-            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-            status: item.status || 'FINAL',
-            createdBy: user.userId,
-          },
-          include: {
-            product: { select: { id: true, name: true, category: true } },
-            branch: { select: { id: true, name: true } },
-          },
-        });
-
-        auditLogs.push({
-          entityType: 'remaining',
-          entityId: remaining.id,
-          action: 'CREATE',
-          oldValue: null,
-          newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: user.userId,
+        createItemData.push({
+          productId: parseInt(item.productId),
+          branchId: parseInt(branchId),
+          operationalDate: opDate,
+          quantity: toDecimal(String(item.remainingQuantity ?? 0)),
+          status: item.status || 'FINAL',
+          createdBy: user.userId,
         });
       }
-
-      results.push(remaining);
     }
 
-    await tx.auditLog.createMany({ data: auditLogs });
+    const updateResults = [];
+    for (const { item, existing } of updateItems) {
+      const updated = await tx.remainingRecord.update({
+        where: { id: existing.id },
+        data: {
+          quantity: toDecimal(String(item.remainingQuantity ?? 0)),
+          status: item.status || 'FINAL',
+          updatedBy: user.userId,
+        },
+      });
 
-    return results;
+      updateResults.push(updated);
+      auditLogs.push({
+        entityType: 'remaining',
+        entityId: updated.id,
+        action: 'UPDATE',
+        oldValue: JSON.parse(JSON.stringify(existing)),
+        newValue: JSON.parse(JSON.stringify(updated)),
+        userId: user.userId,
+      });
+    }
+
+    const createResults = createItemData.length > 0
+      ? await tx.remainingRecord.createManyAndReturn({ data: createItemData })
+      : [];
+
+    for (const created of createResults) {
+      auditLogs.push({
+        entityType: 'remaining',
+        entityId: created.id,
+        action: 'CREATE',
+        oldValue: null,
+        newValue: JSON.parse(JSON.stringify(created)),
+        userId: user.userId,
+      });
+    }
+
+    if (auditLogs.length > 0) {
+      await tx.auditLog.createMany({ data: auditLogs });
+    }
+
+    return [...updateResults, ...createResults];
   });
 
+    if (result.length > 0) {
+      const savedIds = result.map(r => r.id);
+      const savedRecords = await prisma.remainingRecord.findMany({
+        where: { id: { in: savedIds } },
+        include: {
+          product: { select: { id: true, name: true, category: true } },
+          branch: { select: { id: true, name: true } },
+        },
+      });
+      const savedMap = new Map(savedRecords.map(r => [r.id, r]));
+      console.log('[BULK END]', Date.now() - start, 'ms');
+      return result.map(r => savedMap.get(r.id) || r);
+    }
+
+    console.log('[BULK END]', Date.now() - start, 'ms');
     return result;
   } catch (err) {
+    console.log('[BULK ERROR]', Date.now() - start, 'ms -', err.message);
     throw err;
   }
 }
