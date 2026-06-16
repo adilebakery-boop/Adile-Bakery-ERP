@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
 import { getUser, getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
@@ -12,6 +13,7 @@ import { useClosureStatus } from '../../hooks/useClosureStatus';
 import { useRemainingEntriesQuery } from '../../features/remaining/hooks/queries/useRemainingEntriesQuery';
 import { useSaveRemainingMutation } from '../../features/remaining/hooks/mutations/useSaveRemainingMutation';
 import { useFinalizeRemainingMutation } from '../../features/remaining/hooks/mutations/useFinalizeRemainingMutation';
+import { reportService } from '../../services/reportService';
 
 const CATEGORY_LABELS = {
   [CATEGORIES.BREAD_AND_SWEET_BREADS]: 'productCategories.BREAD_AND_SWEET_BREADS',
@@ -33,6 +35,7 @@ export default function RemainingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(null);
+  const [showAllProducts, setShowAllProducts] = useState(false);
 
   const user = getUser();
   const userRole = getUserRole();
@@ -74,6 +77,26 @@ export default function RemainingPage() {
     refetch: refetchRemainings,
   } = useRemainingEntriesQuery(effectiveBranchId, selectedDate);
 
+  const { data: flowData, isLoading: isLoadingFlow } = useQuery({
+    queryKey: ['inventory-flow', effectiveBranchId, selectedDate],
+    queryFn: async () => {
+      if (!effectiveBranchId) return { products: [] };
+      const result = await reportService.getInventoryFlowReport({
+        branchId: effectiveBranchId,
+        operationalDate: selectedDate,
+      });
+      if (!result.success) throw new Error(result.message || 'Failed to load inventory flow');
+      return result.data || {};
+    },
+    enabled: !!effectiveBranchId && !!selectedDate,
+    staleTime: 30 * 1000,
+  });
+
+  const flowProductsMap = {};
+  (flowData?.products || []).forEach(p => {
+    flowProductsMap[p.productId] = p;
+  });
+
   useEffect(() => {
     if (!remainingsData) return;
 
@@ -92,6 +115,19 @@ export default function RemainingPage() {
       setSelectedBranchId(branches[0].id);
     }
   }, [branches, canManageAll, selectedBranchId]);
+
+  const hasActivity = (productId) => {
+    if (existingRemainings[productId] !== undefined) return true;
+    const flow = flowProductsMap[productId];
+    if (!flow) return false;
+    return (flow.openingStock || 0) > 0 ||
+           (flow.dayProduction || 0) > 0 ||
+           (flow.nightProduction || 0) > 0;
+  };
+
+  const displayProducts = showAllProducts
+    ? products
+    : products.filter(p => hasActivity(p.id));
 
   const saveMutation = useSaveRemainingMutation();
   const finalizeMutation = useFinalizeRemainingMutation();
@@ -235,7 +271,7 @@ export default function RemainingPage() {
     }
   };
 
-  const grouped = products.reduce((acc, p) => {
+  const grouped = displayProducts.reduce((acc, p) => {
     if (!acc[p.category]) acc[p.category] = [];
     acc[p.category].push(p);
     return acc;
@@ -321,6 +357,18 @@ export default function RemainingPage() {
           >
             <RefreshCw className="w-5 h-5 text-gray-500 dark:text-gray-500" />
           </button>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <span className="text-sm text-gray-500 dark:text-gray-500">{t('remaining.showAllProducts')}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showAllProducts}
+              onClick={() => setShowAllProducts(v => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </label>
         </div>
       </div>
 
@@ -342,7 +390,7 @@ export default function RemainingPage() {
         operationalDate={selectedDate}
       />
 
-      {isLoadingProducts || isLoadingRemainings ? (
+      {isLoadingProducts || isLoadingRemainings || isLoadingFlow ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-[#024A5B]" />
         </div>
