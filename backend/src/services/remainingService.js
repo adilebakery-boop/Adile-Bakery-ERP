@@ -254,8 +254,8 @@ async function createBulk(data, user) {
     });
     const existingMap = new Map(existingRecords.map(r => [r.productId, r]));
 
-    const results = [];
-    const auditLogs = [];
+    const updateItems = [];
+    const createItems = [];
 
     for (const item of items) {
       const product = productMap.get(parseInt(item.productId));
@@ -287,64 +287,85 @@ async function createBulk(data, user) {
 
       const existing = existingMap.get(parseInt(item.productId));
 
-      let remaining;
-
       if (existing) {
-        const oldValue = { ...existing };
-        remaining = await tx.remainingRecord.update({
-          where: { id: existing.id },
-          data: {
-            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-            status: item.status || 'FINAL',
-            updatedBy: user.userId,
-          },
-          include: {
-            product: { select: { id: true, name: true, category: true } },
-            branch: { select: { id: true, name: true } },
-          },
-        });
-
-        auditLogs.push({
-          entityType: 'remaining',
-          entityId: remaining.id,
-          action: 'UPDATE',
-          oldValue: JSON.parse(JSON.stringify(oldValue)),
-          newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: user.userId,
-        });
+        updateItems.push({ item, existing });
       } else {
-        remaining = await tx.remainingRecord.create({
-          data: {
-            productId: parseInt(item.productId),
-            branchId: parseInt(branchId),
-            operationalDate: opDate,
-            quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-            status: item.status || 'FINAL',
-            createdBy: user.userId,
-          },
-          include: {
-            product: { select: { id: true, name: true, category: true } },
-            branch: { select: { id: true, name: true } },
-          },
-        });
-
-        auditLogs.push({
-          entityType: 'remaining',
-          entityId: remaining.id,
-          action: 'CREATE',
-          oldValue: null,
-          newValue: JSON.parse(JSON.stringify(remaining)),
-          userId: user.userId,
-        });
+        createItems.push({ item });
       }
-
-      results.push(remaining);
     }
 
-    await tx.auditLog.createMany({ data: auditLogs });
+    const [updateResults, createResults] = await Promise.all([
+      Promise.all(
+        updateItems.map(({ item, existing }) =>
+          tx.remainingRecord.update({
+            where: { id: existing.id },
+            data: {
+              quantity: toDecimal(String(item.remainingQuantity ?? 0)),
+              status: item.status || 'FINAL',
+              updatedBy: user.userId,
+            },
+          })
+        )
+      ),
+      Promise.all(
+        createItems.map(({ item }) =>
+          tx.remainingRecord.create({
+            data: {
+              productId: parseInt(item.productId),
+              branchId: parseInt(branchId),
+              operationalDate: opDate,
+              quantity: toDecimal(String(item.remainingQuantity ?? 0)),
+              status: item.status || 'FINAL',
+              createdBy: user.userId,
+            },
+          })
+        )
+      ),
+    ]);
+
+    const results = [...updateResults, ...createResults];
+
+    const auditLogs = [];
+    for (let i = 0; i < updateItems.length; i++) {
+      auditLogs.push({
+        entityType: 'remaining',
+        entityId: updateResults[i].id,
+        action: 'UPDATE',
+        oldValue: JSON.parse(JSON.stringify(updateItems[i].existing)),
+        newValue: JSON.parse(JSON.stringify(updateResults[i])),
+        userId: user.userId,
+      });
+    }
+    for (let i = 0; i < createItems.length; i++) {
+      auditLogs.push({
+        entityType: 'remaining',
+        entityId: createResults[i].id,
+        action: 'CREATE',
+        oldValue: null,
+        newValue: JSON.parse(JSON.stringify(createResults[i])),
+        userId: user.userId,
+      });
+    }
+
+    if (auditLogs.length > 0) {
+      await tx.auditLog.createMany({ data: auditLogs });
+    }
 
     return results;
   });
+
+    if (result.length > 0) {
+      const savedIds = result.map(r => r.id);
+      const savedRecords = await prisma.remainingRecord.findMany({
+        where: { id: { in: savedIds } },
+        include: {
+          product: { select: { id: true, name: true, category: true } },
+          branch: { select: { id: true, name: true } },
+        },
+      });
+      const savedMap = new Map(savedRecords.map(r => [r.id, r]));
+      return result.map(r => savedMap.get(r.id) || r);
+    }
 
     return result;
   } catch (err) {
