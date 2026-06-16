@@ -146,7 +146,8 @@
     "noProductsAvailable": "ለእርስዎ ሚና ምርት የለም",
     "selectBranch": "ቅርንጫፍ ምረጥ",
     "branch": "ቅርንጫፍ",
-    "today": "ዛሬ"
+    "today": "ዛሬ",
+    "showAllProducts": "ሁሉንም ምርቶች አሳይ"
   },
   "products": {
     "title": "ምርቶች",
