@@ -145,7 +145,8 @@
     "skippedInactive": "inactive product(s) skipped",
     "noProductsAvailable": "No products available for your role",
     "selectBranch": "Select branch",
-    "branch": "Branch"
+    "branch": "Branch",
+    "showAllProducts": "Show All Products"
   },
   "products": {
     "title": "Products",
