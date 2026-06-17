@@ -217,7 +217,7 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center gap-4">
+        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex flex-wrap items-center gap-2">
           <select
             value={branchFilter}
             onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
@@ -245,7 +245,7 @@ export default function UsersPage() {
           </select>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-max">
             <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
               <tr>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('users.fullName')}</th>
