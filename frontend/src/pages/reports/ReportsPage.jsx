@@ -112,6 +112,17 @@ export default function ReportsPage() {
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const isEmptyTotals = (t) =>
+    !t ||
+    (
+      (t.totalDayProduction || 0) === 0 &&
+      (t.totalNightProduction || 0) === 0 &&
+      (t.totalRemainingStock || 0) === 0 &&
+      (t.totalWasteQuantity || 0) === 0 &&
+      (t.totalEstimatedSold || 0) === 0 &&
+      (t.totalEstimatedRevenue || 0) === 0
+    );
+
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, date, branchId, category, productId]);
@@ -438,7 +449,7 @@ export default function ReportsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {days.map((day, idx) => {
                     const title = i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`;
-                    if (day.totals == null) {
+                    if (isEmptyTotals(day.totals)) {
                       return (
                         <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
@@ -487,7 +498,7 @@ export default function ReportsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {weeks.map((week, idx) => {
                     const title = `${t('reports.week')} ${idx + 1}`;
-                    if (week.totals == null) {
+                    if (isEmptyTotals(week.totals)) {
                       return (
                         <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
@@ -537,7 +548,7 @@ export default function ReportsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {months.map((month, idx) => {
                     const title = i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName;
-                    if (month.totals == null) {
+                    if (isEmptyTotals(month.totals)) {
                       return (
                         <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
