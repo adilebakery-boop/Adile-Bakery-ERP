@@ -432,19 +432,19 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {days.map((day, idx) => {
-                    const t = day.totals || {};
+                    const dayTotals = day.totals || {};
                     return (
                       <ReportSummaryCard
                         key={idx}
                         title={i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`}
                         subtitle={day.date || '-'}
                         fields={[
-                          { label: t('reports.dayProduction'), value: t.totalDayProduction },
-                          { label: t('reports.nightProduction'), value: t.totalNightProduction },
-                          { label: t('reports.remaining'), value: t.totalRemainingStock },
-                          { label: t('reports.waste'), value: t.totalWasteQuantity },
-                          { label: t('reports.estSold'), value: t.totalEstimatedSold, highlighted: true },
-                          { label: t('reports.revenue'), value: t.totalEstimatedRevenue, highlighted: true, revenue: true },
+                          { label: t('reports.dayProduction'), value: dayTotals.totalDayProduction },
+                          { label: t('reports.nightProduction'), value: dayTotals.totalNightProduction },
+                          { label: t('reports.remaining'), value: dayTotals.totalRemainingStock },
+                          { label: t('reports.waste'), value: dayTotals.totalWasteQuantity },
+                          { label: t('reports.estSold'), value: dayTotals.totalEstimatedSold, highlighted: true },
+                          { label: t('reports.revenue'), value: dayTotals.totalEstimatedRevenue, highlighted: true, revenue: true },
                         ]}
                       />
                     );
@@ -467,19 +467,19 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {weeks.map((week, idx) => {
-                    const t = week.totals || {};
+                    const weekTotals = week.totals || {};
                     return (
                       <ReportSummaryCard
                         key={idx}
                         title={`${t('reports.week')} ${idx + 1}`}
                         subtitle={week.weekStartDate || '-'}
                         fields={[
-                          { label: t('reports.dayProduction'), value: t.totalDayProduction },
-                          { label: t('reports.nightProduction'), value: t.totalNightProduction },
-                          { label: t('reports.remaining'), value: t.totalRemainingStock },
-                          { label: t('reports.waste'), value: t.totalWasteQuantity },
-                          { label: t('reports.estSold'), value: t.totalEstimatedSold, highlighted: true },
-                          { label: t('reports.revenue'), value: t.totalEstimatedRevenue, highlighted: true, revenue: true },
+                          { label: t('reports.dayProduction'), value: weekTotals.totalDayProduction },
+                          { label: t('reports.nightProduction'), value: weekTotals.totalNightProduction },
+                          { label: t('reports.remaining'), value: weekTotals.totalRemainingStock },
+                          { label: t('reports.waste'), value: weekTotals.totalWasteQuantity },
+                          { label: t('reports.estSold'), value: weekTotals.totalEstimatedSold, highlighted: true },
+                          { label: t('reports.revenue'), value: weekTotals.totalEstimatedRevenue, highlighted: true, revenue: true },
                         ]}
                       />
                     );
@@ -503,18 +503,18 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {months.map((month, idx) => {
-                    const t = month.totals || {};
+                    const monthTotals = month.totals || {};
                     const title = i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName;
                     return (
                       <ReportSummaryCard
                         key={idx}
                         title={title}
                         fields={[
-                          { label: t('reports.production'), value: (t.totalDayProduction || 0) + (t.totalNightProduction || 0) },
-                          { label: t('reports.remaining'), value: t.totalRemainingStock },
-                          { label: t('reports.waste'), value: t.totalWasteQuantity },
-                          { label: t('reports.estSold'), value: t.totalEstimatedSold, highlighted: true },
-                          { label: t('reports.revenue'), value: t.totalEstimatedRevenue, highlighted: true, revenue: true },
+                          { label: t('reports.production'), value: (monthTotals.totalDayProduction || 0) + (monthTotals.totalNightProduction || 0) },
+                          { label: t('reports.remaining'), value: monthTotals.totalRemainingStock },
+                          { label: t('reports.waste'), value: monthTotals.totalWasteQuantity },
+                          { label: t('reports.estSold'), value: monthTotals.totalEstimatedSold, highlighted: true },
+                          { label: t('reports.revenue'), value: monthTotals.totalEstimatedRevenue, highlighted: true, revenue: true },
                         ]}
                       />
                     );
