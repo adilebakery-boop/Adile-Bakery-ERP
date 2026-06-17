@@ -211,7 +211,10 @@ async function create(data, user) {
 }
 
 async function createBulk(data, user) {
+  const start = Date.now();
   const { branchId, operationalDate: opDateParam, items } = data;
+
+  console.log('[BULK START] items:', items.length);
 
   const opDate = opDateParam ? new Date(opDateParam) : new Date();
 
