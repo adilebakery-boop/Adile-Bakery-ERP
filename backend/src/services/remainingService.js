@@ -1,3 +1,4 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const auditService = require('./auditService');
 const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils');
@@ -221,7 +222,7 @@ async function createBulk(data, user) {
 
   const branch = await prisma.branch.findUnique({
     where: { id: parseInt(branchId) },
-    select: { isActive: true },
+    select: { isActive: true, name: true },
   });
 
   if (!branch || !branch.isActive) {
@@ -229,6 +230,8 @@ async function createBulk(data, user) {
     error.status = 400;
     throw error;
   }
+
+  const branchInfo = { id: parseInt(branchId), name: branch.name };
 
   if (!canEditOperationalRecord(opDate, user.role)) {
     const error = new Error('Remaining records can only be edited within the 3-day edit window');
@@ -238,137 +241,107 @@ async function createBulk(data, user) {
 
   await requireDayNotClosed(branchId, opDate);
 
-  try {
-    const result = await prisma.$transaction(async (tx) => {
+  // Fetch products and existing records outside the transaction (read-only)
+  const productIds = items.map(item => parseInt(item.productId));
 
-    const productIds = items.map(item => parseInt(item.productId));
+  const allProducts = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+  });
+  const productMap = new Map(allProducts.map(p => [p.id, p]));
 
-    const allProducts = await tx.product.findMany({
-      where: { id: { in: productIds } },
-    });
-    const productMap = new Map(allProducts.map(p => [p.id, p]));
+  const existingRecords = await prisma.remainingRecord.findMany({
+    where: {
+      branchId: parseInt(branchId),
+      operationalDate: opDate,
+      productId: { in: productIds },
+    },
+  });
+  const existingMap = new Map(existingRecords.map(r => [r.productId, r]));
 
-    const existingRecords = await tx.remainingRecord.findMany({
-      where: {
-        branchId: parseInt(branchId),
-        operationalDate: opDate,
-        productId: { in: productIds },
-      },
-    });
-    const existingMap = new Map(existingRecords.map(r => [r.productId, r]));
+  // Validate all items
+  for (const item of items) {
+    const product = productMap.get(parseInt(item.productId));
 
-    const updateItems = [];
-    const createItemData = [];
-    const auditLogs = [];
-
-    for (const item of items) {
-      const product = productMap.get(parseInt(item.productId));
-
-      if (!product) {
-        const err = new Error(`Product ${item.productId} not found`);
-        err.status = 404;
-        throw err;
-      }
-
-      if (!product.isActive) {
-        const err = new Error(`Cannot save remaining for inactive product: ${product.id}`);
-        err.status = 400;
-        throw err;
-      }
-
-      if (!canCreateForCategory(user, product.category)) {
-        const err = new Error(`You do not have permission to record remaining for product "${product.name}"`);
-        err.status = 403;
-        throw err;
-      }
-
-      const bulkUnitValidation = validateQuantityForUnitType(item.remainingQuantity, product.unitType);
-      if (!bulkUnitValidation.valid) {
-        const err = new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
-        err.status = 400;
-        throw err;
-      }
-
-      const existing = existingMap.get(parseInt(item.productId));
-
-      if (existing) {
-        updateItems.push({ item, existing });
-      } else {
-        createItemData.push({
-          productId: parseInt(item.productId),
-          branchId: parseInt(branchId),
-          operationalDate: opDate,
-          quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-          status: item.status || 'FINAL',
-          createdBy: user.userId,
-        });
-      }
+    if (!product) {
+      const err = new Error(`Product ${item.productId} not found`);
+      err.status = 404;
+      throw err;
     }
 
-    const updateResults = [];
-    for (const { item, existing } of updateItems) {
-      const updated = await tx.remainingRecord.update({
-        where: { id: existing.id },
-        data: {
-          quantity: toDecimal(String(item.remainingQuantity ?? 0)),
-          status: item.status || 'FINAL',
-          updatedBy: user.userId,
-        },
-      });
-
-      updateResults.push(updated);
-      auditLogs.push({
-        entityType: 'remaining',
-        entityId: updated.id,
-        action: 'UPDATE',
-        oldValue: JSON.parse(JSON.stringify(existing)),
-        newValue: JSON.parse(JSON.stringify(updated)),
-        userId: user.userId,
-      });
+    if (!product.isActive) {
+      const err = new Error(`Cannot save remaining for inactive product: ${product.id}`);
+      err.status = 400;
+      throw err;
     }
 
-    const createResults = createItemData.length > 0
-      ? await tx.remainingRecord.createManyAndReturn({ data: createItemData })
-      : [];
-
-    for (const created of createResults) {
-      auditLogs.push({
-        entityType: 'remaining',
-        entityId: created.id,
-        action: 'CREATE',
-        oldValue: null,
-        newValue: JSON.parse(JSON.stringify(created)),
-        userId: user.userId,
-      });
+    if (!canCreateForCategory(user, product.category)) {
+      const err = new Error(`You do not have permission to record remaining for product "${product.name}"`);
+      err.status = 403;
+      throw err;
     }
 
-    if (auditLogs.length > 0) {
-      await tx.auditLog.createMany({ data: auditLogs });
+    const bulkUnitValidation = validateQuantityForUnitType(item.remainingQuantity, product.unitType);
+    if (!bulkUnitValidation.valid) {
+      const err = new Error(`Product "${product.name}": ${bulkUnitValidation.message}`);
+      err.status = 400;
+      throw err;
     }
+  }
 
-    return [...updateResults, ...createResults];
+  const result = await prisma.$transaction(async (tx) => {
+
+  const branchIdNum = parseInt(branchId);
+  const userIdNum = user.userId;
+
+  const returnedRows = items.length > 0
+    ? await tx.$queryRaw(Prisma.sql`
+    INSERT INTO "RemainingRecord"
+      ("productId", "branchId", "operationalDate", "quantity", "status", "createdBy", "updatedAt")
+    VALUES ${Prisma.join(items.map(item => Prisma.sql`(
+      ${parseInt(item.productId)},
+      ${branchIdNum},
+      ${opDate}::date,
+      ${toDecimal(String(item.remainingQuantity ?? 0)).toString()}::decimal(12,3),
+      ${item.status || 'FINAL'}::"RemainingStatus",
+      ${userIdNum},
+      NOW()
+    )`))}
+    ON CONFLICT ("branchId", "operationalDate", "productId") DO UPDATE
+    SET
+      "quantity" = EXCLUDED."quantity",
+      "status" = EXCLUDED."status",
+      "updatedBy" = ${userIdNum},
+      "updatedAt" = NOW()
+    RETURNING *;
+  `)
+    : [];
+
+  const auditLogs = returnedRows.map(row => {
+    const existing = existingMap.get(row.productId);
+    return {
+      entityType: 'remaining',
+      entityId: row.id,
+      action: existing ? 'UPDATE' : 'CREATE',
+      oldValue: existing ? JSON.parse(JSON.stringify(existing)) : null,
+      newValue: JSON.parse(JSON.stringify(row)),
+      userId: user.userId,
+    };
   });
 
-    if (result.length > 0) {
-      const savedIds = result.map(r => r.id);
-      const savedRecords = await prisma.remainingRecord.findMany({
-        where: { id: { in: savedIds } },
-        include: {
-          product: { select: { id: true, name: true, category: true } },
-          branch: { select: { id: true, name: true } },
-        },
-      });
-      const savedMap = new Map(savedRecords.map(r => [r.id, r]));
-      console.log('[BULK END]', Date.now() - start, 'ms');
-      return result.map(r => savedMap.get(r.id) || r);
-    }
-
-    console.log('[BULK END]', Date.now() - start, 'ms');
-    return result;
-  } catch (err) {
-    console.log('[BULK ERROR]', Date.now() - start, 'ms -', err.message);
-    throw err;
+  if (auditLogs.length > 0) {
+    await tx.auditLog.createMany({ data: auditLogs });
   }
+
+  return returnedRows.map(row => ({
+    ...row,
+    product: productMap.get(row.productId)
+      ? { id: row.productId, name: productMap.get(row.productId).name, category: productMap.get(row.productId).category }
+      : undefined,
+    branch: branchInfo,
+  }));
+});
+
+  return result;
 }
 
 async function update(id, data, user) {
