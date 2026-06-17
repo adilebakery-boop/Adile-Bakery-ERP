@@ -149,9 +149,9 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
         <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('products.title')}</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {canManage && (
             <button 
               onClick={() => setIsDeletedModalOpen(true)}
