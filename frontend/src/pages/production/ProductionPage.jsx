@@ -25,6 +25,7 @@ export default function ProductionPage() {
   const { t, i18n } = useTranslation();
   const [product, setProduct] = useState('');
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
+  const [selectedProductShift, setSelectedProductShift] = useState(null);
   const today = new Date();
   const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const minDate = new Date();
@@ -193,8 +194,10 @@ export default function ProductionPage() {
       });
       setSuccess('Production recorded successfully!');
       setProduct('');
+      setShift('');
       setQuantity('');
       setSelectedProductUnitType(null);
+      setSelectedProductShift(null);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to record production');
@@ -374,6 +377,15 @@ export default function ProductionPage() {
                   setProduct(e.target.value);
                   const selected = fullProductList.find(p => p.id === parseInt(e.target.value));
                   setSelectedProductUnitType(selected?.unitType || null);
+                  const productShift = selected?.productionShift || 'BOTH';
+                  setSelectedProductShift(productShift);
+                  if (productShift === 'DAY') {
+                    setShift('DAY');
+                  } else if (productShift === 'NIGHT') {
+                    setShift('NIGHT');
+                  } else {
+                    setShift('');
+                  }
                   setQuantity('');
                 }}
                 className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
@@ -413,15 +425,22 @@ export default function ProductionPage() {
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+              className={`w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white ${!product || selectedProductShift !== 'BOTH' ? 'bg-gray-100 dark:bg-[#1E3A3F] cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-[#024A5B]'}`}
               required
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || !product || (selectedProductShift && selectedProductShift !== 'BOTH')}
             >
-              <option value="">{t('production.selectShift')}</option>
+              {!product || selectedProductShift === 'BOTH' ? (
+                <option value="">{t('production.selectShift')}</option>
+              ) : null}
               {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
+                selectedProductShift === 'BOTH' || selectedProductShift === s.value ? (
+                  <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
+                ) : null
               ))}
             </select>
+            {product && selectedProductShift && selectedProductShift !== 'BOTH' && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('productionShift.' + selectedProductShift)} - {t('production.shiftLockedTooltip')}</p>
+            )}
           </div>
 
           <div className="w-full md:w-40">
