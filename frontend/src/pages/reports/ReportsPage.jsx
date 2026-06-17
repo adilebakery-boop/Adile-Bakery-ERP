@@ -86,6 +86,11 @@ export default function ReportsPage() {
   const loading = activeQuery.isLoading;
   const error = activeQuery.error;
 
+  if (activeTab === 'yearly' && reportData.months) {
+    console.log('[yearly] reportData.months length:', reportData.months.length);
+    if (reportData.months[0]) console.log('[yearly] month[0].totals:', reportData.months[0].totals);
+  }
+
   const products = (reportData.products || []).filter(p => {
     if (showAllProducts) return true;
     return (
@@ -106,6 +111,17 @@ export default function ReportsPage() {
 
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const isEmptyTotals = (t) =>
+    !t ||
+    (
+      (t.totalDayProduction || 0) === 0 &&
+      (t.totalNightProduction || 0) === 0 &&
+      (t.totalRemainingStock || 0) === 0 &&
+      (t.totalWasteQuantity || 0) === 0 &&
+      (t.totalEstimatedSold || 0) === 0 &&
+      (t.totalEstimatedRevenue || 0) === 0
+    );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -220,12 +236,12 @@ export default function ReportsPage() {
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="p-6 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit">
+            <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
               {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all flex-1 sm:flex-none ${
+                  className={`px-3 sm:px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all flex-1 sm:flex-none whitespace-nowrap ${
                     activeTab === tab ? 'bg-white dark:bg-[#12262A] text-[#024A5B] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500'
                   }`}
                 >
@@ -330,13 +346,13 @@ export default function ReportsPage() {
                     <thead className="bg-[#DFEDE2]/50">
                       <tr>
                         <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.product')}</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.category')}</th>
-                        {canManageAll && showBranchColumn && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.branch')}</th>}
+                        <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.category')}</th>
+                        {canManageAll && showBranchColumn && <th className="hidden md:table-cell px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.branch')}</th>}
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.opening')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.dayProd')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.nightProd')}</th>
                         {/* TODO(future): Rename 'Sellable' — this value is opening + dayProd + nightProd (available inventory), NOT estimated sales. Consider 'Available Stock' or 'Total Stock'. */}
-                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.sellable')}</th>
+                        <th className="hidden md:table-cell px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.sellable')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.remaining')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.waste')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.estSold')}</th>
@@ -347,12 +363,12 @@ export default function ReportsPage() {
                       {paginatedProducts.map((p, idx) => (
                         <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
                           <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getProductNameDisplay(p)}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.category}`)}</td>
-                          {canManageAll && showBranchColumn && <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
+                          <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.category}`)}</td>
+                          {canManageAll && showBranchColumn && <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.dayProduction || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
-                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.sellableStock || 0}</td>
+                          <td className="hidden md:table-cell px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.sellableStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.remainingStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.wasteQuantity || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B] dark:text-white">{p.estimatedSold || 0}</td>
@@ -432,11 +448,25 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {days.map((day, idx) => {
-                    const dayTotals = day.totals || {};
+                    const title = i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`;
+                    if (isEmptyTotals(day.totals)) {
+                      return (
+                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
+                            {day.date && <span className="text-xs text-gray-500 dark:text-gray-400">{day.date}</span>}
+                          </div>
+                          <div className="flex items-center justify-center h-24 text-xs text-gray-400 dark:text-gray-500 italic">
+                            {t('reports.noDataForPeriod')}
+                          </div>
+                        </div>
+                      );
+                    }
+                    const dayTotals = day.totals;
                     return (
                       <ReportSummaryCard
                         key={idx}
-                        title={i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`}
+                        title={title}
                         subtitle={day.date || '-'}
                         fields={[
                           { label: t('reports.dayProduction'), value: dayTotals.totalDayProduction },
@@ -467,11 +497,25 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {weeks.map((week, idx) => {
-                    const weekTotals = week.totals || {};
+                    const title = `${t('reports.week')} ${idx + 1}`;
+                    if (isEmptyTotals(week.totals)) {
+                      return (
+                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
+                            {week.weekStartDate && <span className="text-xs text-gray-500 dark:text-gray-400">{week.weekStartDate}</span>}
+                          </div>
+                          <div className="flex items-center justify-center h-24 text-xs text-gray-400 dark:text-gray-500 italic">
+                            {t('reports.noDataForPeriod')}
+                          </div>
+                        </div>
+                      );
+                    }
+                    const weekTotals = week.totals;
                     return (
                       <ReportSummaryCard
                         key={idx}
-                        title={`${t('reports.week')} ${idx + 1}`}
+                        title={title}
                         subtitle={week.weekStartDate || '-'}
                         fields={[
                           { label: t('reports.dayProduction'), value: weekTotals.totalDayProduction },
@@ -503,8 +547,20 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {months.map((month, idx) => {
-                    const monthTotals = month.totals || {};
                     const title = i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName;
+                    if (isEmptyTotals(month.totals)) {
+                      return (
+                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
+                          </div>
+                          <div className="flex items-center justify-center h-24 text-xs text-gray-400 dark:text-gray-500 italic">
+                            {t('reports.noDataForPeriod')}
+                          </div>
+                        </div>
+                      );
+                    }
+                    const monthTotals = month.totals;
                     return (
                       <ReportSummaryCard
                         key={idx}
