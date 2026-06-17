@@ -217,11 +217,11 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex flex-wrap items-center gap-2">
+        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <select
             value={branchFilter}
             onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            className="w-full px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
             disabled={isManager}
           >
             {!isManager && <option value="">{t('users.allBranches')}</option>}
@@ -234,7 +234,7 @@ export default function UsersPage() {
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            className="w-full px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
           >
             <option value="">{t('users.allRoles')}</option>
             {ALL_ROLES.map((role) => (
