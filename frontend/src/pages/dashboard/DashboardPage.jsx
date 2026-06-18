@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Package, DollarSign, AlertCircle, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
@@ -10,7 +11,7 @@ import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skele
 import { ApiErrorState } from '../../components/ui/ErrorState';
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   };
 
   const getActivityLabel = (activity) => {
-    const productName = activity.product || activity.productName || activity.product?.name || 'Item';
+    const productName = activity.product?.name ? getLocalizedName(activity.product, i18n.language) : activity.product || activity.productName || 'Item';
     const branchName = activity.branchName ? ` (${activity.branchName})` : '';
     switch (activity.type?.toLowerCase()) {
       case 'production':

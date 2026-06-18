@@ -21,6 +21,7 @@ const productService = {
         category: data.category,
         price: data.price,
         unitType: data.unitType,
+        productionShift: data.productionShift,
         isActive: true,
       },
     });
@@ -37,8 +38,8 @@ const productService = {
       search,
       category,
       isActive,
-      sortBy = 'id',
-      sortOrder = 'desc',
+      sortBy = 'name',
+      sortOrder = 'asc',
     } = options;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -117,6 +118,7 @@ const productService = {
           category: data.category,
           price: data.price,
           unitType: data.unitType,
+          productionShift: data.productionShift,
           isActive: data.isActive,
         },
       });

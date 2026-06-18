@@ -25,6 +25,7 @@ export default function ProductionPage() {
   const { t, i18n } = useTranslation();
   const [product, setProduct] = useState('');
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
+  const [selectedProductShift, setSelectedProductShift] = useState(null);
   const today = new Date();
   const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const minDate = new Date();
@@ -193,8 +194,10 @@ export default function ProductionPage() {
       });
       setSuccess('Production recorded successfully!');
       setProduct('');
+      setShift('');
       setQuantity('');
       setSelectedProductUnitType(null);
+      setSelectedProductShift(null);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to record production');
@@ -284,7 +287,7 @@ export default function ProductionPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.product')}</label>
             <input
               type="text"
-              value={editingEntry?.product?.name || ''}
+              value={getLocalizedName(editingEntry?.product, i18n.language) || ''}
               disabled
               className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white"
             />
@@ -374,6 +377,15 @@ export default function ProductionPage() {
                   setProduct(e.target.value);
                   const selected = fullProductList.find(p => p.id === parseInt(e.target.value));
                   setSelectedProductUnitType(selected?.unitType || null);
+                  const productShift = selected?.productionShift || 'BOTH';
+                  setSelectedProductShift(productShift);
+                  if (productShift === 'DAY') {
+                    setShift('DAY');
+                  } else if (productShift === 'NIGHT') {
+                    setShift('NIGHT');
+                  } else {
+                    setShift('');
+                  }
                   setQuantity('');
                 }}
                 className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
@@ -413,13 +425,17 @@ export default function ProductionPage() {
             <select
               value={shift}
               onChange={(e) => setShift(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+              className={`w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white ${!product || selectedProductShift !== 'BOTH' ? 'bg-gray-100 dark:bg-[#1E3A3F] cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-[#024A5B]'}`}
               required
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || !product || (selectedProductShift && selectedProductShift !== 'BOTH')}
             >
-              <option value="">{t('production.selectShift')}</option>
+              {!product || selectedProductShift === 'BOTH' ? (
+                <option value="">{t('production.selectShift')}</option>
+              ) : null}
               {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
+                selectedProductShift === 'BOTH' || selectedProductShift === s.value ? (
+                  <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
+                ) : null
               ))}
             </select>
           </div>
@@ -465,8 +481,8 @@ export default function ProductionPage() {
         onBranchChange={setClosureBranch}
       />
 
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <div className="relative flex-1 max-w-md min-w-[200px]">
+      <div className="mb-6 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
+        <div className="relative flex-1 max-w-md min-w-[200px] w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
           <input
             type="text"
@@ -476,28 +492,30 @@ export default function ProductionPage() {
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
           />
         </div>
-        {canManageAll && (
+        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4">
+          {canManageAll && (
+            <select
+              value={selectedFilterBranch}
+              onChange={(e) => setSelectedFilterBranch(e.target.value)}
+              className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            >
+              <option value="">{t('production.allBranches')}</option>
+              {(Array.isArray(branches) ? branches : []).map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          )}
           <select
-            value={selectedFilterBranch}
-            onChange={(e) => setSelectedFilterBranch(e.target.value)}
-            className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            value={selectedFilterProduct}
+            onChange={(e) => setSelectedFilterProduct(e.target.value)}
+            className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
           >
-            <option value="">{t('production.allBranches')}</option>
-            {(Array.isArray(branches) ? branches : []).map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+            <option value="">{t('production.allProducts')}</option>
+            {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
+              <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
             ))}
           </select>
-        )}
-        <select
-          value={selectedFilterProduct}
-          onChange={(e) => setSelectedFilterProduct(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
-        >
-          <option value="">{t('production.allProducts')}</option>
-          {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
-            <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
-          ))}
-        </select>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
