@@ -528,7 +528,7 @@ async function getEstimatedRevenue(branchId, operationalDate, productId) {
 async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   if (!product) {
@@ -562,6 +562,8 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
   return {
     productId: product.id,
     productName: product.name,
+    name: product.name,
+    name_am: product.name_am,
     category: product.category,
     unitType: product.unitType,
     price: decimalToNumber(histPrice ?? product.price),
@@ -661,7 +663,7 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   // ── BATCH 5: Product metadata ──
   const products = await prisma.product.findMany({
     where: { id: { in: allProductIds } },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   // ── BATCH 6: Price history — single batch load instead of per-product lookups ──
@@ -734,6 +736,8 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     return {
       productId: pid,
       productName: product.name,
+      name: product.name,
+      name_am: product.name_am,
       category: product.category,
       unitType: product.unitType,
       price: decimalToNumber(price),
@@ -823,6 +827,8 @@ async function getInventoryFlowReport(branchId, operationalDate) {
         products: snapshot.items.map(item => ({
           productId: item.productId,
           productName: item.product.name,
+          name: item.product.name,
+          name_am: item.product.name_am,
           category: item.product.category,
           unitType: item.product.unitType,
           price: decimalToNumber(item.snapshotPrice ?? 0),
