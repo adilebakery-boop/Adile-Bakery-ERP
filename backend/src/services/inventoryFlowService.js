@@ -528,7 +528,7 @@ async function getEstimatedRevenue(branchId, operationalDate, productId) {
 async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   if (!product) {
@@ -560,12 +560,14 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const histPrice = await getHistoricalPrice(productId, operationalDate);
 
   return {
-    productId: product.id,
-    productName: product.name,
-    category: product.category,
-    unitType: product.unitType,
+    product: {
+      id: product.id,
+      name: product.name,
+      name_am: product.name_am,
+      category: product.category,
+      unitType: product.unitType,
+    },
     price: decimalToNumber(histPrice ?? product.price),
-    isActive: product.isActive,
     openingStock: decimalToNumber(openingStock),
     dayProduction: decimalToNumber(dayProduction),
     nightProduction: decimalToNumber(nightProduction),
@@ -661,7 +663,7 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   // ── BATCH 5: Product metadata ──
   const products = await prisma.product.findMany({
     where: { id: { in: allProductIds } },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   // ── BATCH 6: Price history — single batch load instead of per-product lookups ──
@@ -732,12 +734,14 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     const estimatedRevenue = safeMultiply(estimatedSold, price);
 
     return {
-      productId: pid,
-      productName: product.name,
-      category: product.category,
-      unitType: product.unitType,
+      product: {
+        id: pid,
+        name: product.name,
+        name_am: product.name_am,
+        category: product.category,
+        unitType: product.unitType,
+      },
       price: decimalToNumber(price),
-      isActive: product.isActive,
       openingStock: decimalToNumber(openingStock),
       dayProduction: decimalToNumber(dayProduction),
       nightProduction: decimalToNumber(nightProduction),
@@ -821,10 +825,13 @@ async function getInventoryFlowReport(branchId, operationalDate) {
         operationalDate: toDateString(new Date(operationalDate)),
         isClosed: true,
         products: snapshot.items.map(item => ({
-          productId: item.productId,
-          productName: item.product.name,
-          category: item.product.category,
-          unitType: item.product.unitType,
+          product: {
+            id: item.productId,
+            name: item.product.name,
+            name_am: item.product.name_am,
+            category: item.product.category,
+            unitType: item.product.unitType,
+          },
           price: decimalToNumber(item.snapshotPrice ?? 0),
           openingStock: decimalToNumber(item.openingStock),
           dayProduction: decimalToNumber(item.dayProduction),
