@@ -148,6 +148,9 @@
     "branch": "ቅርንጫፍ",
     "today": "ዛሬ"
   },
+  "ui": {
+    "showAllProducts": "ሁሉንም ምርቶች አሳይ"
+  },
   "products": {
     "title": "ምርቶች",
     "addProduct": "ምርት ጨምር",
@@ -168,6 +171,7 @@
     "enterPrice": "ዋጋ አስገባ",
     "productName": "የምርት ስም",
     "saving": "በማስቀመጥ ላይ...",
+    "productionShift": "የምርት ፈረቃ",
     "restore": "መልስ",
     "noDeletedProducts": "የተሰረዙ ምርቶች የሉም"
   },
@@ -217,6 +221,7 @@
     "allBranches": "ሁሉም ቅርንጫፎች",
     "allCategories": "ሁሉም ምድቦች",
     "allProducts": "ሁሉም ምርቶች",
+    "failedToLoadReport": "ሪፖርቱን መጫን አልተሳካም",
     "noDataForPeriod": "ለዚህ ጊዜ መረጃ የለም",
     "product": "ምርት",
     "category": "ምድብ",
@@ -275,6 +280,11 @@
     "cookies": "ኩኪዎች",
     "fetireAndSnacks": "ፈቲረ እና መክሰስ",
     "drinksAndRetailItems": "መጠጦች እና የችርቻሮ እቃዎች"
+  },
+  "productionShift": {
+    "DAY": "ቀን",
+    "NIGHT": "ሌሊት",
+    "BOTH": "ሁለቱም"
   },
   "shifts": {
     "day": "ቀን 7:30-7:30",

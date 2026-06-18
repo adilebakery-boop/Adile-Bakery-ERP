@@ -65,20 +65,21 @@ model User {
 }
 
 model Product {
-  id            Int                   @id @default(autoincrement())
-  name          String                @unique
-  price         Decimal               @db.Decimal(12, 2)
-  isActive      Boolean               @default(true)
-  category      ProductCategory
-  unitType      UnitType
-  costPrice     Decimal?              @db.Decimal(12, 2)
-  name_am       String?
-  sellingPrice  Decimal?              @db.Decimal(12, 2)
-  snapshotItems DailySnapshotItem[]
-  priceHistory  ProductPriceHistory[]
-  productions   ProductionRecord[]
-  remainings    RemainingRecord[]
-  wastes        WasteRecord[]
+  id              Int                   @id @default(autoincrement())
+  name            String                @unique
+  price           Decimal               @db.Decimal(12, 2)
+  isActive        Boolean               @default(true)
+  category        ProductCategory
+  unitType        UnitType
+  costPrice       Decimal?              @db.Decimal(12, 2)
+  name_am         String?
+  sellingPrice    Decimal?              @db.Decimal(12, 2)
+  productionShift ProductionShift       @default(BOTH)
+  snapshotItems   DailySnapshotItem[]
+  priceHistory    ProductPriceHistory[]
+  productions     ProductionRecord[]
+  remainings      RemainingRecord[]
+  wastes          WasteRecord[]
 
   @@index([category])
   @@index([isActive])
@@ -328,6 +329,12 @@ enum ProductCategory {
   DRINKS_AND_RETAIL_ITEMS
   FETIRE_AND_SNACKS
   COOKIES
+}
+
+enum ProductionShift {
+  DAY
+  NIGHT
+  BOTH
 }
 
 enum UnitType {

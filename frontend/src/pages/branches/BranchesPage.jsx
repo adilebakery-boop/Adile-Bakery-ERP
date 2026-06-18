@@ -91,10 +91,10 @@ export default function BranchesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
         <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('branches.title')}</h1>
         {canManage && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-row flex-wrap gap-2">
             <button
               onClick={() => setIsDeletedModalOpen(true)}
               className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"

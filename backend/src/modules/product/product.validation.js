@@ -11,6 +11,7 @@ const ProductCategory = [
 ];
 
 const UnitType = ['piece', 'kg'];
+const ProductionShift = ['DAY', 'NIGHT', 'BOTH'];
 
 const createProductSchema = z.object({
   name: z.string()
@@ -21,6 +22,7 @@ const createProductSchema = z.object({
   price: z.coerce.number({ invalid_type_error: 'Price must be a number' })
     .positive('Price must be positive')
     .max(999999.99, 'Price must not exceed 999999.99'),
+  productionShift: z.enum(ProductionShift, { errorMap: () => ({ message: 'Invalid production shift' }) }).optional(),
 });
 
 const updateProductSchema = z.object({
@@ -35,6 +37,7 @@ const updateProductSchema = z.object({
     .max(999999.99, 'Price must not exceed 999999.99')
     .optional(),
   unitType: z.enum(UnitType, { errorMap: () => ({ message: 'Invalid unit type' }) }).optional(),
+  productionShift: z.enum(ProductionShift, { errorMap: () => ({ message: 'Invalid production shift' }) }).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -59,4 +62,5 @@ module.exports = {
   querySchema,
   ProductCategory,
   UnitType,
+  ProductionShift,
 };

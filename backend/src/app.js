@@ -43,7 +43,8 @@ app.use(cors({
     ];
     if (allowed.indexOf(origin) !== -1) return cb(null, true);
     if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.split(',').indexOf(origin) !== -1) return cb(null, true);
-    cb(Error('Origin not allowed: ' + origin));
+    if (/^https:\/\/adile-bakery-[a-z0-9-]+-nathanzerfu-s-projects\.vercel\.app$/.test(origin)) return cb(null, true);
+    cb(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
