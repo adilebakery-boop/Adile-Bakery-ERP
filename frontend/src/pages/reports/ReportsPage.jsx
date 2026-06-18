@@ -299,11 +299,11 @@ export default function ReportsPage() {
               )}
 
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-sm text-gray-500 dark:text-gray-500">{t('reports.showAllProducts')}</span>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={showAllProducts}
+                  aria-label={t('ui.showAllProducts')}
                   onClick={() => setShowAllProducts(v => !v)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
                 >
