@@ -307,68 +307,107 @@ export default function RemainingPage() {
 
   const isEditable = canEditOperationalRecord(selectedDate, userRole) && !isClosed;
 
+  const branchSelect = canManageAll ? (
+    <select
+      value={selectedBranchId || ''}
+      onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
+      className="flex-1 px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
+    >
+      <option value="">{t('common.selectBranch')}</option>
+      {branches.map(branch => (
+        <option key={branch.id} value={branch.id}>
+          {branch.name}
+        </option>
+      ))}
+    </select>
+  ) : (
+    <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
+      <Building2 className="w-4 h-4 shrink-0" />
+      {t('remaining.branch')}: {user?.branch ? getLocalizedName(user.branch, i18n.language) : userBranchId || 'N/A'}
+    </span>
+  );
+
+  const dateSelect = (
+    <select
+      value={selectedDate}
+      onChange={(e) => setSelectedDate(e.target.value)}
+      className="flex-1 px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
+    >
+      {availableDates.map(d => (
+        <option key={d} value={d}>{dateLabels[d]}</option>
+      ))}
+    </select>
+  );
+
+  const unsavedBadge = hasUnsavedChanges && (
+    <span className="text-sm text-amber-500 flex items-center gap-1">
+      <AlertCircle className="w-4 h-4" />
+      {t('remaining.unsavedChanges')}
+    </span>
+  );
+
+  const refreshButton = (
+    <button
+      onClick={() => refetchRemainings()}
+      className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors"
+      title={t('common.refresh')}
+    >
+      <RefreshCw className="w-5 h-5 text-gray-500 dark:text-gray-500" />
+    </button>
+  );
+
+  const toggleSwitch = (
+    <label className="flex items-center cursor-pointer select-none">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={showAllProducts}
+        aria-label={t('ui.showAllProducts')}
+        onClick={() => setShowAllProducts(v => !v)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+    </label>
+  );
+
   return (
     <div className="pb-28">
-      <div className="flex items-center justify-between mb-8">
+      {/*
+        Mobile layout (default, hidden on lg+):
+          Row 1: Title
+          Row 2: Branch + date dropdowns
+          Row 3: "18 Jun 2026" (left) + toggle + refresh (right)
+        Desktop layout (lg+):
+          Single row: Title + date (left) | filters + actions (right)
+      */}
+      <div className="lg:hidden mb-8">
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('remaining.title')}</h1>
+        <div className="flex gap-3 mt-4">
+          {branchSelect}
+          {dateSelect}
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-sm text-gray-500 dark:text-gray-500">{formatOperationalDate(selectedDate)}</span>
+          <div className="flex items-center gap-2">
+            {unsavedBadge}
+            {toggleSwitch}
+            {refreshButton}
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('remaining.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{formatOperationalDate(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
-          {canManageAll && (
-            <select
-              value={selectedBranchId || ''}
-              onChange={(e) => setSelectedBranchId(parseInt(e.target.value))}
-              className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
-            >
-              <option value="">{t('common.selectBranch')}</option>
-              {branches.map(branch => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {!canManageAll && (
-            <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
-              <Building2 className="w-4 h-4" />
-              {t('remaining.branch')}: {user?.branch ? getLocalizedName(user.branch, i18n.language) : userBranchId || 'N/A'}
-            </span>
-          )}
-          <select
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
-          >
-            {availableDates.map(d => (
-              <option key={d} value={d}>{dateLabels[d]}</option>
-            ))}
-          </select>
-          {hasUnsavedChanges && (
-            <span className="text-sm text-amber-500 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {t('remaining.unsavedChanges')}
-            </span>
-          )}
-          <button
-            onClick={() => refetchRemainings()}
-            className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors"
-            title={t('common.refresh')}
-          >
-            <RefreshCw className="w-5 h-5 text-gray-500 dark:text-gray-500" />
-          </button>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showAllProducts}
-              aria-label={t('ui.showAllProducts')}
-              onClick={() => setShowAllProducts(v => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
-          </label>
+          {branchSelect}
+          {dateSelect}
+          {unsavedBadge}
+          {toggleSwitch}
+          {refreshButton}
         </div>
       </div>
 
