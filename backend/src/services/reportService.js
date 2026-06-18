@@ -7,10 +7,10 @@ const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./invent
 function filterProducts(products, category, productId) {
   let filtered = products;
   if (category) {
-    filtered = filtered.filter(p => p.category === category);
+    filtered = filtered.filter(p => (p.product?.category || p.category) === category);
   }
   if (productId) {
-    filtered = filtered.filter(p => p.productId === productId);
+    filtered = filtered.filter(p => String(p.product?.id || p.productId) === String(productId));
   }
   return filtered;
 }
@@ -133,7 +133,7 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
     }
 
     for (const p of dayProducts) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
@@ -284,7 +284,7 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   const allProductsMap = new Map();
   for (const week of weeks) {
     for (const p of (week.products || [])) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
@@ -332,9 +332,7 @@ const MONTH_NAMES_FULL = [
 
 function createProdEntry(item) {
   return {
-    productId: item.productId,
-    productName: item.productName,
-    category: item.category,
+    product: item.product,
     price: item.price,
     displayPrice: item.displayPrice || String(item.price || 0),
     totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -714,9 +712,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into monthProductsMap
         if (!monthProductsMap[m][key]) {
           monthProductsMap[m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -727,9 +723,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (!branchProductsMap[branch.id][m]) branchProductsMap[branch.id][m] = {};
         if (!branchProductsMap[branch.id][m][key]) {
           branchProductsMap[branch.id][m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -739,9 +733,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into productYearlyTotals
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -869,8 +861,8 @@ function exportToCSV(reportData) {
   ];
 
   const normalizedProducts = reportData.products.map(p => ({
-    productName: p.productName,
-    category: p.category,
+    productName: p.product?.name || p.productName || '',
+    category: p.product?.category || p.category || '',
     openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
     dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
     nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,
