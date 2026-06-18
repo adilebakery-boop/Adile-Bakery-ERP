@@ -219,6 +219,7 @@
     "allBranches": "ሁሉም ቅርንጫፎች",
     "allCategories": "ሁሉም ምድቦች",
     "allProducts": "ሁሉም ምርቶች",
+    "failedToLoadReport": "ሪፖርቱን መጫን አልተሳካም",
     "noDataForPeriod": "ለዚህ ጊዜ መረጃ የለም",
     "product": "ምርት",
     "category": "ምድብ",
