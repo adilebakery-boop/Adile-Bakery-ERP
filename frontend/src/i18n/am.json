@@ -169,6 +169,7 @@
     "enterPrice": "ዋጋ አስገባ",
     "productName": "የምርት ስም",
     "saving": "በማስቀመጥ ላይ...",
+    "productionShift": "የምርት ፈረቃ",
     "restore": "መልስ",
     "noDeletedProducts": "የተሰረዙ ምርቶች የሉም"
   },
@@ -277,6 +278,11 @@
     "cookies": "ኩኪዎች",
     "fetireAndSnacks": "ፈቲረ እና መክሰስ",
     "drinksAndRetailItems": "መጠጦች እና የችርቻሮ እቃዎች"
+  },
+  "productionShift": {
+    "DAY": "ቀን",
+    "NIGHT": "ሌሊት",
+    "BOTH": "ሁለቱም"
   },
   "shifts": {
     "day": "ቀን 7:30-7:30",

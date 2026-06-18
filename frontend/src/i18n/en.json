@@ -168,6 +168,7 @@
     "enterPrice": "Enter price",
     "productName": "Product Name",
     "saving": "Saving...",
+    "productionShift": "Production Shift",
     "restore": "Restore",
     "noDeletedProducts": "No deleted products"
   },
@@ -278,6 +279,11 @@
     "cookies": "Cookies",
     "fetireAndSnacks": "Fetire & Snacks",
     "drinksAndRetailItems": "Drinks & Retail"
+  },
+  "productionShift": {
+    "DAY": "Day",
+    "NIGHT": "Night",
+    "BOTH": "Both"
   },
   "shifts": {
     "day": "Day 7:30-7:30",

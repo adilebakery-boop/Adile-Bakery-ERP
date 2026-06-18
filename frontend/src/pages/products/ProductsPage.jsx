@@ -24,6 +24,7 @@ const CATEGORIES = [
   { value: 'COOKIES', labelKey: 'productCategories.COOKIES' },
 ];
 const UNITS = ['piece', 'kg'];
+const PRODUCTION_SHIFTS = ['DAY', 'NIGHT', 'BOTH'];
 
 export default function ProductsPage() {
   const { t, i18n } = useTranslation();
@@ -41,7 +42,7 @@ export default function ProductsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({ name: '', name_am: '', category: '', price: '', unitType: '' });
+  const [formData, setFormData] = useState({ name: '', name_am: '', category: '', price: '', unitType: '', productionShift: 'BOTH' });
   const [actionError, setActionError] = useState(null);
 
   const filters = {
@@ -84,7 +85,7 @@ export default function ProductsPage() {
     try {
       await createProduct.mutateAsync({ ...formData, price: parseFloat(formData.price) });
       setIsModalOpen(false);
-      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
+      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '', productionShift: 'BOTH' });
     } catch (err) {
       setActionError(err.message);
     }
@@ -98,6 +99,7 @@ export default function ProductsPage() {
       category: product.category,
       price: product.price.toString(),
       unitType: product.unitType,
+      productionShift: product.productionShift || 'BOTH',
     });
     setIsEditModalOpen(true);
   };
@@ -109,7 +111,7 @@ export default function ProductsPage() {
       await updateProduct.mutateAsync({ id: editingProduct.id, data: { ...formData, price: parseFloat(formData.price) } });
       setIsEditModalOpen(false);
       setEditingProduct(null);
-      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '' });
+      setFormData({ name: '', name_am: '', category: '', price: '', unitType: '', productionShift: 'BOTH' });
     } catch (err) {
       setActionError(err.message);
     }
@@ -210,25 +212,26 @@ export default function ProductsPage() {
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('products.category')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('products.priceEtb')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('products.unit')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('products.productionShift')}</th>
                 {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4}>
-                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  <td colSpan={canManage ? 6 : 5}>
+                    <TableSkeleton rows={8} columns={canManage ? 6 : 5} />
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4}>
+                  <td colSpan={canManage ? 6 : 5}>
                     <ApiErrorState error={queryError} onRetry={() => refetch()} />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-<td colSpan={canManage ? 5 : 4}>
+<td colSpan={canManage ? 6 : 5}>
                     <EmptyState type="products" message={t('products.noProductsFound')} />
                   </td>
                 </tr>
@@ -241,6 +244,11 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-[#024A5B]">{product.price} ETB</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`units.${product.unitType}`)}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#CAEAFD]/20 dark:bg-[#236B56]/50 text-[#024A5B] dark:text-white">
+                        {t(`productionShift.${product.productionShift || 'BOTH'}`)}
+                      </span>
+                    </td>
                     {canManage && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -319,6 +327,12 @@ export default function ProductsPage() {
               {UNITS.map((unit) => <option key={unit} value={unit}>{getUnitLabel(unit)}</option>)}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.productionShift')}</label>
+            <select value={formData.productionShift} onChange={(e) => setFormData({ ...formData, productionShift: e.target.value })} className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm" required>
+              {PRODUCTION_SHIFTS.map((s) => <option key={s} value={s}>{t(`productionShift.${s}`)}</option>)}
+            </select>
+          </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm">{t('common.cancel')}</button>
             <button type="submit" disabled={createProduct.isPending} className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70">{createProduct.isPending ? t('products.saving') : t('common.save')}</button>
@@ -355,6 +369,12 @@ export default function ProductsPage() {
             <select value={formData.unitType} onChange={(e) => setFormData({ ...formData, unitType: e.target.value })} className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm" required>
               <option value="">{t('products.selectUnit')}</option>
               {UNITS.map((unit) => <option key={unit} value={unit}>{getUnitLabel(unit)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">{t('products.productionShift')}</label>
+            <select value={formData.productionShift} onChange={(e) => setFormData({ ...formData, productionShift: e.target.value })} className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm" required>
+              {PRODUCTION_SHIFTS.map((s) => <option key={s} value={s}>{t(`productionShift.${s}`)}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
