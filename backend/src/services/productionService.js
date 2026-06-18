@@ -7,6 +7,7 @@ const { requireDayNotClosed, getClosureMap } = require('./closureService');
 const { buildProductionAccessFilter, isAdminOrManager, getAllowedCategories, requireBranchAccess } = require('../utils/accessFilters');
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { DEFAULT_PAST_OPERATIONAL_DAYS, DEFAULT_FUTURE_OPERATIONAL_DAYS } = require('../constants/operationalWindow');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 
 const ZERO = new Prisma.Decimal('0');
 
@@ -49,7 +50,7 @@ async function findAll(filters = {}, user) {
       skip,
       take: limitNum,
       include: {
-        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
         creator: { select: { id: true, name: true, username: true } },
       },
@@ -92,7 +93,7 @@ async function findByOperationalDate(branchId, operationalDate, shift = null) {
   const productions = await prisma.productionRecord.findMany({
     where,
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -199,7 +200,7 @@ async function create(data, user) {
       createdBy: user.userId,
     },
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -255,7 +256,7 @@ async function update(id, data, user) {
     where: { id: parseInt(id) },
     data: updateData,
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
       updater: { select: { id: true, name: true } },
@@ -312,7 +313,7 @@ async function getTodayProductions(branchId, user) {
   const productions = await prisma.productionRecord.findMany({
     where,
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -395,7 +396,7 @@ async function findAllGrouped(filters = {}, user) {
   const productions = await prisma.productionRecord.findMany({
     where: { OR: conditions },
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true, username: true } },
     },

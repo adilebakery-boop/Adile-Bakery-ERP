@@ -1,6 +1,7 @@
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString, getMonday, getSunday } = require('../utils/dateUtils');
 const prisma = require('../config/prisma');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./inventoryFlowService');
 
 function filterProducts(products, category, productId) {
@@ -673,7 +674,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         },
         include: {
           items: {
-            include: { product: { select: { id: true, name: true, category: true, price: true } } }
+            include: { product: { select: PRODUCT_SELECT_LOCALIZED } }
           },
         },
       }),

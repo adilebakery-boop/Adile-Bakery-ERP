@@ -396,7 +396,7 @@ export default function ProductsPage() {
             {deletedProducts.map((product) => (
               <div key={product.id} className="flex items-center justify-between p-3 bg-[#DFEDE2] rounded-xl">
                 <div>
-                  <div className="font-medium text-[#024A5B]">{product.name}</div>
+                  <div className="font-medium text-[#024A5B]">{getLocalizedName(product, i18n.language)}</div>
                   <div className="text-sm text-gray-500">{product.category} - {product.price} ETB</div>
                 </div>
                 <button
