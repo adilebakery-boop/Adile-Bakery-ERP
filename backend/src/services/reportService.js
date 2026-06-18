@@ -781,6 +781,49 @@ async function getYearlyReport(branchId, year, category, productId) {
     groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
   }));
 
+  // Post-process: normalize flat live-path entries to nested product objects
+  // Live path (groupLiveByMonth) creates {productId, productName: '', category: ''}
+  // while snapshot path creates {product: {id, name, ...}}. Normalize both to nested.
+  const missingPids = new Set();
+  for (let m = 1; m <= 12; m++) {
+    for (const entry of Object.values(monthProductsMap[m])) {
+      if (!entry.product) missingPids.add(entry.productId);
+    }
+    for (const branch of branches) {
+      const bMap = branchProductsMap[branch.id]?.[m];
+      if (bMap) for (const entry of Object.values(bMap)) if (!entry.product) missingPids.add(entry.productId);
+    }
+  }
+  for (const entry of Object.values(productYearlyTotals)) {
+    if (!entry.product) missingPids.add(entry.productId);
+  }
+  if (missingPids.size > 0) {
+    const missingProducts = await prisma.product.findMany({
+      where: { id: { in: [...missingPids] } },
+      select: { id: true, name: true, name_am: true, category: true, unitType: true },
+    });
+    const prodMap = {};
+    for (const p of missingProducts) prodMap[p.id] = p;
+    const normalizeEntry = (entry) => {
+      if (entry.product) return;
+      const pid = entry.productId;
+      const meta = prodMap[pid];
+      entry.product = meta
+        ? { id: meta.id, name: meta.name, name_am: meta.name_am, category: meta.category, unitType: meta.unitType }
+        : { id: pid, name: String(pid), name_am: '', category: '', unitType: '' };
+      delete entry.productId;
+      delete entry.productName;
+    };
+    for (let m = 1; m <= 12; m++) {
+      for (const entry of Object.values(monthProductsMap[m])) normalizeEntry(entry);
+      for (const branch of branches) {
+        const bMap = branchProductsMap[branch.id]?.[m];
+        if (bMap) for (const entry of Object.values(bMap)) normalizeEntry(entry);
+      }
+    }
+    for (const entry of Object.values(productYearlyTotals)) normalizeEntry(entry);
+  }
+
   // Build months array
   const months = [];
   for (let m = 1; m <= 12; m++) {

@@ -146,7 +146,9 @@
     "noProductsAvailable": "ለእርስዎ ሚና ምርት የለም",
     "selectBranch": "ቅርንጫፍ ምረጥ",
     "branch": "ቅርንጫፍ",
-    "today": "ዛሬ",
+    "today": "ዛሬ"
+  },
+  "ui": {
     "showAllProducts": "ሁሉንም ምርቶች አሳይ"
   },
   "products": {
@@ -242,8 +244,7 @@
     "week": "ሳምንት",
     "month": "ወር",
     "showingProducts": "ከ{{start}} እስከ {{end}} ከ{{total}} ምርቶች እየታዩ ናቸው",
-    "pageOf": "ገጽ {{current}} ከ {{total}}",
-    "showAllProducts": "ሁሉንም ምርቶች አሳይ"
+    "pageOf": "ገጽ {{current}} ከ {{total}}"
   },
   "profile": {
     "title": "ፕሮፋይል ቅንብሮች",
