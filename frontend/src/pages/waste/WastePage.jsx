@@ -15,6 +15,10 @@ import { getCategoriesForRole } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { GroupedTable, OperationalPagination } from '../../components/operational';
 
+const normalizedOpDate = (d) => (d || '').split('T')[0];
+
+const getGroupKey = (group) => `${group.operationalDate}-${group.productId}-${group.branchId}`;
+
 export default function WastePage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
@@ -109,8 +113,6 @@ export default function WastePage() {
       }
     }
   }, [branches, canManage, closureBranch]);
-
-  const normalizedOpDate = useCallback((d) => (d || '').split('T')[0], []);
 
   const groupedWastes = useMemo(() => {
     const groups = {};
@@ -272,8 +274,6 @@ export default function WastePage() {
   const toggleGroupExpand = useCallback((key) => {
     setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
-
-  const getGroupKey = useCallback((group) => `${group.operationalDate}-${group.productId}-${group.branchId}`, []);
 
   return (
     <div>
@@ -515,7 +515,7 @@ export default function WastePage() {
                 </td>
               </tr>
             );
-          }, [t, canManage, i18n.language, expandedGroups, getGroupKey, toggleGroupExpand])}
+          }, [t, canManage, i18n.language, expandedGroups, toggleGroupExpand])}
           renderEntryTable={useCallback((group) => (
             <>
               <thead>
