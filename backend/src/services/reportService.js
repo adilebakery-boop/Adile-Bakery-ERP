@@ -332,9 +332,7 @@ const MONTH_NAMES_FULL = [
 
 function createProdEntry(item) {
   return {
-    productId: item.productId,
-    productName: item.productName,
-    category: item.category,
+    product: item.product,
     price: item.price,
     displayPrice: item.displayPrice || String(item.price || 0),
     totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -714,9 +712,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into monthProductsMap
         if (!monthProductsMap[m][key]) {
           monthProductsMap[m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -727,9 +723,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (!branchProductsMap[branch.id][m]) branchProductsMap[branch.id][m] = {};
         if (!branchProductsMap[branch.id][m][key]) {
           branchProductsMap[branch.id][m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -739,9 +733,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into productYearlyTotals
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -869,8 +861,8 @@ function exportToCSV(reportData) {
   ];
 
   const normalizedProducts = reportData.products.map(p => ({
-    productName: p.productName,
-    category: p.category,
+    productName: p.product?.name || p.productName || '',
+    category: p.product?.category || p.category || '',
     openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
     dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
     nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,

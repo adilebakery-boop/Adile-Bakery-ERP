@@ -29,7 +29,7 @@ function sortProductsAlphabetically(products) {
 function getCategoryTotals(products) {
   const categoryMap = {};
   for (const p of products) {
-    const cat = p.category || 'Other';
+    const cat = p.product?.category || p.category || 'Other';
     if (!categoryMap[cat]) {
       categoryMap[cat] = {
         totalProduction: 0,
@@ -53,7 +53,7 @@ function getTopProducts(products, count = 5) {
     .sort((a, b) => ((b.totalEstimatedRevenue ?? b.estimatedRevenue ?? 0) - (a.totalEstimatedRevenue ?? a.estimatedRevenue ?? 0)))
     .slice(0, count)
     .map(p => ({
-      name: p.productName,
+      name: p.product?.name || p.productName,
       revenue: p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0,
       sold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
     }));
@@ -211,11 +211,11 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
       toNumber(p.totalEstimatedRevenue || p.estimatedRevenue),
     ];
 
-    worksheet.getCell(row, 1).value = p.productName;
+    worksheet.getCell(row, 1).value = p.product?.name || p.productName || '';
     worksheet.getCell(row, 1).alignment = { horizontal: 'left' };
     worksheet.getCell(row, 1).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
-    worksheet.getCell(row, 2).value = p.category;
+    worksheet.getCell(row, 2).value = p.product?.category || p.category || '';
     worksheet.getCell(row, 2).alignment = { horizontal: 'left' };
     worksheet.getCell(row, 2).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
