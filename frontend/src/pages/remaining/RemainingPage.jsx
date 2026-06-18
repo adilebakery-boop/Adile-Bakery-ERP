@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Save, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
@@ -92,10 +92,13 @@ export default function RemainingPage() {
     staleTime: 30 * 1000,
   });
 
-  const flowProductsMap = {};
-  (flowData?.products || []).forEach(p => {
-    flowProductsMap[p.productId] = p;
-  });
+  const flowProductsMap = useMemo(() => {
+    const map = {};
+    (flowData?.products || []).forEach(p => {
+      map[p.productId] = p;
+    });
+    return map;
+  }, [flowData]);
 
   useEffect(() => {
     if (!remainingsData) return;
@@ -116,18 +119,20 @@ export default function RemainingPage() {
     }
   }, [branches, canManageAll, selectedBranchId]);
 
-  const hasActivity = (productId) => {
+  const hasActivity = useCallback((productId) => {
     if (existingRemainings[productId] !== undefined) return true;
     const flow = flowProductsMap[productId];
     if (!flow) return false;
     return (flow.openingStock || 0) > 0 ||
            (flow.dayProduction || 0) > 0 ||
            (flow.nightProduction || 0) > 0;
-  };
+  }, [existingRemainings, flowProductsMap]);
 
-  const displayProducts = showAllProducts
-    ? products
-    : products.filter(p => hasActivity(p.id));
+  const displayProducts = useMemo(() => {
+    return showAllProducts
+      ? products
+      : products.filter(p => hasActivity(p.id));
+  }, [showAllProducts, products, hasActivity]);
 
   const saveMutation = useSaveRemainingMutation();
   const finalizeMutation = useFinalizeRemainingMutation();
@@ -271,11 +276,13 @@ export default function RemainingPage() {
     }
   };
 
-  const grouped = displayProducts.reduce((acc, p) => {
-    if (!acc[p.category]) acc[p.category] = [];
-    acc[p.category].push(p);
-    return acc;
-  }, {});
+  const grouped = useMemo(() => {
+    return displayProducts.reduce((acc, p) => {
+      if (!acc[p.category]) acc[p.category] = [];
+      acc[p.category].push(p);
+      return acc;
+    }, {});
+  }, [displayProducts]);
 
   const hasUnsavedChanges = Object.values(existingRemainings).some(r => r._dirty === true);
   const hasUnfinalizedChanges = Object.values(existingRemainings).some(r => r._dirty === true || r.status === 'DRAFT');
