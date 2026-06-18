@@ -11,7 +11,7 @@ import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skele
 import { ApiErrorState } from '../../components/ui/ErrorState';
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
