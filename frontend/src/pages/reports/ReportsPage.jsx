@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
-import { getLocalizedName, PRODUCT_NAMES, BRANCH_NAMES } from '../../utils/getLocalizedName';
+import { getLocalizedName, BRANCH_NAMES } from '../../utils/getLocalizedName';
 import reportService from '../../services/reportService';
 import { useBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useProductCategoriesQuery } from '../../features/products/hooks/queries/useProductCategoriesQuery';
@@ -39,18 +39,6 @@ export default function ReportsPage() {
   const isAllBranches = branchId === '' || branchId === 'all';
   const showBranchColumn = isAllBranches;
   const effectiveBranchId = canManageAll ? branchId : null;
-
-  const getProductNameDisplay = (product) => {
-    if (!product) return '';
-    const name = product.productName || product.name || '';
-    if (i18n.language === 'am' && name && PRODUCT_NAMES[name]) {
-      return PRODUCT_NAMES[name];
-    }
-    if (i18n.language === 'am' && (product.name_am || product.productNameAm)) {
-      return product.name_am || product.productNameAm;
-    }
-    return name;
-  };
 
   const getBranchNameDisplay = (branchName) => {
     if (!branchName) return '-';
@@ -213,7 +201,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('reports.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report — {formatOperationalDate(date)}
+            {t(`reports.${activeTab}`)} {t('reports.report')} — {formatOperationalDate(date)}
             {branchId ? ` — ${getLocalizedName(branches.find(b => b.id.toString() === branchId), i18n.language) || ''}` : ''}
           </p>
         </div>
@@ -222,14 +210,14 @@ export default function ReportsPage() {
           className="bg-[#4CB094] text-[#002830] px-5 py-3 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-[#236B56] transition-colors"
         >
           <Download className="w-4 h-4" />
-          Export
+          {t('reports.export')}
         </button>
       </div>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
-          {error.message || 'Failed to load report'}
+          {error.message || t('reports.failedToLoadReport')}
         </div>
       )}
 
@@ -301,7 +289,7 @@ export default function ReportsPage() {
                     disabled={!category && productList.length === 0}
                     className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm appearance-none pr-10 w-full sm:min-w-[180px] disabled:opacity-50 dark:text-white"
                   >
-                    <option value="">All Products</option>
+                    <option value="">{t('reports.allProducts')}</option>
                     {productList.map((p) => (
                       <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
                     ))}
@@ -335,7 +323,7 @@ export default function ReportsPage() {
             <div className="w-16 h-16 bg-[#DFEDE2] rounded-full flex items-center justify-center mb-4">
               <Package className="w-8 h-8 text-gray-500" />
             </div>
-            <p className="text-gray-500 text-sm">No data for this period</p>
+            <p className="text-gray-500 text-sm">{t('reports.noDataForPeriod')}</p>
           </div>
         ) : (
           <>
@@ -362,7 +350,7 @@ export default function ReportsPage() {
                     <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
                       {paginatedProducts.map((p, idx) => (
                         <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
-                          <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getProductNameDisplay(p)}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(p, i18n.language)}</td>
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.category}`)}</td>
                           {canManageAll && showBranchColumn && <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>

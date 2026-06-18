@@ -219,6 +219,7 @@
     "allCategories": "All Categories",
     "allProducts": "All Products",
 
+    "failedToLoadReport": "Failed to load report",
     "noDataForPeriod": "No data for this period",
     "product": "Product",
     "category": "Category",
