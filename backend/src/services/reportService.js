@@ -7,10 +7,10 @@ const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./invent
 function filterProducts(products, category, productId) {
   let filtered = products;
   if (category) {
-    filtered = filtered.filter(p => p.category === category);
+    filtered = filtered.filter(p => (p.product?.category || p.category) === category);
   }
   if (productId) {
-    filtered = filtered.filter(p => p.productId === productId);
+    filtered = filtered.filter(p => String(p.product?.id || p.productId) === String(productId));
   }
   return filtered;
 }
@@ -133,7 +133,7 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
     }
 
     for (const p of dayProducts) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
@@ -284,7 +284,7 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   const allProductsMap = new Map();
   for (const week of weeks) {
     for (const p of (week.products || [])) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
