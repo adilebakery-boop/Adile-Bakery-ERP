@@ -2072,9 +2072,9 @@ if (hasBranchData) {
       summaryRow++;
 
       for (const p of topProducts) {
-        const productData = reportData.products.find(pr => pr.productName === p.name);
+        const productData = reportData.products.find(pr => (pr.product?.name || pr.productName) === p.name);
         summarySheet.getCell(summaryRow, 1).value = p.name;
-        summarySheet.getCell(summaryRow, 2).value = productData?.category || '';
+        summarySheet.getCell(summaryRow, 2).value = productData?.product?.category || productData?.category || '';
         summarySheet.getCell(summaryRow, 3).value = toNumber(productData?.totalDayProduction || 0);
         summarySheet.getCell(summaryRow, 3).numFmt = '#,##0';
         summarySheet.getCell(summaryRow, 4).value = toNumber(p.sold);
