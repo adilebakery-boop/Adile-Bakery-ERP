@@ -287,7 +287,7 @@ export default function ProductionPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('production.product')}</label>
             <input
               type="text"
-              value={editingEntry?.product?.name || ''}
+              value={getLocalizedName(editingEntry?.product, i18n.language) || ''}
               disabled
               className="w-full px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white"
             />
