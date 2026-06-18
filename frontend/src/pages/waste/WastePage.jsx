@@ -602,7 +602,7 @@ export default function WastePage() {
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('waste.product')}</label>
               <div className="px-4 py-3.5 bg-gray-100 dark:bg-[#1E3A3F] rounded-xl text-sm text-gray-700 dark:text-gray-300">
-                {editingWaste?.product?.name || `#${editingWaste?.productId}`}
+                {getLocalizedName(editingWaste?.product, i18n.language) || `#${editingWaste?.productId}`}
               </div>
             </div>
             <div>

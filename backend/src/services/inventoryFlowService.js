@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString } = require('../utils/dateUtils');
 const { logAudit } = require('./auditService');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 const ROLLOVER_TTL = 86_400_000;
@@ -803,7 +804,7 @@ async function getInventoryFlowReport(branchId, operationalDate) {
     const snapshot = await prisma.dailySnapshot.findFirst({
       where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), isInvalidated: false },
       include: {
-        items: { include: { product: { select: { id: true, name: true, category: true, price: true, unitType: true } } } },
+        items: { include: { product: { select: PRODUCT_SELECT_LOCALIZED } } },
         branch: { select: { id: true, name: true } },
       },
     });

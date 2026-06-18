@@ -5,6 +5,7 @@ const { canEditOperationalRecord, toDateString } = require('../utils/dateUtils')
 const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
 const { requireDayNotClosed, getClosureMap } = require('./closureService');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 
 async function findAll(filters = {}) {
   const { branchId, operationalDate, productId, startDate, endDate, page = 1, limit = 20 } = filters;
@@ -36,7 +37,7 @@ async function findAll(filters = {}) {
       skip,
       take: limitNum,
       include: {
-        product: { select: { id: true, name: true, category: true, unitType: true, isActive: true } },
+        product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
         creator: { select: { id: true, name: true, username: true } },
       },
@@ -147,7 +148,7 @@ async function create(data, userId) {
       createdBy: userId.userId,
     },
     include: {
-      product: { select: { id: true, name: true, category: true, isActive: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -193,7 +194,7 @@ async function update(id, data, userId) {
     where: { id: parseInt(id) },
     data: updateData,
     include: {
-      product: { select: { id: true, name: true, category: true, isActive: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
     },
   });
