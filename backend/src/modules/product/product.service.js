@@ -21,6 +21,7 @@ const productService = {
         category: data.category,
         price: data.price,
         unitType: data.unitType,
+        productionShift: data.productionShift,
         isActive: true,
       },
     });
@@ -117,6 +118,7 @@ const productService = {
           category: data.category,
           price: data.price,
           unitType: data.unitType,
+          productionShift: data.productionShift,
           isActive: data.isActive,
         },
       });
