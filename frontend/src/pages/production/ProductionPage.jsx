@@ -438,9 +438,6 @@ export default function ProductionPage() {
                 ) : null
               ))}
             </select>
-            {product && selectedProductShift && selectedProductShift !== 'BOTH' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('productionShift.' + selectedProductShift)} - {t('production.shiftLockedTooltip')}</p>
-            )}
           </div>
 
           <div className="w-full md:w-40">
