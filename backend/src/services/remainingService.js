@@ -5,6 +5,7 @@ const { toDateString, canEditOperationalRecord } = require('../utils/dateUtils')
 const { validateQuantityForUnitType } = require('../utils/unitTypeValidation');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 const { requireDayNotClosed } = require('./closureService');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { canCreateForCategory, requireBranchAccess } = require('../utils/accessFilters');
 
 async function findAll(filters = {}) {
@@ -40,7 +41,7 @@ async function findAll(filters = {}) {
       skip,
       take: limitNum,
       include: {
-        product: { select: { id: true, name: true, category: true, unitType: true, price: true } },
+        product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
         creator: { select: { id: true, name: true, username: true } },
       },
@@ -82,7 +83,7 @@ async function findByOperationalDate(branchId, operationalDate, accessFilter = {
   const remainings = await prisma.remainingRecord.findMany({
     where,
     include: {
-      product: { select: { id: true, name: true, category: true, unitType: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       creator: { select: { id: true, name: true } },
     },
@@ -180,7 +181,7 @@ async function create(data, user) {
         updatedBy: user.userId,
       },
       include: {
-        product: { select: { id: true, name: true, category: true } },
+        product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
         updater: { select: { id: true, name: true } },
       },
@@ -198,7 +199,7 @@ async function create(data, user) {
         createdBy: user.userId,
       },
       include: {
-        product: { select: { id: true, name: true, category: true } },
+        product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
         creator: { select: { id: true, name: true } },
       },
@@ -381,7 +382,7 @@ async function update(id, data, user) {
     where: { id: parseInt(id) },
     data: updateData,
     include: {
-      product: { select: { id: true, name: true, category: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
       updater: { select: { id: true, name: true } },
     },
@@ -422,7 +423,7 @@ async function getDraftRemainings(branchId, operationalDate) {
       status: 'DRAFT',
     },
     include: {
-      product: { select: { id: true, name: true, category: true } },
+      product: { select: PRODUCT_SELECT_LOCALIZED },
     },
   });
 }
