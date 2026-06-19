@@ -74,10 +74,6 @@ export default function ReportsPage() {
   const loading = activeQuery.isLoading;
   const error = activeQuery.error;
 
-  if (activeTab === 'yearly' && reportData.months) {
-    console.log('[yearly] reportData.months length:', reportData.months.length);
-    if (reportData.months[0]) console.log('[yearly] month[0].totals:', reportData.months[0].totals);
-  }
 
   const products = (reportData.products || []).filter(p => {
     if (showAllProducts) return true;
@@ -348,8 +344,8 @@ export default function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
-                      {paginatedProducts.map((p, idx) => (
-                        <tr key={idx} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
+                      {paginatedProducts.map((p) => (
+                        <tr key={`${p.product?.id || p.id}-${p.branchName || ''}`} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
                           <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(p.product, i18n.language)}</td>
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.product.category}`)}</td>
                           {canManageAll && showBranchColumn && <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
@@ -435,11 +431,11 @@ export default function ReportsPage() {
             {activeTab === 'weekly' && (
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  {days.map((day, idx) => {
-                    const title = i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || `Day ${idx + 1}`;
+                  {days.map((day) => {
+                    const title = i18n.language === 'am' && DAY_NAMES[day.dayName] ? DAY_NAMES[day.dayName] : day.dayName || day.date;
                     if (isEmptyTotals(day.totals)) {
                       return (
-                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                        <div key={day.date} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
                             {day.date && <span className="text-xs text-gray-500 dark:text-gray-400">{day.date}</span>}
@@ -453,7 +449,7 @@ export default function ReportsPage() {
                     const dayTotals = day.totals;
                     return (
                       <ReportSummaryCard
-                        key={idx}
+                        key={day.date}
                         title={title}
                         subtitle={day.date || '-'}
                         fields={[
@@ -488,7 +484,7 @@ export default function ReportsPage() {
                     const title = `${t('reports.week')} ${idx + 1}`;
                     if (isEmptyTotals(week.totals)) {
                       return (
-                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                        <div key={week.weekStartDate} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
                             {week.weekStartDate && <span className="text-xs text-gray-500 dark:text-gray-400">{week.weekStartDate}</span>}
@@ -502,7 +498,7 @@ export default function ReportsPage() {
                     const weekTotals = week.totals;
                     return (
                       <ReportSummaryCard
-                        key={idx}
+                        key={week.weekStartDate}
                         title={title}
                         subtitle={week.weekStartDate || '-'}
                         fields={[
@@ -534,11 +530,11 @@ export default function ReportsPage() {
             {activeTab === 'yearly' && (
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  {months.map((month, idx) => {
+                  {months.map((month) => {
                     const title = i18n.language === 'am' && MONTH_NAMES[month.monthName] ? MONTH_NAMES[month.monthName] : month.monthName;
                     if (isEmptyTotals(month.totals)) {
                       return (
-                        <div key={idx} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
+                        <div key={month.monthName} className="bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-semibold text-[#024A5B] dark:text-white">{title}</span>
                           </div>
@@ -551,7 +547,7 @@ export default function ReportsPage() {
                     const monthTotals = month.totals;
                     return (
                       <ReportSummaryCard
-                        key={idx}
+                        key={month.monthName}
                         title={title}
                         fields={[
                           { label: t('reports.production'), value: (monthTotals.totalDayProduction || 0) + (monthTotals.totalNightProduction || 0) },
