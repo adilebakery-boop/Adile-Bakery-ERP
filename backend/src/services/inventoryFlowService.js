@@ -803,13 +803,12 @@ async function getInventoryFlowReport(branchId, operationalDate) {
     const snapshot = await prisma.dailySnapshot.findFirst({
       where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), isInvalidated: false },
       include: {
-        items: { include: { product: { select: { id: true, name: true, category: true, price: true, unitType: true } } } },
+        items: { include: { product: { select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true } } } },
         branch: { select: { id: true, name: true } },
       },
     });
 
     if (snapshot) {
-      console.log('[DEBUG snapshot] branch=%s firstProduct.branchName=%s', snapshot.branch.name, snapshot.items[0]?.product?.name);
       return {
         source: 'snapshot',
         snapshotId: snapshot.id,
@@ -836,6 +835,7 @@ async function getInventoryFlowReport(branchId, operationalDate) {
           estimatedRevenue: decimalToNumber(item.estimatedRevenue),
           branchId: snapshot.branchId,
           branchName: snapshot.branch.name,
+          product: item.product,
         })),
         totals: getTotals(snapshot.items.map(item => ({
           openingStock: item.openingStock,
@@ -858,9 +858,11 @@ async function getInventoryFlowReport(branchId, operationalDate) {
   for (const flow of flows) {
     flow.branchId = branch?.id;
     flow.branchName = branch?.name || '';
+    flow.productId = flow.product?.id;
+    flow.productName = flow.product?.name;
+    flow.category = flow.product?.category;
+    flow.unitType = flow.product?.unitType;
   }
-
-  console.log('[DEBUG] getInventoryFlowReport branch=%s products[0].branchName=%s products[0].branchId=%s count=%d', branch?.name, flows[0]?.branchName, flows[0]?.branchId, flows.length);
 
   return {
     source: 'live',

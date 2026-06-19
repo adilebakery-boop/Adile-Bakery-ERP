@@ -6,10 +6,10 @@ const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./invent
 function filterProducts(products, category, productId) {
   let filtered = products;
   if (category) {
-    filtered = filtered.filter(p => p.category === category);
+    filtered = filtered.filter(p => (p.product?.category || p.category) === category);
   }
   if (productId) {
-    filtered = filtered.filter(p => p.productId === productId);
+    filtered = filtered.filter(p => (p.product?.id || p.productId) === Number(productId));
   }
   return filtered;
 }
@@ -673,7 +673,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         },
         include: {
           items: {
-            include: { product: { select: { id: true, name: true, category: true, price: true } } }
+            include: { product: { select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true } } }
           },
         },
       }),
