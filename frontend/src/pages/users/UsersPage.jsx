@@ -76,7 +76,7 @@ export default function UsersPage() {
   const [branchFilter, setBranchFilter] = useState(isManager ? String(currentUser?.branchId ?? '') : '');
   const [roleFilter, setRoleFilter] = useState('');
 
-  const { data, isLoading: loading, isError } = useUsersQuery({
+  const { data, isLoading: loading, isFetching, isError } = useUsersQuery({
     page: currentPage,
     limit: itemsPerPage,
     ...(branchFilter && { branchId: branchFilter }),
@@ -98,10 +98,10 @@ export default function UsersPage() {
   const deleteMutation = useDeleteUserMutation();
 
   useEffect(() => {
-    if (users.length === 0 && currentPage > 1 && totalPages > 0) {
-      setCurrentPage(Math.max(1, Math.min(currentPage - 1, totalPages)));
+    if (!isFetching && totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
     }
-  }, [users.length, currentPage, totalPages]);
+  }, [isFetching, totalPages, currentPage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
