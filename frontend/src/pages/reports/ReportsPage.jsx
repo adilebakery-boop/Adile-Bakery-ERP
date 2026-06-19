@@ -346,8 +346,8 @@ export default function ReportsPage() {
                     <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
                       {paginatedProducts.map((p) => (
                         <tr key={`${p.product?.id || p.id}-${p.branchName || ''}`} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
-                          <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(p.product, i18n.language)}</td>
-                          <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.product.category}`)}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(p.product, i18n.language) || p.product?.name || t('common.na')}</td>
+                          <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{t(`productCategories.${p.product?.category}`)}</td>
                           {canManageAll && showBranchColumn && <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{getBranchNameDisplay(p.branchName)}</td>}
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.openingStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.dayProduction || 0}</td>
