@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, RefreshCw, Loader2, CheckCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -14,6 +14,10 @@ import { getUser, canEditOperationalRecord } from '../../utils/authUtils';
 import { getCategoriesForRole } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { GroupedTable, OperationalPagination } from '../../components/operational';
+
+const normalizedOpDate = (d) => (d || '').split('T')[0];
+
+const getGroupKey = (group) => `${group.operationalDate}-${group.productId}-${group.branchId}`;
 
 export default function WastePage() {
   const { t, i18n } = useTranslation();
@@ -110,9 +114,7 @@ export default function WastePage() {
     }
   }, [branches, canManage, closureBranch]);
 
-  const normalizedOpDate = (d) => (d || '').split('T')[0];
-
-  const groupedWastes = (() => {
+  const groupedWastes = useMemo(() => {
     const groups = {};
     wastes.forEach(w => {
       const opDate = normalizedOpDate(w.operationalDate);
@@ -136,7 +138,7 @@ export default function WastePage() {
       if (productCmp !== 0) return productCmp;
       return (a.branch?.name || '').localeCompare(b.branch?.name || '');
     });
-  })();
+  }, [wastes]);
 
   const visibilityCutoff = (() => {
     const addisFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -211,14 +213,14 @@ export default function WastePage() {
     }
   };
 
-  const handleEditClick = (waste) => {
+  const handleEditClick = useCallback((waste) => {
     setEditingWaste(waste);
     setEditForm({
       quantity: waste.quantity.toString(),
       reason: waste.reason || '',
     });
     setIsEditOpen(true);
-  };
+  }, []);
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -248,7 +250,7 @@ export default function WastePage() {
     }
   };
 
-  const handleDelete = async (id, branchId) => {
+  const handleDelete = useCallback(async (id, branchId) => {
     if (window.confirm(t('waste.deleteConfirm'))) {
       setActionError(null);
       try {
@@ -259,7 +261,7 @@ export default function WastePage() {
         setActionError(err.message);
       }
     }
-  };
+  }, [t, deleteWaste]);
 
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -269,11 +271,9 @@ export default function WastePage() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-  const toggleGroupExpand = (key) => {
+  const toggleGroupExpand = useCallback((key) => {
     setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const getGroupKey = (group) => `${group.operationalDate}-${group.productId}-${group.branchId}`;
+  }, []);
 
   return (
     <div>
@@ -461,7 +461,7 @@ export default function WastePage() {
           skeletonRows={8}
           skeletonColumns={canManage ? 7 : 6}
           colSpan={canManage ? 7 : 6}
-          renderHeader={() => (
+          renderHeader={useCallback(() => (
             <tr>
               <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider w-10"></th>
               <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('production.operationalDate')}</th>
@@ -471,8 +471,8 @@ export default function WastePage() {
               {canManage && <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('waste.branch')}</th>}
               <th className="px-6 py-3.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
             </tr>
-          )}
-          renderGroupRow={(group, { isExpanded }) => {
+          ), [t, canManage])}
+          renderGroupRow={useCallback((group, { isExpanded }) => {
             const [y, m, d] = group.operationalDate.split('-');
             const formattedDate = `${m}/${d}/${y}`;
             const groupKey = getGroupKey(group);
@@ -515,8 +515,8 @@ export default function WastePage() {
                 </td>
               </tr>
             );
-          }}
-          renderEntryTable={(group) => (
+          }, [t, canManage, i18n.language, expandedGroups, toggleGroupExpand])}
+          renderEntryTable={useCallback((group) => (
             <>
               <thead>
                 <tr className="border-b border-[#E5E1D8]/50 dark:border-[#1E3A3F]/50">
@@ -575,7 +575,7 @@ export default function WastePage() {
                 })}
               </tbody>
             </>
-          )}
+          ), [t, canManage, handleEditClick, handleDelete, user.role])}
         />
 
         {!isLoading && !isError && totalPages > 1 && (

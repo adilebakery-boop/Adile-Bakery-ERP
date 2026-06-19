@@ -190,8 +190,8 @@ export default function DashboardPage() {
           <ApiErrorState error={activity.error} onRetry={activity.refetch} />
         ) : recentActivity.length > 0 ? (
           <div className="space-y-3">
-            {recentActivity.slice(0, 8).map((activity, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors">
+              {recentActivity.slice(0, 8).map((activity, idx) => (
+              <div key={activity.time || activity.createdAt || activity.timestamp || idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   activity.type?.toLowerCase() === 'production' ? 'bg-[#CAEAFD]/10 text-[#024A5B]' :
                   activity.type?.toLowerCase() === 'remaining' ? 'bg-green-50 text-green-500' :
