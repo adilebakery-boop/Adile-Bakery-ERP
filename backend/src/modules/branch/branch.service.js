@@ -127,11 +127,11 @@ const branchService = {
       data: {
         name: data.name,
         name_am: data.name_am !== undefined ? (data.name_am || null) : undefined,
-        address: data.address || null,
-        phone: data.phone || null,
+        address: data.address !== undefined ? (data.address || null) : undefined,
+        phone: data.phone !== undefined ? (data.phone || null) : undefined,
         isActive: data.isActive,
-        branchType: data.branchType,
-        sourceBranchId: data.sourceBranchId !== undefined ? data.sourceBranchId : undefined,
+        branchType: data.branchType || undefined,
+        sourceBranchId: data.sourceBranchId !== undefined ? (data.sourceBranchId || null) : undefined,
       },
     });
 
