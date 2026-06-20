@@ -57,6 +57,7 @@ const login = async (username, password) => {
       role: user.role.name,
       branchId: user.branchId,
       branchName: user.branch?.name || null,
+      branchType: user.branch?.branchType || null,
     },
   };
 };
@@ -87,6 +88,7 @@ throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
       role: user.role.name,
       branchId: user.branchId,
       branchName: user.branch?.name || null,
+      branchType: user.branch?.branchType || null,
     },
   };
 };

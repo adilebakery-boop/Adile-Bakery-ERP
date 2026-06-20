@@ -25,6 +25,11 @@ export const getUserBranchId = () => {
   return user?.branchId || null;
 };
 
+export const getBranchType = () => {
+  const user = getUser();
+  return user?.branchType || null;
+};
+
 export const isManagerOrAdmin = () => {
   const role = getUserRole();
   return role === 'ADMIN' || role === 'MANAGER';
