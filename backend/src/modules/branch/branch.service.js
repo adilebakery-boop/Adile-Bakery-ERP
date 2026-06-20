@@ -42,6 +42,8 @@ const branchService = {
         address: data.address || null,
         phone: data.phone || null,
         isActive: true,
+        branchType: data.branchType || 'INDEPENDENT',
+        sourceBranchId: data.sourceBranchId || null,
       },
     });
 
@@ -128,6 +130,8 @@ const branchService = {
         address: data.address || null,
         phone: data.phone || null,
         isActive: data.isActive,
+        branchType: data.branchType,
+        sourceBranchId: data.sourceBranchId !== undefined ? data.sourceBranchId : undefined,
       },
     });
 
