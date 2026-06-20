@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const prisma = require("../config/prisma");
 const closureService = require("./closureService");
+const integrityService = require("./integrityService");
 const { subDays } = require("date-fns");
 const { toDateString, getPreviousDay } = require("../utils/dateUtils");
 
@@ -188,6 +189,25 @@ async function runClosureScheduler() {
     autoCloseOldOpenDays(),
     autoCloseExpiredReopenedDays(),
   ]);
+
+  // Nightly integrity check (fire-and-forget after closures)
+  if (process.env.FEATURE_TRANSFERS === 'true') {
+    try {
+      const result = await integrityService.checkAll();
+      if (!result.allOk) {
+        console.log("[INTEGRITY] Issues found:", JSON.stringify({
+          transferOk: result.transferResult.systemBalance.ok,
+          recordOk: result.transferResult.perRecord.ok,
+          snapshotOk: result.snapshotResult.ok,
+        }));
+      } else {
+        console.log("[INTEGRITY] All checks passed");
+      }
+    } catch (err) {
+      console.error("[INTEGRITY] Check failed:", err.message);
+    }
+  }
+
   console.log("[CLOSURE_SCHEDULER] Scheduled run complete");
 }
 

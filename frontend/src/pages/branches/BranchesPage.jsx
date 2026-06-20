@@ -45,10 +45,13 @@ export default function BranchesPage() {
     e.preventDefault();
     setActionError(null);
     const payload = { ...formData };
+    if (payload.branchType === 'DEPENDENT' && !payload.sourceBranchId) {
+      setActionError('DEPENDENT branch must have a source branch selected');
+      return;
+    }
     if (payload.branchType !== 'DEPENDENT') {
       payload.sourceBranchId = null;
     }
-    if (!payload.sourceBranchId) payload.sourceBranchId = null;
     try {
       await addBranch.mutateAsync(payload);
       setIsModalOpen(false);
@@ -62,10 +65,13 @@ export default function BranchesPage() {
     e.preventDefault();
     setActionError(null);
     const payload = { ...formData };
+    if (payload.branchType === 'DEPENDENT' && !payload.sourceBranchId) {
+      setActionError('DEPENDENT branch must have a source branch selected');
+      return;
+    }
     if (payload.branchType !== 'DEPENDENT') {
       payload.sourceBranchId = null;
     }
-    if (!payload.sourceBranchId) payload.sourceBranchId = null;
     try {
       await editBranch.mutateAsync({ id: editingBranch.id, data: payload });
       setIsEditModalOpen(false);
@@ -174,9 +180,22 @@ export default function BranchesPage() {
                   </td>
                 </tr>
               ) : (
-                branches.map((branch) => (
+                branches.map((branch) => {
+                  const sourceBranch = branch.sourceBranchId
+                    ? branches.find(b => b.id === branch.sourceBranchId)
+                    : null;
+                  return (
                   <tr key={branch.id} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(branch, i18n.language)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>{getLocalizedName(branch, i18n.language)}</span>
+                        {branch.branchType === 'DEPENDENT' && sourceBranch && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                            ← {getLocalizedName(sourceBranch, i18n.language)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.address || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.phone || '-'}</td>
                     {FEATURE_TRANSFERS && (
@@ -212,8 +231,8 @@ export default function BranchesPage() {
                       </td>
                     )}
                   </tr>
-                ))
-              )}
+                );
+                }))}
             </tbody>
           </table>
         </div>
@@ -284,7 +303,7 @@ export default function BranchesPage() {
                     value={formData.sourceBranchId}
                     onChange={(e) => setFormData({ ...formData, sourceBranchId: e.target.value })}
                     className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
-                    required={formData.branchType === 'DEPENDENT'}
+                    required
                   >
                     <option value="">Select source branch</option>
                     {sourceBranches.map(b => (
@@ -293,7 +312,17 @@ export default function BranchesPage() {
                       </option>
                     ))}
                   </select>
+                  <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                    <span>&#9888;</span>
+                    Dependent branch relies on SOURCE branch inventory for stock
+                  </p>
                 </div>
+              )}
+              {formData.branchType === 'SOURCE' && (
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <span>&#9432;</span>
+                  SOURCE branches supply inventory to dependent branches
+                </p>
               )}
             </>
           )}
@@ -389,7 +418,17 @@ required
                         </option>
                       ))}
                   </select>
+                  <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                    <span>&#9888;</span>
+                    Dependent branch relies on SOURCE branch inventory for stock
+                  </p>
                 </div>
+              )}
+              {formData.branchType === 'SOURCE' && (
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <span>&#9432;</span>
+                  SOURCE branches supply inventory to dependent branches
+                </p>
               )}
             </>
           )}
