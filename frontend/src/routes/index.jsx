@@ -11,9 +11,16 @@ import WastePage from '../pages/waste/WastePage';
 import BranchesPage from '../pages/branches/BranchesPage';
 import UsersPage from '../pages/users/UsersPage';
 import ProfilePage from '../pages/profile/ProfilePage';
+import TransfersPage from '../pages/transfers/TransfersPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { getUserRole, getToken } from '../utils/authUtils';
 import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
+
+const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
+
+const getBranchType = () => {
+  try { const u = JSON.parse(localStorage.getItem('user')); return u?.branchType || null; } catch { return null; }
+};
 
 const ProtectedRoute = ({ children, requiredPage }) => {
   const token = getToken();
@@ -123,6 +130,14 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      ...(FEATURE_TRANSFERS ? [{
+        path: 'transfers',
+        element: (
+          <ProtectedRoute requiredPage={PAGES.TRANSFERS}>
+            <TransfersPage />
+          </ProtectedRoute>
+        ),
+      }] : []),
     ],
   },
   {

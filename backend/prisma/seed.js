@@ -24,6 +24,7 @@ async function main() {
     { name: 'COOKIE_BAKER' },
     { name: 'FETIR_CHEF' },
     { name: 'CASHIER' },
+    { name: 'TRANSFER_OPERATOR' },
   ];
 
   for (const role of roles) {

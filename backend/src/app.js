@@ -30,6 +30,7 @@ const wasteRoutes = require('./modules/waste/waste.routes');
 const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
 const closureRoutes = require('./modules/closure/closure.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
+const transferRoutes = require('./modules/transfers/transfers.routes');
 
 app.use(helmet());
 app.use(cors({
@@ -73,6 +74,7 @@ app.use('/api/wastes', wasteRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/closures', closureRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/transfers', transferRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -31,6 +31,7 @@
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
+const integrityService = require('./integrityService');
 const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 const { requireBranchAccess } = require('../utils/accessFilters');
@@ -364,6 +365,8 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
       estimatedSold: toDecimal(String(flow.estimatedSold)),
       estimatedRevenue: toDecimal(String(flow.estimatedRevenue)),
       snapshotPrice: toDecimal(String(flow.price)),
+      receivedTransfer: toDecimal(String(flow.receivedTransfer || 0)),
+      sentTransfer: toDecimal(String(flow.sentTransfer || 0)),
     }));
 
     await tx.dailySnapshotItem.createMany({ data: snapshotItems });
@@ -382,7 +385,57 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
     return { closure, snapshot, itemCount: snapshotItems.length };
   });
 
-  return result;
+  // ── Snapshot validation hook (transfer integrity, non-blocking) ──
+  const warnings = [];
+  if (process.env.FEATURE_TRANSFERS === 'true') {
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchIdInt },
+      select: { branchType: true },
+    });
+    if (branch?.branchType === 'DEPENDENT' || branch?.branchType === 'SOURCE') {
+      const pendingTransfers = await prisma.productTransfer.count({
+        where: {
+          operationalDate: opDate,
+          status: 'PENDING',
+          OR: [
+            { sourceBranchId: branchIdInt },
+            { dependentBranchId: branchIdInt },
+          ],
+        },
+      });
+      if (pendingTransfers > 0) {
+        warnings.push({
+          type: 'PENDING_TRANSFERS',
+          message: `${pendingTransfers} transfer(s) are still PENDING. Snapshot uses current values; finalize transfers before reopen.`,
+          count: pendingTransfers,
+        });
+      }
+
+      const disputedTransfers = await prisma.productTransfer.count({
+        where: {
+          operationalDate: opDate,
+          isDisputed: true,
+          OR: [
+            { sourceBranchId: branchIdInt },
+            { dependentBranchId: branchIdInt },
+          ],
+        },
+      });
+      if (disputedTransfers > 0) {
+        warnings.push({
+          type: 'DISPUTED_TRANSFERS',
+          message: `${disputedTransfers} transfer(s) are marked as DISPUTED on this day.`,
+          count: disputedTransfers,
+        });
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    await auditService.logAudit('closure', result.closure.id, 'CLOSE_WARNING', null, { warnings }, userId);
+  }
+
+  return { ...result, warnings };
 }
 
 async function reopenDay(branchId, operationalDate, user, reason) {
