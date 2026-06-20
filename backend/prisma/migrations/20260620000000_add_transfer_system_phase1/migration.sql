@@ -1,4 +1,4 @@
-﻿-- Add TRANSFER_OPERATOR to existing RoleName enum
+-- Add TRANSFER_OPERATOR to existing RoleName enum
 ALTER TYPE "RoleName" ADD VALUE 'TRANSFER_OPERATOR';
 
 -- Create new enums
