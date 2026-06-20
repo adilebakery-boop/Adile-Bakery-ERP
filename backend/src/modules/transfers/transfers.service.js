@@ -132,6 +132,12 @@ const transferService = {
   async updateSent(id, data, userId, user) {
     const transfer = await this.findById(id);
 
+    if (transfer.status !== 'PENDING') {
+      const err = new Error('Can only update sent quantity on PENDING transfers');
+      err.status = 400;
+      throw err;
+    }
+
     if (user.role !== 'ADMIN' && user.role !== 'MANAGER' && user.role !== 'TRANSFER_OPERATOR') {
       if (Number(user.branchId) !== transfer.sourceBranchId) {
         const err = new Error('You can only update sent quantity for your own source branch');
@@ -145,7 +151,6 @@ const transferService = {
       data: {
         sentQuantity: data.sentQuantity,
         ...(data.sentQuantity === transfer.receivedQuantity ? { isDisputed: false } : { isDisputed: true }),
-        status: 'APPROVED',
       },
       include: {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
@@ -160,6 +165,12 @@ const transferService = {
   async updateReceived(id, data, userId, user) {
     const transfer = await this.findById(id);
 
+    if (transfer.status !== 'PENDING') {
+      const err = new Error('Can only update received quantity on PENDING transfers');
+      err.status = 400;
+      throw err;
+    }
+
     if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       if (Number(user.branchId) !== transfer.dependentBranchId) {
         const err = new Error('You can only update received quantity for your own dependent branch');
@@ -172,7 +183,6 @@ const transferService = {
       where: { id: Number(id) },
       data: {
         receivedQuantity: data.receivedQuantity,
-        ...(transfer.sentQuantity && data.receivedQuantity === transfer.sentQuantity ? { isDisputed: false } : {}),
       },
       include: {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
@@ -211,6 +221,62 @@ const transferService = {
     const updated = await prisma.productTransfer.update({
       where: { id: Number(id) },
       data: { returnedQuantity: newReturned },
+      include: {
+        product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
+        sourceBranch: { select: { id: true, name: true } },
+        dependentBranch: { select: { id: true, name: true } },
+      },
+    });
+
+    return updated;
+  },
+
+  async approve(id, userId, user) {
+    const transfer = await this.findById(id);
+
+    if (transfer.status !== 'PENDING') {
+      const err = new Error('Can only approve PENDING transfers');
+      err.status = 400;
+      throw err;
+    }
+
+    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      const err = new Error('Only ADMIN or MANAGER can approve transfers');
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.productTransfer.update({
+      where: { id: Number(id) },
+      data: { status: 'APPROVED' },
+      include: {
+        product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
+        sourceBranch: { select: { id: true, name: true } },
+        dependentBranch: { select: { id: true, name: true } },
+      },
+    });
+
+    return updated;
+  },
+
+  async reject(id, data, userId, user) {
+    const transfer = await this.findById(id);
+
+    if (transfer.status !== 'PENDING') {
+      const err = new Error('Can only reject PENDING transfers');
+      err.status = 400;
+      throw err;
+    }
+
+    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      const err = new Error('Only ADMIN or MANAGER can reject transfers');
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.productTransfer.update({
+      where: { id: Number(id) },
+      data: { status: 'REJECTED' },
       include: {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },

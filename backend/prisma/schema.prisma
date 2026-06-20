@@ -394,6 +394,7 @@ enum BranchType {
 enum TransferStatus {
   PENDING
   APPROVED
+  REJECTED
   CLOSED
 }
 

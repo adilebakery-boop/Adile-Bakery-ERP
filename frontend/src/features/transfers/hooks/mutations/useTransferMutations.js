@@ -35,5 +35,15 @@ export function useTransferMutations() {
     onSuccess: invalidateTransfers,
   });
 
-  return { createTransfer, updateSent, updateReceived, returnProducts, resolveDispute };
+  const approveTransfer = useMutation({
+    mutationFn: (id) => unwrap(transferService.approveTransfer(id)),
+    onSuccess: invalidateTransfers,
+  });
+
+  const rejectTransfer = useMutation({
+    mutationFn: (id) => unwrap(transferService.rejectTransfer(id)),
+    onSuccess: invalidateTransfers,
+  });
+
+  return { createTransfer, updateSent, updateReceived, returnProducts, resolveDispute, approveTransfer, rejectTransfer };
 }

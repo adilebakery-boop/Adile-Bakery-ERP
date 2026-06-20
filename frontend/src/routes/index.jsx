@@ -18,6 +18,10 @@ import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
 
 const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
 
+const getBranchType = () => {
+  try { const u = JSON.parse(localStorage.getItem('user')); return u?.branchType || null; } catch { return null; }
+};
+
 const ProtectedRoute = ({ children, requiredPage }) => {
   const token = getToken();
   const role = getUserRole();

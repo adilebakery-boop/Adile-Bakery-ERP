@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Loader2, Search, ChevronLeft, ChevronRight, ArrowLeftRight } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
@@ -14,6 +14,7 @@ import { useTransferMutations } from '../../features/transfers/hooks/mutations/u
 const STATUS_BADGES = {
   PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
   APPROVED: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved' },
+  REJECTED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
   CLOSED: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Closed' },
 };
 
@@ -31,12 +32,24 @@ export default function TransfersPage() {
     );
   }
 
+  const branchType = getBranchType();
+  const isAdminManagerOrTransferOperator = userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'TRANSFER_OPERATOR';
+  if (!isAdminManagerOrTransferOperator && branchType === 'INDEPENDENT') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Transfers are not available for this branch</p>
+      </div>
+    );
+  }
+
   const userBranchId = getUserBranchId();
   const canManageAll = isManagerOrAdmin();
   const isTransferOperator = userRole === 'TRANSFER_OPERATOR';
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDisputed, setFilterDisputed] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,6 +68,8 @@ export default function TransfersPage() {
     ...branchFilter,
     status: filterStatus || undefined,
     isDisputed: filterDisputed || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
     limit: 10000,
   });
 
@@ -86,7 +101,7 @@ export default function TransfersPage() {
 
   const mutations = useTransferMutations();
 
-  useEffect(() => { setCurrentPage(1); }, [filterStatus, filterDisputed, searchTerm]);
+  useEffect(() => { setCurrentPage(1); }, [filterStatus, filterDisputed, searchTerm, startDate, endDate]);
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput), 300);
     return () => clearTimeout(timer);
@@ -150,6 +165,38 @@ export default function TransfersPage() {
     }
   };
 
+  const handleEditReceived = async (transfer) => {
+    clearMessages();
+    const val = prompt('Enter received quantity:', transfer.receivedQuantity || '');
+    if (!val || isNaN(val)) return;
+    try {
+      await mutations.updateReceived.mutateAsync({ id: transfer.id, data: { receivedQuantity: Number(val) } });
+      setActionSuccess('Received quantity updated');
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleApprove = async (transfer) => {
+    clearMessages();
+    try {
+      await mutations.approveTransfer.mutateAsync(transfer.id);
+      setActionSuccess('Transfer approved');
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleReject = async (transfer) => {
+    clearMessages();
+    try {
+      await mutations.rejectTransfer.mutateAsync(transfer.id);
+      setActionSuccess('Transfer rejected');
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
   const canEditSent = (transfer) => {
     if (canManageAll) return true;
     return String(userBranchId) === String(transfer.sourceBranchId);
@@ -207,8 +254,23 @@ export default function TransfersPage() {
           <option value="">All Status</option>
           <option value="PENDING">Pending</option>
           <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
           <option value="CLOSED">Closed</option>
         </select>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="px-4 py-3 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+          title="Start date"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="px-4 py-3 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+          title="End date"
+        />
         <label className="flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
@@ -290,6 +352,30 @@ export default function TransfersPage() {
                             >
                               Enter Sent
                             </button>
+                          )}
+                          {transfer.status === 'PENDING' && canEditReceived(transfer) && (
+                            <button
+                              onClick={() => handleEditReceived(transfer)}
+                              className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-200 transition-colors"
+                            >
+                              Enter Received
+                            </button>
+                          )}
+                          {transfer.status === 'PENDING' && canManageAll && (
+                            <>
+                              <button
+                                onClick={() => handleApprove(transfer)}
+                                className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReject(transfer)}
+                                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </>
                           )}
                           {transfer.isDisputed && (canManageAll || isTransferOperator) && (
                             <>

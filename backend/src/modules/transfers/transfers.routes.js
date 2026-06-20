@@ -56,4 +56,8 @@ router.put('/:id/return', allowRoles(...ALL_ROLES), validate(returnSchema), tran
 
 router.put('/:id/resolve', allowRoles(...ADMIN_MANAGER_ONLY), validate(resolveDisputeSchema), transferController.resolveDispute);
 
+router.put('/:id/approve', allowRoles(...ADMIN_MANAGER_ONLY), transferController.approve);
+
+router.put('/:id/reject', allowRoles(...ADMIN_MANAGER_ONLY), transferController.reject);
+
 module.exports = router;
