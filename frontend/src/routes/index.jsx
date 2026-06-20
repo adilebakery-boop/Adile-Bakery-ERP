@@ -16,6 +16,8 @@ import NotFoundPage from '../pages/NotFoundPage';
 import { getUserRole, getToken } from '../utils/authUtils';
 import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
 
+const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
+
 const ProtectedRoute = ({ children, requiredPage }) => {
   const token = getToken();
   const role = getUserRole();
@@ -124,14 +126,14 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      {
+      ...(FEATURE_TRANSFERS ? [{
         path: 'transfers',
         element: (
           <ProtectedRoute requiredPage={PAGES.TRANSFERS}>
             <TransfersPage />
           </ProtectedRoute>
         ),
-      },
+      }] : []),
     ],
   },
   {

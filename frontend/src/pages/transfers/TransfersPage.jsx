@@ -17,9 +17,21 @@ const STATUS_BADGES = {
   CLOSED: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Closed' },
 };
 
+const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
+
 export default function TransfersPage() {
   const { t, i18n } = useTranslation();
   const userRole = getUserRole();
+
+  if (!FEATURE_TRANSFERS) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Transfers are not enabled</p>
+      </div>
+    );
+  }
+
+  const userBranchId = getUserBranchId();
   const userBranchId = getUserBranchId();
   const canManageAll = isManagerOrAdmin();
   const isTransferOperator = userRole === 'TRANSFER_OPERATOR';
