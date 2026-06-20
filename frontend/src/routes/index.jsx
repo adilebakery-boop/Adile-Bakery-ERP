@@ -11,6 +11,7 @@ import WastePage from '../pages/waste/WastePage';
 import BranchesPage from '../pages/branches/BranchesPage';
 import UsersPage from '../pages/users/UsersPage';
 import ProfilePage from '../pages/profile/ProfilePage';
+import TransfersPage from '../pages/transfers/TransfersPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { getUserRole, getToken } from '../utils/authUtils';
 import { hasPageAccess, PAGES, isManagerOrAdmin } from '../utils/permissions';
@@ -120,6 +121,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredPage={PAGES.PROFILE}>
             <ProfilePage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'transfers',
+        element: (
+          <ProtectedRoute requiredPage={PAGES.TRANSFERS}>
+            <TransfersPage />
           </ProtectedRoute>
         ),
       },
