@@ -673,6 +673,47 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     orderBy: { validFrom: 'desc' },
   });
 
+  // ── BATCH 7: Transfer data (feature-flagged) ──
+  let branchType = null;
+  const receivedTransferMap = {};
+  const sentTransferMap = {};
+
+  if (process.env.FEATURE_TRANSFERS === 'true') {
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchIdNum },
+      select: { branchType: true },
+    });
+    branchType = branch?.branchType || 'INDEPENDENT';
+
+    if (branchType === 'DEPENDENT') {
+      const transfers = await prisma.productTransfer.findMany({
+        where: {
+          dependentBranchId: branchIdNum,
+          operationalDate: opDate,
+          status: { in: ['APPROVED', 'PENDING'] },
+        },
+        select: { productId: true, receivedQuantity: true },
+      });
+      for (const t of transfers) {
+        receivedTransferMap[t.productId] = safePlus(receivedTransferMap[t.productId] || ZERO, toDecimal(t.receivedQuantity));
+      }
+    } else if (branchType === 'SOURCE') {
+      const transfers = await prisma.productTransfer.findMany({
+        where: {
+          sourceBranchId: branchIdNum,
+          operationalDate: opDate,
+          status: { in: ['APPROVED', 'PENDING'] },
+        },
+        select: { productId: true, sentQuantity: true },
+      });
+      for (const t of transfers) {
+        if (t.sentQuantity !== null) {
+          sentTransferMap[t.productId] = safePlus(sentTransferMap[t.productId] || ZERO, toDecimal(t.sentQuantity));
+        }
+      }
+    }
+  }
+
   // ── IN-MEMORY COMPUTATION — NO DB CALLS BELOW ──
 
   // Build production map: productId → { day: Decimal, night: Decimal }
@@ -725,7 +766,13 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     const openingStock = openingMap[pid] || ZERO;
     const dayProduction = prodMap[pid]?.day || ZERO;
     const nightProduction = prodMap[pid]?.night || ZERO;
-    const sellableStock = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+    const baseSellable = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+    const receivedQty = receivedTransferMap[pid] || ZERO;
+    const sentQty = sentTransferMap[pid] || ZERO;
+
+    // Transfer adjustment: received adds to dependent, sent subtracts from source
+    const sellableStock = safePlus(safeMinus(baseSellable, sentQty), receivedQty);
+
     const remainingStock = remainingMap[pid] || ZERO;
     const wasteQuantity = wasteMap[pid] || ZERO;
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQuantity);
@@ -751,6 +798,8 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
       wasteQuantity: decimalToNumber(wasteQuantity),
       estimatedSold: decimalToNumber(estimatedSold),
       estimatedRevenue: decimalToNumber(estimatedRevenue),
+      receivedTransfer: decimalToNumber(receivedQty),
+      sentTransfer: decimalToNumber(sentQty),
       operationalDate: toDateString(new Date(operationalDate)),
     };
   });

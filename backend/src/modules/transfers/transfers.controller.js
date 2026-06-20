@@ -36,6 +36,16 @@ const resolveDispute = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Dispute resolved', data: transfer });
 });
 
+const approve = asyncHandler(async (req, res) => {
+  const transfer = await transferService.approve(req.params.id, req.user?.userId, req.user);
+  res.json({ success: true, message: 'Transfer approved', data: transfer });
+});
+
+const reject = asyncHandler(async (req, res) => {
+  const transfer = await transferService.reject(req.params.id, req.body, req.user?.userId, req.user);
+  res.json({ success: true, message: 'Transfer rejected', data: transfer });
+});
+
 module.exports = {
   create,
   findAll,
@@ -44,4 +54,6 @@ module.exports = {
   updateReceived,
   returnProducts,
   resolveDispute,
+  approve,
+  reject,
 };

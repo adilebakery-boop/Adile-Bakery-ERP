@@ -29,6 +29,14 @@ export const transferService = {
   resolveDispute: async (id, data) => {
     return safeCall(api.put(`/transfers/${id}/resolve`, data));
   },
+
+  approveTransfer: async (id) => {
+    return safeCall(api.put(`/transfers/${id}/approve`));
+  },
+
+  rejectTransfer: async (id) => {
+    return safeCall(api.put(`/transfers/${id}/reject`));
+  },
 };
 
 export default transferService;

@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon, Trash2, ArrowLeftRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
-import { getUserRole, getUser } from '../utils/authUtils';
+import { getUserRole, getUser, getBranchType } from '../utils/authUtils';
 import { getPagesForRole, PAGES } from '../utils/permissions';
 import { queryClient } from '../providers/QueryProvider';
 
@@ -59,7 +59,14 @@ export default function MainLayout() {
   ];
 
   const navItems = allNavItems.filter(item => {
-    if (item.page === PAGES.TRANSFERS && !transfersEnabled) return false;
+    if (item.page === PAGES.TRANSFERS) {
+      if (!transfersEnabled) return false;
+      const branchType = getBranchType();
+      const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER';
+      if (isAdminOrManager || userRole === 'TRANSFER_OPERATOR') return true;
+      if (branchType === 'SOURCE' || branchType === 'DEPENDENT') return true;
+      return false;
+    }
     return allowedPages.includes(item.page);
   });
 
