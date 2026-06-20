@@ -27,8 +27,8 @@ const resolveDisputeSchema = z.object({
 
 const querySchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
-  status: z.enum(['PENDING', 'APPROVED', 'CLOSED']).optional(),
+  limit: z.coerce.number().int().positive().max(1000).optional().default(20),
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CLOSED']).optional(),
   isDisputed: z.coerce.boolean().optional(),
   sourceBranchId: z.coerce.number().int().positive().optional(),
   dependentBranchId: z.coerce.number().int().positive().optional(),

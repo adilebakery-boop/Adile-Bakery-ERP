@@ -57,7 +57,7 @@ const transferService = {
   async findAll(query, user) {
     const { page = 1, limit = 20, status, isDisputed, sourceBranchId, dependentBranchId, productId, operationalDate, startDate, endDate, search } = query;
     const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 20;
+    const limitNum = Math.min(Number(limit) || 20, 1000);
     const skip = (pageNum - 1) * limitNum;
 
     const where = {};
