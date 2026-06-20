@@ -32,7 +32,6 @@ export default function TransfersPage() {
   }
 
   const userBranchId = getUserBranchId();
-  const userBranchId = getUserBranchId();
   const canManageAll = isManagerOrAdmin();
   const isTransferOperator = userRole === 'TRANSFER_OPERATOR';
 
