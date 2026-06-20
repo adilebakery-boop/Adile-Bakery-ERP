@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Factory, Package, FileText, ShoppingBag, Store, Users, LogOut, Menu, X, Globe, User, Sun, Moon, Trash2, ArrowLeftRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
-import { getUserRole, getUser } from '../utils/authUtils';
+import { getUserRole, getUser, getBranchType } from '../utils/authUtils';
 import { getPagesForRole, PAGES } from '../utils/permissions';
 import { queryClient } from '../providers/QueryProvider';
 
@@ -43,6 +43,7 @@ export default function MainLayout() {
   };
   
   const allowedPages = getPagesForRole(userRole);
+  const transfersEnabled = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
 
   const allNavItems = [
     { path: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, page: PAGES.DASHBOARD },
@@ -53,10 +54,21 @@ export default function MainLayout() {
     { path: '/products', labelKey: 'nav.products', icon: ShoppingBag, page: PAGES.PRODUCTS },
     { path: '/branches', labelKey: 'nav.branches', icon: Store, page: PAGES.BRANCHES },
     { path: '/users', labelKey: 'nav.users', icon: Users, page: PAGES.USERS },
+    { path: '/transfers', labelKey: 'nav.transfers', icon: ArrowLeftRight, page: PAGES.TRANSFERS },
     { path: '/profile', labelKey: 'nav.profile', icon: User, page: PAGES.PROFILE },
   ];
 
-  const navItems = allNavItems.filter(item => allowedPages.includes(item.page));
+  const navItems = allNavItems.filter(item => {
+    if (item.page === PAGES.TRANSFERS) {
+      if (!transfersEnabled) return false;
+      const branchType = getBranchType();
+      const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER';
+      if (isAdminOrManager || userRole === 'TRANSFER_OPERATOR') return true;
+      if (branchType === 'SOURCE' || branchType === 'DEPENDENT') return true;
+      return false;
+    }
+    return allowedPages.includes(item.page);
+  });
 
   const languages = [
     { code: 'en', label: 'EN' },

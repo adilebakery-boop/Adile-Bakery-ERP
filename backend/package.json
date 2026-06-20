@@ -14,7 +14,9 @@
     "seed:medium": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js medium",
     "seed:large": "node prisma/seed.js && node prisma/seed-products.js && node prisma/seed-schedules.js large",
     "seed:reset": "npx prisma migrate reset --force && npm run seed:all",
-    "seed:verify": "node prisma/seed-verify.js"
+    "seed:verify": "node prisma/seed-verify.js",
+    "test": "vitest run",
+    "test:invariants": "vitest run tests/invariant/transferConsistency.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
@@ -35,7 +37,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "prisma": "^5.0.0"
+    "prisma": "^5.0.0",
+    "vitest": "^4.1.9"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
