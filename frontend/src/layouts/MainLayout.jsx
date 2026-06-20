@@ -43,6 +43,7 @@ export default function MainLayout() {
   };
   
   const allowedPages = getPagesForRole(userRole);
+  const transfersEnabled = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
 
   const allNavItems = [
     { path: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, page: PAGES.DASHBOARD },
@@ -57,7 +58,10 @@ export default function MainLayout() {
     { path: '/profile', labelKey: 'nav.profile', icon: User, page: PAGES.PROFILE },
   ];
 
-  const navItems = allNavItems.filter(item => allowedPages.includes(item.page));
+  const navItems = allNavItems.filter(item => {
+    if (item.page === PAGES.TRANSFERS && !transfersEnabled) return false;
+    return allowedPages.includes(item.page);
+  });
 
   const languages = [
     { code: 'en', label: 'EN' },
