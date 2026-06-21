@@ -21,6 +21,9 @@ const createTransferSchema = z.object({
     if (!data.sourceBranchId) {
       ctx.addIssue({ code: 'custom', path: ['sourceBranchId'], message: 'sourceBranchId is required for SOURCE transfers' });
     }
+    if (!data.dependentBranchId) {
+      ctx.addIssue({ code: 'custom', path: ['dependentBranchId'], message: 'dependentBranchId is required for SOURCE transfers' });
+    }
     if (!data.sentQuantity) {
       ctx.addIssue({ code: 'custom', path: ['sentQuantity'], message: 'sentQuantity is required for SOURCE transfers' });
     }
