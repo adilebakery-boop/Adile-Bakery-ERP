@@ -14,28 +14,8 @@ export const transferService = {
     return safeCall(api.post('/transfers', data));
   },
 
-  updateSent: async (id, data) => {
-    return safeCall(api.put(`/transfers/${id}/sent`, data));
-  },
-
   updateReceived: async (id, data) => {
     return safeCall(api.put(`/transfers/${id}/received`, data));
-  },
-
-  returnProducts: async (id, data) => {
-    return safeCall(api.put(`/transfers/${id}/return`, data));
-  },
-
-  resolveDispute: async (id, data) => {
-    return safeCall(api.put(`/transfers/${id}/resolve`, data));
-  },
-
-  approveTransfer: async (id) => {
-    return safeCall(api.put(`/transfers/${id}/approve`));
-  },
-
-  rejectTransfer: async (id) => {
-    return safeCall(api.put(`/transfers/${id}/reject`));
   },
 };
 

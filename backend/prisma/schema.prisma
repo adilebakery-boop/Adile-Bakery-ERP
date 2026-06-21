@@ -255,8 +255,6 @@ model ProductTransfer {
   receivedQuantity  Decimal       @db.Decimal(12, 3)
   sentQuantity      Decimal?      @db.Decimal(12, 3)
   returnedQuantity  Decimal       @default(0) @db.Decimal(12, 3)
-  status            TransferStatus @default(PENDING)
-  isDisputed        Boolean       @default(false)
   createdBy         Int?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -268,7 +266,6 @@ model ProductTransfer {
   @@unique([productId, sourceBranchId, dependentBranchId, operationalDate])
   @@index([sourceBranchId, operationalDate])
   @@index([dependentBranchId, operationalDate])
-  @@index([status])
   @@index([operationalDate])
 }
 
@@ -389,13 +386,6 @@ enum BranchType {
   SOURCE
   DEPENDENT
   INDEPENDENT
-}
-
-enum TransferStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CLOSED
 }
 
 enum ClosureType {

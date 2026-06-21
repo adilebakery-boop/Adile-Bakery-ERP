@@ -15,21 +15,9 @@ const updateReceivedSchema = z.object({
   receivedQuantity: z.coerce.number().positive(),
 });
 
-const returnSchema = z.object({
-  returnedQuantity: z.coerce.number().positive(),
-});
-
-const resolveDisputeSchema = z.object({
-  receivedQuantity: z.coerce.number().positive().optional(),
-  sentQuantity: z.coerce.number().positive().optional(),
-  isDisputed: z.boolean().optional(),
-});
-
 const querySchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().optional().default(20),
-  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CLOSED']).optional(),
-  isDisputed: z.coerce.boolean().optional(),
   sourceBranchId: z.coerce.number().int().positive().optional(),
   dependentBranchId: z.coerce.number().int().positive().optional(),
   productId: z.coerce.number().int().positive().optional(),
@@ -43,7 +31,5 @@ module.exports = {
   createTransferSchema,
   updateSentSchema,
   updateReceivedSchema,
-  returnSchema,
-  resolveDisputeSchema,
   querySchema,
 };
