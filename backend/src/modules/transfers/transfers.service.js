@@ -18,23 +18,6 @@ const transferService = {
       throw err;
     }
 
-    const existing = await prisma.productTransfer.findUnique({
-      where: {
-        productId_sourceBranchId_dependentBranchId_operationalDate: {
-          productId,
-          sourceBranchId,
-          dependentBranchId,
-          operationalDate: new Date(operationalDate),
-        },
-      },
-    });
-
-    if (existing) {
-      const err = new Error('Transfer already exists for this product, source, dependent, and date');
-      err.status = 409;
-      throw err;
-    }
-
     const transfer = await prisma.productTransfer.create({
       data: {
         productId,

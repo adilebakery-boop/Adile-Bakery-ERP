@@ -263,7 +263,6 @@ model ProductTransfer {
   dependentBranch   Branch        @relation("DependentTransfers", fields: [dependentBranchId], references: [id])
   creator           User?         @relation("ProductTransferCreator", fields: [createdBy], references: [id])
 
-  @@unique([productId, sourceBranchId, dependentBranchId, operationalDate])
   @@index([sourceBranchId, operationalDate])
   @@index([dependentBranchId, operationalDate])
   @@index([operationalDate])
