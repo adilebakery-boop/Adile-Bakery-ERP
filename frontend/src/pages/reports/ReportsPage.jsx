@@ -338,6 +338,7 @@ export default function ReportsPage() {
                         {/* TODO(future): Rename 'Sellable' — this value is opening + dayProd + nightProd (available inventory), NOT estimated sales. Consider 'Available Stock' or 'Total Stock'. */}
                         <th className="hidden md:table-cell px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.sellable')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.transfers')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.waste')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.estSold')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.revenue')}</th>
@@ -354,6 +355,11 @@ export default function ReportsPage() {
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.sellableStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.remainingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">
+                            {p.receivedTransfer || p.sentTransfer
+                              ? `+${p.receivedTransfer || 0} / -${p.sentTransfer || 0}`
+                              : '—'}
+                          </td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.wasteQuantity || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B] dark:text-white">{p.estimatedSold || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B]">
