@@ -891,6 +891,8 @@ async function getYearlyReport(branchId, year, category, productId) {
     (b.totalEstimatedRevenue || 0) - (a.totalEstimatedRevenue || 0)
   );
 
+  console.log("[YEARLY DEBUG] yearTransfers:", yearTransfers);
+
   return {
     branchId: branchId ? parseInt(branchId) : null,
     branchName,

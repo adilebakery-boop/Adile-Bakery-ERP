@@ -12,8 +12,8 @@ export function useYearlyReportQuery(branchId, date, filters = {}, options = {})
       if (!result.success) throw new Error(result.message || 'Failed to load yearly report');
       return result.data || {};
     },
-    staleTime: 60 * 60 * 1000,
-    gcTime: 2 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     enabled: !!date,
     ...options,
   });

@@ -608,12 +608,15 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                   fields={[
                     { label: t('reports.production'), value: (totals.totalDayProduction || 0) + (totals.totalNightProduction || 0) },
                     { label: t('reports.remaining'), value: totals.totalRemainingStock },
-                    ...(isSingleBranch ? [{
-                      label: t('reports.transfers'),
-                      value: reportData.yearTransfers?.received || reportData.yearTransfers?.sent
-                        ? `+${(reportData.yearTransfers.received || 0).toLocaleString()} / -${(reportData.yearTransfers.sent || 0).toLocaleString()}`
-                        : '—',
-                    }] : []),
+                    ...(isSingleBranch ? [(() => {
+                      console.log("[YEARLY DEBUG FRONTEND]", reportData?.yearTransfers);
+                      return {
+                        label: t('reports.transfers'),
+                        value: reportData.yearTransfers?.received || reportData.yearTransfers?.sent
+                          ? `+${(reportData.yearTransfers.received || 0).toLocaleString()} / -${(reportData.yearTransfers.sent || 0).toLocaleString()}`
+                          : '—',
+                      };
+                    })()] : []),
                     { label: t('reports.waste'), value: totals.totalWasteQuantity },
                     { label: t('reports.estSold'), value: totals.totalEstimatedSold },
                     { label: t('reports.revenue'), value: totals.totalEstimatedRevenue, revenue: true },
