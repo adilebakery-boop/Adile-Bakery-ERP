@@ -643,6 +643,7 @@ async function getYearlyReport(branchId, year, category, productId) {
     }
   }
   const snapshotPriceSets = {};
+  let yearTransfers = { received: 0, sent: 0 };
 
   // Single price history query — shared by all branches
   const allPriceHistory = await prisma.productPriceHistory.findMany({
@@ -742,6 +743,9 @@ async function getYearlyReport(branchId, year, category, productId) {
           };
         }
         addToProd(productYearlyTotals[key], fields);
+
+        yearTransfers.received += Number(item.receivedTransfer || 0);
+        yearTransfers.sent += Number(item.sentTransfer || 0);
       }
     }
 
@@ -760,7 +764,7 @@ async function getYearlyReport(branchId, year, category, productId) {
       ...(pidFilter ? { productId: pidFilter } : {}),
     };
 
-    const [prodRecords, remainingRecords, wasteRecords] = await Promise.all([
+    const [prodRecords, remainingRecords, wasteRecords, transferRecords] = await Promise.all([
       prisma.productionRecord.groupBy({
         by: ['productId', 'shift', 'operationalDate'],
         where: liveWhere,
@@ -776,7 +780,26 @@ async function getYearlyReport(branchId, year, category, productId) {
         where: liveWhere,
         _sum: { quantity: true },
       }),
+      prisma.productTransfer.findMany({
+        where: {
+          operationalDate: { gte: yearStart, lte: yearEnd, ...dateExcludeAll },
+          OR: [
+            { sourceBranchId: branch.id },
+            { dependentBranchId: branch.id },
+          ],
+        },
+        select: { sourceBranchId: true, dependentBranchId: true, receivedQuantity: true, sentQuantity: true },
+      }),
     ]);
+
+    for (const t of transferRecords) {
+      if (t.dependentBranchId === branch.id) {
+        yearTransfers.received += Number(t.receivedQuantity) || 0;
+      }
+      if (t.sourceBranchId === branch.id) {
+        yearTransfers.sent += Number(t.sentQuantity) || 0;
+      }
+    }
 
     groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
   }));
@@ -876,6 +899,7 @@ async function getYearlyReport(branchId, year, category, productId) {
     months,
     products,
     totals: aggregatedTotals,
+    yearTransfers,
     filters: { category: category || null },
   };
 }
