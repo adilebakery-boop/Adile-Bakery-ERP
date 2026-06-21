@@ -417,6 +417,7 @@ export default function TransfersPage() {
                                   <th className="px-4 py-2 text-left">To</th>
                                   <th className="px-4 py-2 text-left">Qty</th>
                                   <th className="px-4 py-2 text-left">Sent</th>
+                                  <th className="px-4 py-2 text-left">User</th>
                                   <th className="px-4 py-2 text-right">Action</th>
                                 </tr>
                               </thead>
@@ -428,6 +429,9 @@ export default function TransfersPage() {
                                     <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{Number(entry.receivedQuantity)}</td>
                                     <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">
                                       {entry.sentQuantity !== null ? Number(entry.sentQuantity) : '-'}
+                                    </td>
+                                    <td className="px-4 py-2 text-xs text-gray-500">
+                                      {entry.creator?.name || entry.creator?.username || '-'}
                                     </td>
                                     <td className="px-4 py-2 text-right">
                                       <button
