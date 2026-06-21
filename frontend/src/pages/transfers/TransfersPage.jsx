@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Loader2, Search, ChevronLeft, ChevronRight, ArrowLeftRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
@@ -46,6 +46,17 @@ export default function TransfersPage() {
   const canManageAll = isManagerOrAdmin();
   const isTransferOperator = userRole === 'TRANSFER_OPERATOR';
 
+  const isAdmin = userRole === 'ADMIN';
+  const isLocked = !isAdmin;
+
+  const [form, setForm] = useState({
+    branchType: '',
+    branchId: '',
+    productId: '',
+    quantity: '',
+    date: new Date().toISOString().split('T')[0],
+  });
+
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDisputed, setFilterDisputed] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -55,8 +66,6 @@ export default function TransfersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addForm, setAddForm] = useState({ productId: '', dependentBranchId: '', receivedQuantity: '', operationalDate: new Date().toISOString().split('T')[0] });
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [returningTransfer, setReturningTransfer] = useState(null);
   const [returnQuantity, setReturnQuantity] = useState('');
@@ -77,14 +86,16 @@ export default function TransfersPage() {
   const products = productsResult?.data || [];
 
   const { data: branches = [] } = useActiveBranchesQuery();
-  const dependentBranches = useMemo(() =>
-    branches.filter(b => b.branchType === 'DEPENDENT'),
-    [branches]
-  );
-  const sourceBranches = useMemo(() =>
-    branches.filter(b => b.branchType === 'SOURCE' || !b.branchType),
-    [branches]
-  );
+  const filteredBranches = useMemo(() => {
+    if (!form.branchType) return [];
+    if (form.branchType === 'SOURCE') {
+      return branches.filter(b => b.branchType === 'SOURCE' || !b.branchType);
+    }
+    if (form.branchType === 'DEPENDENT') {
+      return branches.filter(b => b.branchType === 'DEPENDENT');
+    }
+    return [];
+  }, [branches, form.branchType]);
 
   const allTransfers = useMemo(() => {
     const list = transfersData || [];
@@ -107,15 +118,36 @@ export default function TransfersPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  useEffect(() => {
+    if (isLocked) {
+      const userType = getBranchType();
+      setForm(prev => ({
+        ...prev,
+        branchType: userType || '',
+        branchId: userBranchId ? String(userBranchId) : '',
+      }));
+    }
+  }, [isLocked, userBranchId]);
+
   const clearMessages = () => { setActionError(''); setActionSuccess(''); };
 
   const handleCreateTransfer = async (e) => {
     e.preventDefault();
     clearMessages();
     try {
-      await mutations.createTransfer.mutateAsync(addForm);
-      setIsAddModalOpen(false);
-      setAddForm({ productId: '', dependentBranchId: '', receivedQuantity: '', operationalDate: new Date().toISOString().split('T')[0] });
+      await mutations.createTransfer.mutateAsync({
+        productId: Number(form.productId),
+        dependentBranchId: Number(form.branchId),
+        receivedQuantity: Number(form.quantity),
+        operationalDate: form.date,
+      });
+      setForm({
+        branchType: isAdmin ? '' : form.branchType,
+        branchId: isAdmin ? '' : form.branchId,
+        productId: '',
+        quantity: '',
+        date: new Date().toISOString().split('T')[0],
+      });
       setActionSuccess('Transfer created successfully');
     } catch (err) {
       setActionError(err.message);
@@ -217,15 +249,6 @@ export default function TransfersPage() {
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
         <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Transfers</h1>
-        <div className="flex flex-row flex-wrap gap-2">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Transfer
-          </button>
-        </div>
       </div>
 
       {actionSuccess && (
@@ -234,6 +257,98 @@ export default function TransfersPage() {
       {actionError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{actionError}</div>
       )}
+
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+        <form onSubmit={handleCreateTransfer} className="space-y-6">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="w-full md:w-44">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Transfer Date</label>
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                required
+              />
+            </div>
+            <div className="w-full md:flex-1 md:min-w-[180px]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
+              <select
+                value={form.productId}
+                onChange={(e) => setForm({ ...form, productId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                required
+              >
+                <option value="">Select product</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full md:flex-1 md:min-w-[180px]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Type</label>
+              <select
+                value={form.branchType}
+                onChange={(e) => setForm({ ...form, branchType: e.target.value, branchId: '' })}
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                disabled={isLocked}
+                required
+              >
+                {!isLocked && <option value="">Select type</option>}
+                {isLocked ? (
+                  <option value={form.branchType}>{form.branchType}</option>
+                ) : (
+                  <>
+                    <option value="SOURCE">SOURCE</option>
+                    <option value="DEPENDENT">DEPENDENT</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div className="w-full md:flex-1 md:min-w-[180px]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
+              <select
+                value={form.branchId}
+                onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                disabled={isLocked}
+                required
+              >
+                {!isLocked && form.branchType && <option value="">Select branch</option>}
+                {isLocked ? (
+                  <option value={form.branchId}>
+                    {branches.find(b => String(b.id) === String(form.branchId))?.name || '...'}
+                  </option>
+                ) : (
+                  filteredBranches.map(b => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))
+                )}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Received Quantity</label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              className="w-full px-4 py-6 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-3xl font-bold text-center dark:text-white"
+              placeholder="0"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={mutations.createTransfer.isPending}
+            className="w-full px-6 py-4 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-lg disabled:opacity-70"
+          >
+            {mutations.createTransfer.isPending ? 'Saving...' : 'Create Transfer'}
+          </button>
+        </form>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
@@ -433,71 +548,6 @@ export default function TransfersPage() {
           </button>
         </div>
       )}
-
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="New Transfer">
-        <form onSubmit={handleCreateTransfer} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Product</label>
-            <select
-              value={addForm.productId}
-              onChange={(e) => setAddForm({ ...addForm, productId: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl outline-none text-sm"
-              required
-            >
-              <option value="">Select product</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Dependent Branch</label>
-            <select
-              value={addForm.dependentBranchId}
-              onChange={(e) => setAddForm({ ...addForm, dependentBranchId: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl outline-none text-sm"
-              required
-            >
-              <option value="">Select branch</option>
-              {dependentBranches.map(b => (
-                <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Received Quantity</label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              value={addForm.receivedQuantity}
-              onChange={(e) => setAddForm({ ...addForm, receivedQuantity: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl outline-none text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Date</label>
-            <input
-              type="date"
-              value={addForm.operationalDate}
-              onChange={(e) => setAddForm({ ...addForm, operationalDate: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl outline-none text-sm"
-              required
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setIsAddModalOpen(false)}
-              className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm">
-              Cancel
-            </button>
-            <button type="submit" disabled={mutations.createTransfer.isPending}
-              className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70">
-              {mutations.createTransfer.isPending ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       <Modal isOpen={isReturnModalOpen} onClose={() => setIsReturnModalOpen(false)} title="Return Products">
         {returningTransfer && (
