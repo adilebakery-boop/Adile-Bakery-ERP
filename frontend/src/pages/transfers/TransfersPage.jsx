@@ -43,8 +43,9 @@ export default function TransfersPage() {
   const isLocked = !isAdmin;
 
   const [form, setForm] = useState({
-    branchType: '',
+    branchType: isAdmin ? 'DEPENDENT' : '',
     branchId: '',
+    toBranchId: '',
     productId: '',
     quantity: '',
     date: new Date().toISOString().split('T')[0],
@@ -78,15 +79,15 @@ export default function TransfersPage() {
 
   const { data: branches = [] } = useActiveBranchesQuery();
   const filteredBranches = useMemo(() => {
-    if (!form.branchType) return [];
-    if (form.branchType === 'SOURCE') {
-      return branches.filter(b => b.branchType === 'SOURCE' || !b.branchType);
-    }
     if (form.branchType === 'DEPENDENT') {
       return branches.filter(b => b.branchType === 'DEPENDENT');
     }
     return [];
   }, [branches, form.branchType]);
+
+  const sourceBranches = useMemo(() => branches.filter(b => b.branchType === 'SOURCE' || !b.branchType), [branches]);
+
+  const dependentBranches = useMemo(() => branches.filter(b => b.branchType === 'DEPENDENT'), [branches]);
 
   const allTransfers = useMemo(() => {
     const list = transfersData || [];
@@ -164,6 +165,7 @@ export default function TransfersPage() {
     };
     if (isSource) {
       payload.sourceBranchId = Number(form.branchId);
+      payload.dependentBranchId = Number(form.toBranchId);
       payload.sentQuantity = Number(form.quantity);
     } else {
       payload.dependentBranchId = Number(form.branchId);
@@ -172,8 +174,9 @@ export default function TransfersPage() {
     try {
       await mutations.createTransfer.mutateAsync(payload);
       setForm({
-        branchType: isAdmin ? '' : form.branchType,
-        branchId: isAdmin ? '' : form.branchId,
+        branchType: form.branchType,
+        branchId: '',
+        toBranchId: '',
         productId: '',
         quantity: '',
         date: new Date().toISOString().split('T')[0],
@@ -259,27 +262,62 @@ export default function TransfersPage() {
                 )}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
-              <select
-                value={form.branchId}
-                onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
-                disabled={isLocked}
-                required
-              >
-                {!isLocked && form.branchType && <option value="">Select branch</option>}
-                {isLocked ? (
-                  <option value={form.branchId}>
-                    {branches.find(b => String(b.id) === String(form.branchId))?.name || '...'}
-                  </option>
-                ) : (
-                  filteredBranches.map(b => (
-                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                  ))
-                )}
-              </select>
-            </div>
+            {form.branchType === 'SOURCE' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
+                  <select
+                    value={form.branchId}
+                    onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                    disabled={isLocked}
+                    required
+                  >
+                    {!isLocked && <option value="">Select source branch</option>}
+                    {sourceBranches.map(b => (
+                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">To Branch</label>
+                  <select
+                    value={form.toBranchId}
+                    onChange={(e) => setForm({ ...form, toBranchId: e.target.value })}
+                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                    disabled={isLocked}
+                    required
+                  >
+                    {!isLocked && <option value="">Select destination branch</option>}
+                    {dependentBranches.map(b => (
+                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
+                <select
+                  value={form.branchId}
+                  onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                  disabled={isLocked}
+                  required
+                >
+                  {!isLocked && form.branchType && <option value="">Select branch</option>}
+                  {isLocked ? (
+                    <option value={form.branchId}>
+                      {branches.find(b => String(b.id) === String(form.branchId))?.name || '...'}
+                    </option>
+                  ) : (
+                    filteredBranches.map(b => (
+                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
               <select
@@ -397,7 +435,7 @@ export default function TransfersPage() {
                         {group.operationalDate ? formatOperationalDate(group.operationalDate.split('T')[0]) : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {group.dependentBranch ? `${group.sourceBranch?.name || '-'} → ${group.dependentBranch?.name || '-'}` : (group.sourceBranch?.name || '-')}
+                        {group.sourceBranch?.name || '-'} → {group.dependentBranch?.name || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                         {group.entries.length} Entries
@@ -503,7 +541,7 @@ export default function TransfersPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Flow</label>
             <input
               type="text"
-              value={editingTransfer?.dependentBranch ? `${editingTransfer.sourceBranch?.name || '-'} → ${editingTransfer.dependentBranch?.name || '-'}` : (editingTransfer?.sourceBranch?.name || '-')}
+              value={`${editingTransfer?.sourceBranch?.name || '-'} → ${editingTransfer?.dependentBranch?.name || '-'}`}
               disabled
               className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
             />

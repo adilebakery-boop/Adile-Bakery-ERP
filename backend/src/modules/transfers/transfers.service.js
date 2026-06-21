@@ -5,7 +5,7 @@ const transferService = {
     const { branchType = 'DEPENDENT', productId, operationalDate } = data;
 
     if (branchType === 'SOURCE') {
-      const { sourceBranchId, sentQuantity } = data;
+      const { sourceBranchId, dependentBranchId, sentQuantity } = data;
 
       const branch = await prisma.branch.findUnique({ where: { id: sourceBranchId } });
       if (!branch || branch.branchType !== 'SOURCE') {
@@ -18,6 +18,7 @@ const transferService = {
         data: {
           productId,
           sourceBranchId,
+          dependentBranchId,
           sentQuantity,
           operationalDate: new Date(operationalDate),
           createdBy: userId,
