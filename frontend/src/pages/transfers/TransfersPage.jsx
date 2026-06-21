@@ -191,7 +191,7 @@ export default function TransfersPage() {
     }));
   };
 
-  const COL_COUNT = 6;
+  const COL_COUNT = 7;
 
   return (
     <div>
@@ -336,6 +336,7 @@ export default function TransfersPage() {
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Product</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Branch Flow</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Entries</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Qty</th>
                 <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -377,6 +378,9 @@ export default function TransfersPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {group.sourceBranch?.name || '-'} → {group.dependentBranch?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {group.entries.length} Entries
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                         {Number(group.totalQuantity).toLocaleString()}
