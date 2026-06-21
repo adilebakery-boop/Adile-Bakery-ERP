@@ -37,6 +37,7 @@ export default function ReportsPage() {
 
   const canManageAll = isManagerOrAdmin();
   const isAllBranches = branchId === '' || branchId === 'all';
+const isSingleBranch = !isAllBranches && branchId !== '';
   const showBranchColumn = isAllBranches;
   const effectiveBranchId = canManageAll ? branchId : null;
 
@@ -453,6 +454,13 @@ export default function ReportsPage() {
                       );
                     }
                     const dayTotals = day.totals;
+                    const dayTransfers = day.products?.reduce(
+                      (acc, p) => ({
+                        rec: acc.rec + (Number(p.receivedTransfer) || 0),
+                        sent: acc.sent + (Number(p.sentTransfer) || 0),
+                      }),
+                      { rec: 0, sent: 0 }
+                    ) || { rec: 0, sent: 0 };
                     return (
                       <ReportSummaryCard
                         key={day.date}
@@ -461,6 +469,12 @@ export default function ReportsPage() {
                         fields={[
                           { label: t('reports.dayProduction'), value: dayTotals.totalDayProduction },
                           { label: t('reports.nightProduction'), value: dayTotals.totalNightProduction },
+                          ...(isSingleBranch ? [{
+                            label: t('reports.transfers'),
+                            value: dayTransfers.rec || dayTransfers.sent
+                              ? `+${dayTransfers.rec.toLocaleString()} / -${dayTransfers.sent.toLocaleString()}`
+                              : '—',
+                          }] : []),
                           { label: t('reports.remaining'), value: dayTotals.totalRemainingStock },
                           { label: t('reports.waste'), value: dayTotals.totalWasteQuantity },
                           { label: t('reports.estSold'), value: dayTotals.totalEstimatedSold, highlighted: true },
@@ -502,6 +516,13 @@ export default function ReportsPage() {
                       );
                     }
                     const weekTotals = week.totals;
+                    const weekTransfers = week.products?.reduce(
+                      (acc, p) => ({
+                        rec: acc.rec + (Number(p.receivedTransfer) || 0),
+                        sent: acc.sent + (Number(p.sentTransfer) || 0),
+                      }),
+                      { rec: 0, sent: 0 }
+                    ) || { rec: 0, sent: 0 };
                     return (
                       <ReportSummaryCard
                         key={week.weekStartDate}
@@ -510,6 +531,12 @@ export default function ReportsPage() {
                         fields={[
                           { label: t('reports.dayProduction'), value: weekTotals.totalDayProduction },
                           { label: t('reports.nightProduction'), value: weekTotals.totalNightProduction },
+                          ...(isSingleBranch ? [{
+                            label: t('reports.transfers'),
+                            value: weekTransfers.rec || weekTransfers.sent
+                              ? `+${weekTransfers.rec.toLocaleString()} / -${weekTransfers.sent.toLocaleString()}`
+                              : '—',
+                          }] : []),
                           { label: t('reports.remaining'), value: weekTotals.totalRemainingStock },
                           { label: t('reports.waste'), value: weekTotals.totalWasteQuantity },
                           { label: t('reports.estSold'), value: weekTotals.totalEstimatedSold, highlighted: true },
