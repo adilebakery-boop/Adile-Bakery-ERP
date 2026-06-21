@@ -1,3 +1,4 @@
+const prisma = require('../config/prisma');
 const { toDateString } = require('../utils/dateUtils');
 const { logAudit } = require('./auditService');
 
