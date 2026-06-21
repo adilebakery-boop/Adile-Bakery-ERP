@@ -886,6 +886,8 @@ async function getInventoryFlowReport(branchId, operationalDate) {
           nightProductionPreparedFor: 0,
           sellableStock: decimalToNumber(item.sellableStock),
           remainingStock: decimalToNumber(item.remainingStock),
+          receivedTransfer: decimalToNumber(item.receivedTransfer),
+          sentTransfer: decimalToNumber(item.sentTransfer),
           wasteQuantity: decimalToNumber(item.wasteQuantity),
           estimatedSold: decimalToNumber(item.estimatedSold),
           estimatedRevenue: decimalToNumber(item.estimatedRevenue),
