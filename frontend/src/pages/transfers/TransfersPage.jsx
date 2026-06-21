@@ -43,7 +43,7 @@ export default function TransfersPage() {
   const isLocked = !isAdmin;
 
   const [form, setForm] = useState({
-    branchType: isAdmin ? 'DEPENDENT' : '',
+    branchType: '',
     branchId: '',
     productId: '',
     quantity: '',
@@ -164,7 +164,7 @@ export default function TransfersPage() {
         operationalDate: form.date,
       });
       setForm({
-        branchType: isAdmin ? 'DEPENDENT' : form.branchType,
+        branchType: isAdmin ? '' : form.branchType,
         branchId: isAdmin ? '' : form.branchId,
         productId: '',
         quantity: '',
@@ -240,10 +240,14 @@ export default function TransfersPage() {
                 disabled={isLocked}
                 required
               >
+                {!isLocked && <option value="">Select type</option>}
                 {isLocked ? (
                   <option value={form.branchType}>{form.branchType}</option>
                 ) : (
-                  <option value="DEPENDENT">DEPENDENT</option>
+                  <>
+                    <option value="SOURCE">SOURCE</option>
+                    <option value="DEPENDENT">DEPENDENT</option>
+                  </>
                 )}
               </select>
             </div>
