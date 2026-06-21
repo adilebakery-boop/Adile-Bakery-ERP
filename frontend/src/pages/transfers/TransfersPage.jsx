@@ -259,9 +259,9 @@ export default function TransfersPage() {
       )}
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <form onSubmit={handleCreateTransfer} className="space-y-6">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="w-full md:w-44">
+        <form onSubmit={handleCreateTransfer} className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Transfer Date</label>
               <input
                 type="date"
@@ -271,21 +271,7 @@ export default function TransfersPage() {
                 required
               />
             </div>
-            <div className="w-full md:flex-1 md:min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
-              <select
-                value={form.productId}
-                onChange={(e) => setForm({ ...form, productId: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
-                required
-              >
-                <option value="">Select product</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full md:flex-1 md:min-w-[180px]">
+            <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Type</label>
               <select
                 value={form.branchType}
@@ -305,7 +291,7 @@ export default function TransfersPage() {
                 )}
               </select>
             </div>
-            <div className="w-full md:flex-1 md:min-w-[180px]">
+            <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
               <select
                 value={form.branchId}
@@ -326,6 +312,20 @@ export default function TransfersPage() {
                 )}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
+              <select
+                value={form.productId}
+                onChange={(e) => setForm({ ...form, productId: e.target.value })}
+                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                required
+              >
+                <option value="">Select product</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Received Quantity</label>
@@ -335,7 +335,7 @@ export default function TransfersPage() {
               min="0"
               value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              className="w-full px-4 py-6 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-3xl font-bold text-center dark:text-white"
+              className="w-40 px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
               placeholder="0"
               required
             />
@@ -343,7 +343,7 @@ export default function TransfersPage() {
           <button
             type="submit"
             disabled={mutations.createTransfer.isPending}
-            className="w-full px-6 py-4 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-lg disabled:opacity-70"
+            className="w-full px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
           >
             {mutations.createTransfer.isPending ? 'Saving...' : 'Create Transfer'}
           </button>
