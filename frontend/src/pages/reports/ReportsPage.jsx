@@ -516,11 +516,20 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                       );
                     }
                     const weekTotals = week.totals;
-                    const weekTransfers = week.products?.reduce(
-                      (acc, p) => ({
-                        rec: acc.rec + (Number(p.receivedTransfer) || 0),
-                        sent: acc.sent + (Number(p.sentTransfer) || 0),
-                      }),
+                    const weekTransfers = week.days?.reduce(
+                      (acc, day) => {
+                        const daySum = (day.products || []).reduce(
+                          (dAcc, p) => ({
+                            rec: dAcc.rec + (Number(p.receivedTransfer) || 0),
+                            sent: dAcc.sent + (Number(p.sentTransfer) || 0),
+                          }),
+                          { rec: 0, sent: 0 }
+                        );
+                        return {
+                          rec: acc.rec + daySum.rec,
+                          sent: acc.sent + daySum.sent,
+                        };
+                      },
                       { rec: 0, sent: 0 }
                     ) || { rec: 0, sent: 0 };
                     return (
