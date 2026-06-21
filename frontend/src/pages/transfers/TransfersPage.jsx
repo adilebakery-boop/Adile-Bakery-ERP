@@ -5,6 +5,7 @@ import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isM
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
+import Modal from '../../components/Modal';
 import { useProductsQuery } from '../../features/products/hooks/queries/useProductsQuery';
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useTransfersQuery } from '../../features/transfers/hooks/queries/useTransfersQuery';
@@ -60,6 +61,9 @@ export default function TransfersPage() {
   const [actionSuccess, setActionSuccess] = useState('');
 
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTransfer, setEditingTransfer] = useState(null);
+  const [editQuantity, setEditQuantity] = useState('');
 
   const branchFilter = canManageAll || isTransferOperator ? {} : { dependentBranchId: userBranchId };
   const { data: transfersData, isLoading, isError, error: fetchError, refetch } = useTransfersQuery({
@@ -172,13 +176,21 @@ export default function TransfersPage() {
     }
   };
 
-  const handleEditQuantity = async (transfer) => {
+  const handleEditClick = (transfer) => {
     clearMessages();
-    const val = prompt('Enter quantity:', transfer.receivedQuantity || '');
-    if (!val || isNaN(val)) return;
+    setEditingTransfer(transfer);
+    setEditQuantity(String(transfer.receivedQuantity || ''));
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingTransfer) return;
     try {
-      await mutations.updateReceived.mutateAsync({ id: transfer.id, data: { receivedQuantity: Number(val) } });
+      await mutations.updateReceived.mutateAsync({ id: editingTransfer.id, data: { receivedQuantity: Number(editQuantity) } });
       setActionSuccess('Transfer updated');
+      setIsEditModalOpen(false);
+      setEditingTransfer(null);
     } catch (err) {
       setActionError(err.message);
     }
@@ -419,7 +431,7 @@ export default function TransfersPage() {
                                     </td>
                                     <td className="px-4 py-2 text-right">
                                       <button
-                                        onClick={(e) => { e.stopPropagation(); handleEditQuantity(entry); }}
+                                        onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
                                         className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors"
                                       >
                                         <Edit2 className="w-3 h-3" />
@@ -463,6 +475,66 @@ export default function TransfersPage() {
           </button>
         </div>
       )}
+
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Transfer">
+        <form onSubmit={handleEditSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
+            <input
+              type="text"
+              value={getLocalizedName(editingTransfer?.product, i18n.language) || ''}
+              disabled
+              className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Flow</label>
+            <input
+              type="text"
+              value={`${editingTransfer?.sourceBranch?.name || '-'} → ${editingTransfer?.dependentBranch?.name || '-'}`}
+              disabled
+              className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Date</label>
+            <input
+              type="text"
+              value={editingTransfer?.operationalDate ? formatOperationalDate(editingTransfer.operationalDate.split('T')[0]) : '-'}
+              disabled
+              className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={editQuantity}
+              onChange={(e) => setEditQuantity(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              className="flex-1 px-6 py-3 border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1E3A3F] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={mutations.updateReceived.isPending}
+              className="flex-1 px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
+            >
+              {mutations.updateReceived.isPending ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
