@@ -6,8 +6,6 @@ const {
   createTransferSchema,
   updateSentSchema,
   updateReceivedSchema,
-  returnSchema,
-  resolveDisputeSchema,
   querySchema,
 } = require('./transfers.validation');
 
@@ -51,13 +49,5 @@ router.post('/', allowRoles(...ALL_ROLES), validate(createTransferSchema), trans
 router.put('/:id/sent', allowRoles(...ALL_ROLES), validate(updateSentSchema), transferController.updateSent);
 
 router.put('/:id/received', allowRoles(...ALL_ROLES), validate(updateReceivedSchema), transferController.updateReceived);
-
-router.put('/:id/return', allowRoles(...ALL_ROLES), validate(returnSchema), transferController.returnProducts);
-
-router.put('/:id/resolve', allowRoles(...ADMIN_MANAGER_ONLY), validate(resolveDisputeSchema), transferController.resolveDispute);
-
-router.put('/:id/approve', allowRoles(...ADMIN_MANAGER_ONLY), transferController.approve);
-
-router.put('/:id/reject', allowRoles(...ADMIN_MANAGER_ONLY), transferController.reject);
 
 module.exports = router;

@@ -387,49 +387,6 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
 
   // ── Snapshot validation hook (transfer integrity, non-blocking) ──
   const warnings = [];
-  if (process.env.FEATURE_TRANSFERS === 'true') {
-    const branch = await prisma.branch.findUnique({
-      where: { id: branchIdInt },
-      select: { branchType: true },
-    });
-    if (branch?.branchType === 'DEPENDENT' || branch?.branchType === 'SOURCE') {
-      const pendingTransfers = await prisma.productTransfer.count({
-        where: {
-          operationalDate: opDate,
-          status: 'PENDING',
-          OR: [
-            { sourceBranchId: branchIdInt },
-            { dependentBranchId: branchIdInt },
-          ],
-        },
-      });
-      if (pendingTransfers > 0) {
-        warnings.push({
-          type: 'PENDING_TRANSFERS',
-          message: `${pendingTransfers} transfer(s) are still PENDING. Snapshot uses current values; finalize transfers before reopen.`,
-          count: pendingTransfers,
-        });
-      }
-
-      const disputedTransfers = await prisma.productTransfer.count({
-        where: {
-          operationalDate: opDate,
-          isDisputed: true,
-          OR: [
-            { sourceBranchId: branchIdInt },
-            { dependentBranchId: branchIdInt },
-          ],
-        },
-      });
-      if (disputedTransfers > 0) {
-        warnings.push({
-          type: 'DISPUTED_TRANSFERS',
-          message: `${disputedTransfers} transfer(s) are marked as DISPUTED on this day.`,
-          count: disputedTransfers,
-        });
-      }
-    }
-  }
 
   if (warnings.length > 0) {
     await auditService.logAudit('closure', result.closure.id, 'CLOSE_WARNING', null, { warnings }, userId);

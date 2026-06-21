@@ -690,7 +690,6 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
         where: {
           dependentBranchId: branchIdNum,
           operationalDate: opDate,
-          status: { in: ['APPROVED', 'PENDING'] },
         },
         select: { productId: true, receivedQuantity: true },
       });
@@ -702,7 +701,6 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
         where: {
           sourceBranchId: branchIdNum,
           operationalDate: opDate,
-          status: { in: ['APPROVED', 'PENDING'] },
         },
         select: { productId: true, sentQuantity: true },
       });
