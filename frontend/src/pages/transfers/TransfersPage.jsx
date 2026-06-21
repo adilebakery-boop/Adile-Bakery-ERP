@@ -260,7 +260,7 @@ export default function TransfersPage() {
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] p-6 mb-8 border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <form onSubmit={handleCreateTransfer} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col md:grid md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Transfer Date</label>
               <input
@@ -345,7 +345,7 @@ export default function TransfersPage() {
             disabled={mutations.createTransfer.isPending}
             className="w-full px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
           >
-            {mutations.createTransfer.isPending ? 'Saving...' : 'Create Transfer'}
+            {mutations.createTransfer.isPending ? 'Saving...' : 'Record Transfer'}
           </button>
         </form>
       </div>
