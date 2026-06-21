@@ -102,7 +102,7 @@ export default function TransfersPage() {
     const groups = {};
     for (const t of allTransfers) {
       const dateKey = t.operationalDate ? t.operationalDate.split('T')[0] : '';
-      const key = `${t.productId}-${dateKey}-${t.sourceBranchId}-${t.dependentBranchId}`;
+      const key = `${t.productId}-${dateKey}-${t.sourceBranchId}-${t.dependentBranchId || 'null'}`;
       if (!groups[key]) {
         groups[key] = {
           key,
@@ -118,7 +118,7 @@ export default function TransfersPage() {
         };
       }
       groups[key].entries.push(t);
-      groups[key].totalQuantity += Number(t.receivedQuantity);
+      groups[key].totalQuantity += Number(t.receivedQuantity || 0) + Number(t.sentQuantity || 0);
     }
     return Object.values(groups).sort((a, b) => {
       const dateCompare = (b.operationalDate || '').localeCompare(a.operationalDate || '');
@@ -156,13 +156,21 @@ export default function TransfersPage() {
   const handleCreateTransfer = async (e) => {
     e.preventDefault();
     clearMessages();
+    const isSource = form.branchType === 'SOURCE';
+    const payload = {
+      branchType: form.branchType,
+      productId: Number(form.productId),
+      operationalDate: form.date,
+    };
+    if (isSource) {
+      payload.sourceBranchId = Number(form.branchId);
+      payload.sentQuantity = Number(form.quantity);
+    } else {
+      payload.dependentBranchId = Number(form.branchId);
+      payload.receivedQuantity = Number(form.quantity);
+    }
     try {
-      await mutations.createTransfer.mutateAsync({
-        productId: Number(form.productId),
-        dependentBranchId: Number(form.branchId),
-        receivedQuantity: Number(form.quantity),
-        operationalDate: form.date,
-      });
+      await mutations.createTransfer.mutateAsync(payload);
       setForm({
         branchType: isAdmin ? '' : form.branchType,
         branchId: isAdmin ? '' : form.branchId,
@@ -389,7 +397,7 @@ export default function TransfersPage() {
                         {group.operationalDate ? formatOperationalDate(group.operationalDate.split('T')[0]) : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {group.sourceBranch?.name || '-'} → {group.dependentBranch?.name || '-'}
+                        {group.dependentBranch ? `${group.sourceBranch?.name || '-'} → ${group.dependentBranch?.name || '-'}` : (group.sourceBranch?.name || '-')}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                         {group.entries.length} Entries
@@ -495,7 +503,7 @@ export default function TransfersPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Flow</label>
             <input
               type="text"
-              value={`${editingTransfer?.sourceBranch?.name || '-'} → ${editingTransfer?.dependentBranch?.name || '-'}`}
+              value={editingTransfer?.dependentBranch ? `${editingTransfer.sourceBranch?.name || '-'} → ${editingTransfer.dependentBranch?.name || '-'}` : (editingTransfer?.sourceBranch?.name || '-')}
               disabled
               className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
             />
