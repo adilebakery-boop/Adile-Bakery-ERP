@@ -327,26 +327,28 @@ export default function TransfersPage() {
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Received Quantity</label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              value={form.quantity}
-              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              className="w-40 px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
-              placeholder="0"
-              required
-            />
+          <div className="flex items-end gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                className="w-40 px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                placeholder="0"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={mutations.createTransfer.isPending}
+              className="px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
+            >
+              {mutations.createTransfer.isPending ? 'Saving...' : 'Record Transfer'}
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={mutations.createTransfer.isPending}
-            className="w-full px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
-          >
-            {mutations.createTransfer.isPending ? 'Saving...' : 'Record Transfer'}
-          </button>
         </form>
       </div>
 
