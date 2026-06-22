@@ -89,8 +89,8 @@ const transferService = {
       where.operationalDate = { ...(where.operationalDate || {}), lte: new Date(endDate) };
     }
 
-    if (user) {
-      if (user.role === 'MANAGER' && user.branchId) {
+    if (user && user.branchId) {
+      if (user.role === 'MANAGER' || user.role === 'TRANSFER_OPERATOR') {
         where.OR = [
           { sourceBranchId: Number(user.branchId) },
           { dependentBranchId: Number(user.branchId) },
@@ -148,7 +148,7 @@ const transferService = {
   async updateSent(id, data, userId, user) {
     const transfer = await this.findById(id);
 
-    if (user.role !== 'ADMIN' && user.role !== 'MANAGER' && user.role !== 'TRANSFER_OPERATOR') {
+    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       if (Number(user.branchId) !== transfer.sourceBranchId) {
         const err = new Error('You can only update sent quantity for your own source branch');
         err.status = 403;
