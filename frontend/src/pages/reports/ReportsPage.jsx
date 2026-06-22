@@ -297,18 +297,20 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                 </div>
               )}
 
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showAllProducts}
-                  aria-label={t('ui.showAllProducts')}
-                  onClick={() => setShowAllProducts(v => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </label>
+              {activeTab === 'daily' && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={showAllProducts}
+                    aria-label={t('ui.showAllProducts')}
+                    onClick={() => setShowAllProducts(v => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAllProducts ? 'bg-[#4CB094]' : 'bg-gray-300 dark:bg-[#1E3A3F]'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAllProducts ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </label>
+              )}
             </div>
           </div>
         </div>
