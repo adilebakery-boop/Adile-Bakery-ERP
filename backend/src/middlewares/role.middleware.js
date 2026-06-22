@@ -6,6 +6,7 @@ const ROLES = {
   CAKE_CHEF: ['CAKE_CHEF'],
   FETIR_CHEF: ['FETIR_CHEF'],
   CASHIER: ['CASHIER'],
+  TRANSFER_OPERATOR: ['TRANSFER_OPERATOR'],
 };
 
 const authorize = (...allowedRoles) => {

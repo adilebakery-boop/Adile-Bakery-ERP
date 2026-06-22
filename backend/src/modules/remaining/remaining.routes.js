@@ -51,7 +51,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   validateQuery(querySchema),
   remainingController.findAll
 );
@@ -59,14 +59,14 @@ router.get(
 router.get(
   '/by-date/:operationalDate',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   remainingController.findByOperationalDate
 );
 
 router.get(
   '/drafts',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   remainingController.getDrafts
 );
 
@@ -80,7 +80,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   validateIdParam,
   remainingController.findById
 );
@@ -88,7 +88,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   closureGuard,
   validate(createRemainingSchema),
   remainingController.create
@@ -97,7 +97,7 @@ router.post(
 router.post(
   '/bulk',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   closureGuard,
   validate(createBulkSchema),
   remainingController.createBulk
@@ -106,7 +106,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   closureGuard,
   validate(updateRemainingSchema),
   validateIdParam,

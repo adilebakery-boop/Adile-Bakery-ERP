@@ -61,10 +61,11 @@ export default function MainLayout() {
   const navItems = allNavItems.filter(item => {
     if (item.page === PAGES.TRANSFERS) {
       if (!transfersEnabled) return false;
-      const branchType = getBranchType();
-      const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER';
-      if (isAdminOrManager || userRole === 'TRANSFER_OPERATOR') return true;
-      if (branchType === 'SOURCE' || branchType === 'DEPENDENT') return true;
+      if (userRole === 'ADMIN' || userRole === 'TRANSFER_OPERATOR') return true;
+      if (userRole === 'MANAGER') {
+        const branchType = getBranchType();
+        return branchType === 'SOURCE' || branchType === 'DEPENDENT';
+      }
       return false;
     }
     return allowedPages.includes(item.page);

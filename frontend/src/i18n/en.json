@@ -300,7 +300,8 @@
     "cakeChef": "Cake Chef",
     "cookieBaker": "Cookie Baker",
     "fetirChef": "Fetir Chef",
-    "cashier": "Cashier"
+    "cashier": "Cashier",
+    "transferOperator": "Transfer Operator"
   },
   "productCategories": {
     "BREAD_AND_SWEET_BREADS": "Bread & Sweet Breads",

@@ -49,7 +49,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   validateQuery(querySchema),
   wasteController.findAll
 );
@@ -57,7 +57,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   validateIdParam,
   wasteController.findById
 );
@@ -65,7 +65,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   closureGuard,
   validate(createWasteSchema),
   wasteController.create
@@ -74,7 +74,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER'),
+  allowRoles('ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'),
   closureGuard,
   validate(updateWasteSchema),
   validateIdParam,

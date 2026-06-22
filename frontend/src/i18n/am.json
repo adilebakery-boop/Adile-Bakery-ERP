@@ -298,7 +298,8 @@
     "cakeChef": "ኬክ ሼፍ",
     "cookieBaker": "ኩኪ ባከር",
     "fetirChef": "ፈቲር ሼፍ",
-    "cashier": "ካሽየር"
+    "cashier": "ካሽየር",
+    "transferOperator": "የዝውውር ኦፕሬተር"
   },
   "productCategories": {
     "BREAD_AND_SWEET_BREADS": "ዳቦና ጣፋጭ ዳቦዎች",

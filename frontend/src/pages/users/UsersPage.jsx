@@ -11,6 +11,7 @@ import { useDeleteUserMutation } from '../../features/users/hooks/mutations/useD
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 
 const ALL_ROLES = [
+  { value: 'TRANSFER_OPERATOR', labelKey: 'transferOperator', id: 8 },
   { value: 'CASHIER', labelKey: 'cashier', id: 7 },
   { value: 'FETIR_CHEF', labelKey: 'fetirChef', id: 6 },
   { value: 'COOKIE_BAKER', labelKey: 'cookieBaker', id: 5 },
@@ -31,6 +32,7 @@ const getRoleKey = (roleName) => {
     'COOKIE_BAKER': 'cookieBaker',
     'FETIR_CHEF': 'fetirChef',
     'CASHIER': 'cashier',
+    'TRANSFER_OPERATOR': 'transferOperator',
   };
   return roleMap[roleName] || roleName.toLowerCase();
 };
