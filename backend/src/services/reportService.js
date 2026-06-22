@@ -376,7 +376,7 @@ function computeDisplayPrice(allPrices) {
   return '0';
 }
 
-function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter, productYearlyTotals = {}) {
+function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter, productYearlyTotals = {}) {
   const snapshotPriceSetsLocal = snapshotPriceSets || {};
 
   const dayProdByDate = {};
@@ -407,19 +407,40 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyBy
     wasteByDate[dk][r.productId] = (wasteByDate[dk][r.productId] || 0) + (Number(r._sum.quantity) || 0);
   }
 
+  const receivedByDate = {};
+  const sentByDate = {};
+  for (const t of transferRecords) {
+    const dk = t.operationalDate.toISOString().split('T')[0];
+    if (t.dependentBranchId === branchId) {
+      if (!receivedByDate[dk]) receivedByDate[dk] = {};
+      receivedByDate[dk][t.productId] = (receivedByDate[dk][t.productId] || 0) + (Number(t.receivedQuantity) || 0);
+    }
+    if (t.sourceBranchId === branchId) {
+      if (!sentByDate[dk]) sentByDate[dk] = {};
+      sentByDate[dk][t.productId] = (sentByDate[dk][t.productId] || 0) + (Number(t.sentQuantity) || 0);
+    }
+  }
+
   const allDateKeys = [...new Set([
     ...Object.keys(dayProdByDate), ...Object.keys(nightProdByDate),
     ...Object.keys(remainingByDate), ...Object.keys(wasteByDate),
+    ...Object.keys(receivedByDate), ...Object.keys(sentByDate),
   ])];
 
   const allProdIds = new Set();
   for (const dk of allDateKeys) {
-    for (const m of [dayProdByDate, nightProdByDate, remainingByDate, wasteByDate]) {
+    for (const m of [dayProdByDate, nightProdByDate, remainingByDate, wasteByDate, receivedByDate, sentByDate]) {
       if (m[dk]) Object.keys(m[dk]).forEach(p => allProdIds.add(Number(p)));
     }
   }
 
   if (allDateKeys.length === 0) return;
+
+  const sortedDateKeys = allDateKeys.sort();
+  const prevDateMap = {};
+  for (let i = 1; i < sortedDateKeys.length; i++) {
+    prevDateMap[sortedDateKeys[i]] = sortedDateKeys[i - 1];
+  }
 
   // Group dates by month
   const monthDates = {};
@@ -447,6 +468,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyBy
         ...Object.keys(nightProdByDate[dk] || {}),
         ...Object.keys(remainingByDate[dk] || {}),
         ...Object.keys(wasteByDate[dk] || {}),
+        ...Object.keys(receivedByDate[dk] || {}),
+        ...Object.keys(sentByDate[dk] || {}),
       ]);
       for (const pidStr of dateProds) {
         const pid = Number(pidStr);
@@ -454,14 +477,17 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyBy
         const nightProd = nightProdByDate[dk]?.[pid] || 0;
         const remaining = remainingByDate[dk]?.[pid] || 0;
         const waste = wasteByDate[dk]?.[pid] || 0;
+        const openingStock = prevDateMap[dk] ? (remainingByDate[prevDateMap[dk]]?.[pid] || 0) : 0;
+        const receivedTransfer = receivedByDate[dk]?.[pid] || 0;
+        const sentTransfer = sentByDate[dk]?.[pid] || 0;
 
-        if (dayProd === 0 && nightProd === 0 && remaining === 0 && waste === 0) continue;
+        if (dayProd === 0 && nightProd === 0 && remaining === 0 && waste === 0 && receivedTransfer === 0 && sentTransfer === 0 && openingStock === 0) continue;
 
         if (!monthAccum[pid]) {
-          monthAccum[pid] = { dayProd: 0, nightProd: 0, remaining: 0, waste: 0, estimatedSold: 0, estimatedRevenue: 0 };
+          monthAccum[pid] = { dayProd: 0, nightProd: 0, remaining: 0, waste: 0, openingStock: 0, receivedTransfer: 0, sentTransfer: 0, estimatedSold: 0, estimatedRevenue: 0 };
         }
 
-        const sellable = dayProd + nightProd;
+        const sellable = openingStock + dayProd + nightProd + receivedTransfer - sentTransfer;
         const dailySold = Math.max(0, sellable - (remaining + waste));
 
         const entries = historyByProduct[pid] || [];
@@ -483,6 +509,9 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyBy
         monthAccum[pid].nightProd += nightProd;
         monthAccum[pid].remaining += remaining;
         monthAccum[pid].waste += waste;
+        monthAccum[pid].openingStock += openingStock;
+        monthAccum[pid].receivedTransfer += receivedTransfer;
+        monthAccum[pid].sentTransfer += sentTransfer;
         monthAccum[pid].estimatedSold += dailySold;
         monthAccum[pid].estimatedRevenue += dailySold * histPrice;
       }
@@ -507,7 +536,7 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyBy
       }
       const displayPrice = computeDisplayPrice(allPrices);
 
-      const sellable = prod.dayProd + prod.nightProd;
+      const sellable = prod.dayProd + prod.nightProd + (prod.openingStock || 0) + (prod.receivedTransfer || 0) - (prod.sentTransfer || 0);
 
       // Shared helper to create entry if missing, then add values
       const ensureAndAdd = (map, mapKey, displayOverride) => {
@@ -794,7 +823,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             { dependentBranchId: branch.id },
           ],
         },
-        select: { sourceBranchId: true, dependentBranchId: true, receivedQuantity: true, sentQuantity: true, operationalDate: true },
+        select: { sourceBranchId: true, dependentBranchId: true, receivedQuantity: true, sentQuantity: true, operationalDate: true, productId: true },
       }),
     ]);
 
@@ -810,7 +839,7 @@ async function getYearlyReport(branchId, year, category, productId) {
       }
     }
 
-    groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
+    groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
   }));
 
   // Post-process: normalize flat live-path entries to nested product objects
