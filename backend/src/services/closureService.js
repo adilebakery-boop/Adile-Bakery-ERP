@@ -31,6 +31,7 @@
 const prisma = require('../config/prisma');
 const inventoryFlowService = require('./inventoryFlowService');
 const auditService = require('./auditService');
+const integrityService = require('./integrityService');
 const { toDateString } = require('../utils/dateUtils');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 const { requireBranchAccess } = require('../utils/accessFilters');
@@ -107,7 +108,7 @@ async function validateBeforeClose(branchId, operationalDate) {
 
   // Build flow lookup map
   const flowMap = {};
-  for (const f of flows) { flowMap[f.productId] = f; }
+  for (const f of flows) { flowMap[f.product.id] = f; }
 
   // Split missing products into:
   //   blocking  — product had activity, requires manual remaining entry
@@ -180,18 +181,18 @@ async function validateBeforeClose(branchId, operationalDate) {
     if (flow.estimatedSold < 0) {
       errors.push({
         type: 'NEGATIVE_SOLD',
-        message: `${productNames[flow.productId] || 'Unknown'}: Remaining exceeds production for this product`,
+        message: `${productNames[flow.product.id] || 'Unknown'}: Remaining exceeds production for this product`,
         severity: 'error',
-        productId: flow.productId,
+        productId: flow.product.id,
       });
     }
 
     if (flow.remainingStock > flow.sellableStock) {
       errors.push({
         type: 'REMAINDER_EXCEEDS_SELLABLE',
-        message: `${productNames[flow.productId] || 'Unknown'}: Remaining stock exceeds sellable stock`,
+        message: `${productNames[flow.product.id] || 'Unknown'}: Remaining stock exceeds sellable stock`,
         severity: 'error',
-        productId: flow.productId,
+        productId: flow.product.id,
       });
     }
 
@@ -199,18 +200,18 @@ async function validateBeforeClose(branchId, operationalDate) {
     if (wasteRatio > 0.2) {
       warnings.push({
         type: 'HIGH_WASTE',
-        message: `${productNames[flow.productId] || 'Unknown'}: Waste rate is ${(wasteRatio * 100).toFixed(1)}%`,
+        message: `${productNames[flow.product.id] || 'Unknown'}: Waste rate is ${(wasteRatio * 100).toFixed(1)}%`,
         severity: 'warning',
-        productId: flow.productId,
+        productId: flow.product.id,
       });
     }
 
     if (flow.openingStock > 0 && flow.dayProduction === 0 && flow.remainingStock > flow.openingStock * 1.5) {
       warnings.push({
         type: 'LARGE_OPENING_NO_PRODUCTION',
-        message: `${productNames[flow.productId] || 'Unknown'}: Large opening stock with no new production`,
+        message: `${productNames[flow.product.id] || 'Unknown'}: Large opening stock with no new production`,
         severity: 'warning',
-        productId: flow.productId,
+        productId: flow.product.id,
       });
     }
   }
@@ -354,7 +355,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
 
     const snapshotItems = flows.map(flow => ({
       snapshotId: snapshot.id,
-      productId: flow.productId,
+      productId: flow.product.id,
       openingStock: toDecimal(String(flow.openingStock)),
       dayProduction: toDecimal(String(flow.dayProduction)),
       nightProduction: toDecimal(String(flow.nightProduction)),
@@ -364,6 +365,8 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
       estimatedSold: toDecimal(String(flow.estimatedSold)),
       estimatedRevenue: toDecimal(String(flow.estimatedRevenue)),
       snapshotPrice: toDecimal(String(flow.price)),
+      receivedTransfer: toDecimal(String(flow.receivedTransfer || 0)),
+      sentTransfer: toDecimal(String(flow.sentTransfer || 0)),
     }));
 
     await tx.dailySnapshotItem.createMany({ data: snapshotItems });
@@ -382,7 +385,14 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
     return { closure, snapshot, itemCount: snapshotItems.length };
   });
 
-  return result;
+  // ── Snapshot validation hook (transfer integrity, non-blocking) ──
+  const warnings = [];
+
+  if (warnings.length > 0) {
+    await auditService.logAudit('closure', result.closure.id, 'CLOSE_WARNING', null, { warnings }, userId);
+  }
+
+  return { ...result, warnings };
 }
 
 async function reopenDay(branchId, operationalDate, user, reason) {

@@ -7,7 +7,7 @@ const { createRemainingSchema, createBulkSchema, updateRemainingSchema, remainin
 
 const validate = (schema) => (req, res, next) => {
   try {
-    schema.parse(req.body);
+    req.body = schema.parse(req.body);
     next();
   } catch (error) {
     console.error('[REMAINING VALIDATION ERROR] body:', JSON.stringify(req.body), 'errors:', JSON.stringify(error.errors));

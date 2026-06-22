@@ -5,6 +5,8 @@ const createBranchSchema = z.object({
     .min(1, 'Branch name is required')
     .max(100, 'Branch name must not exceed 100 characters')
     .transform(val => val.trim()),
+  branchType: z.enum(['SOURCE', 'DEPENDENT', 'INDEPENDENT']).optional(),
+  sourceBranchId: z.coerce.number().int().positive().optional().nullable(),
 });
 
 const updateBranchSchema = z.object({
@@ -14,6 +16,8 @@ const updateBranchSchema = z.object({
     .transform(val => val.trim())
     .optional(),
   isActive: z.boolean().optional(),
+  branchType: z.enum(['SOURCE', 'DEPENDENT', 'INDEPENDENT']).optional(),
+  sourceBranchId: z.coerce.number().int().positive().optional().nullable(),
 });
 
 const branchIdSchema = z.object({

@@ -145,7 +145,11 @@
     "skippedInactive": "inactive product(s) skipped",
     "noProductsAvailable": "No products available for your role",
     "selectBranch": "Select branch",
-    "branch": "Branch"
+    "branch": "Branch",
+    "today": "Today"
+  },
+  "ui": {
+    "showAllProducts": "Show All Products"
   },
   "products": {
     "title": "Products",
@@ -167,6 +171,7 @@
     "enterPrice": "Enter price",
     "productName": "Product Name",
     "saving": "Saving...",
+    "productionShift": "Production Shift",
     "restore": "Restore",
     "noDeletedProducts": "No deleted products"
   },
@@ -217,6 +222,7 @@
     "allCategories": "All Categories",
     "allProducts": "All Products",
 
+    "failedToLoadReport": "Failed to load report",
     "noDataForPeriod": "No data for this period",
     "product": "Product",
     "category": "Category",
@@ -240,8 +246,7 @@
     "week": "Week",
     "month": "Month",
     "showingProducts": "Showing {{start}} to {{end}} of {{total}} products",
-    "pageOf": "Page {{current}} of {{total}}",
-    "showAllProducts": "Show All Products"
+    "pageOf": "Page {{current}} of {{total}}"
   },
   "profile": {
     "title": "Profile Settings",
@@ -277,6 +282,11 @@
     "cookies": "Cookies",
     "fetireAndSnacks": "Fetire & Snacks",
     "drinksAndRetailItems": "Drinks & Retail"
+  },
+  "productionShift": {
+    "DAY": "Day",
+    "NIGHT": "Night",
+    "BOTH": "Both"
   },
   "shifts": {
     "day": "Day 7:30-7:30",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, Loader2, Eye, RotateCcw } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -9,6 +9,9 @@ import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
 
+const BRANCH_TYPES = ['SOURCE', 'DEPENDENT', 'INDEPENDENT'];
+const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
+
 export default function BranchesPage() {
   const { t, i18n } = useTranslation();
   const user = getUser();
@@ -17,11 +20,16 @@ export default function BranchesPage() {
   const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery();
   const { addBranch, editBranch, removeBranch, restoreBranch } = useBranchMutations();
 
+  const sourceBranches = useMemo(() =>
+    (branches || []).filter(b => b.branchType === 'SOURCE' || !b.branchType),
+    [branches]
+  );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
-  const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '', branchType: 'INDEPENDENT', sourceBranchId: '' });
   const [actionError, setActionError] = useState(null);
 
   const { data: deletedBranches = [], isLoading: deletedLoading } = useBranchesQuery(
@@ -31,13 +39,23 @@ export default function BranchesPage() {
 
   const error = actionError || queryError;
 
+  const resetForm = () => setFormData({ name: '', name_am: '', address: '', phone: '', branchType: 'INDEPENDENT', sourceBranchId: '' });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setActionError(null);
+    const payload = { ...formData };
+    if (payload.branchType === 'DEPENDENT' && !payload.sourceBranchId) {
+      setActionError('DEPENDENT branch must have a source branch selected');
+      return;
+    }
+    if (payload.branchType !== 'DEPENDENT') {
+      payload.sourceBranchId = null;
+    }
     try {
-      await addBranch.mutateAsync(formData);
+      await addBranch.mutateAsync(payload);
       setIsModalOpen(false);
-      setFormData({ name: '', name_am: '', address: '', phone: '' });
+      resetForm();
     } catch (err) {
       setActionError(err.message);
     }
@@ -46,11 +64,19 @@ export default function BranchesPage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setActionError(null);
+    const payload = { ...formData };
+    if (payload.branchType === 'DEPENDENT' && !payload.sourceBranchId) {
+      setActionError('DEPENDENT branch must have a source branch selected');
+      return;
+    }
+    if (payload.branchType !== 'DEPENDENT') {
+      payload.sourceBranchId = null;
+    }
     try {
-      await editBranch.mutateAsync({ id: editingBranch.id, data: formData });
+      await editBranch.mutateAsync({ id: editingBranch.id, data: payload });
       setIsEditModalOpen(false);
       setEditingBranch(null);
-      setFormData({ name: '', name_am: '', address: '', phone: '' });
+      resetForm();
     } catch (err) {
       setActionError(err.message);
     }
@@ -85,16 +111,18 @@ export default function BranchesPage() {
       name_am: branch.name_am || '',
       address: branch.address || '',
       phone: branch.phone || '',
+      branchType: branch.branchType || 'INDEPENDENT',
+      sourceBranchId: branch.sourceBranchId ? String(branch.sourceBranchId) : '',
     });
     setIsEditModalOpen(true);
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
         <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('branches.title')}</h1>
         {canManage && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-row flex-wrap gap-2">
             <button
               onClick={() => setIsDeletedModalOpen(true)}
               className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
@@ -127,6 +155,7 @@ export default function BranchesPage() {
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.branchName')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.address')}</th>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('branches.phone')}</th>
+                {FEATURE_TRANSFERS && <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">Type</th>}
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
                 {canManage && <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>}
               </tr>
@@ -134,28 +163,52 @@ export default function BranchesPage() {
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4}>
-                    <TableSkeleton rows={8} columns={canManage ? 5 : 4} />
+                  <td colSpan={canManage ? (FEATURE_TRANSFERS ? 6 : 5) : (FEATURE_TRANSFERS ? 5 : 4)}>
+                    <TableSkeleton rows={8} columns={canManage ? (FEATURE_TRANSFERS ? 6 : 5) : (FEATURE_TRANSFERS ? 5 : 4)} />
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4}>
+                  <td colSpan={canManage ? (FEATURE_TRANSFERS ? 6 : 5) : (FEATURE_TRANSFERS ? 5 : 4)}>
                     <ApiErrorState error={error} onRetry={refetch} />
                   </td>
                 </tr>
               ) : branches.length === 0 ? (
                 <tr>
-<td colSpan={canManage ? 5 : 4}>
+<td colSpan={canManage ? (FEATURE_TRANSFERS ? 6 : 5) : (FEATURE_TRANSFERS ? 5 : 4)}>
                     <EmptyState type="branches" message={t('branches.noBranchesFound')} />
                   </td>
                 </tr>
               ) : (
-                branches.map((branch) => (
+                branches.map((branch) => {
+                  const sourceBranch = branch.sourceBranchId
+                    ? branches.find(b => b.id === branch.sourceBranchId)
+                    : null;
+                  return (
                   <tr key={branch.id} className="hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F]">
-                    <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">{getLocalizedName(branch, i18n.language)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-[#024A5B] dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>{getLocalizedName(branch, i18n.language)}</span>
+                        {branch.branchType === 'DEPENDENT' && sourceBranch && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                            ← {getLocalizedName(sourceBranch, i18n.language)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.address || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">{branch.phone || '-'}</td>
+                    {FEATURE_TRANSFERS && (
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          branch.branchType === 'SOURCE' ? 'bg-blue-100 text-blue-700' :
+                          branch.branchType === 'DEPENDENT' ? 'bg-purple-100 text-purple-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {branch.branchType || 'INDEPENDENT'}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-6 py-4">
 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           branch.isActive !== false
@@ -178,15 +231,15 @@ export default function BranchesPage() {
                       </td>
                     )}
                   </tr>
-                ))
-              )}
+                );
+                }))}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Add Branch Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Branch">
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title="Add Branch">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Branch Name</label>
@@ -229,10 +282,54 @@ export default function BranchesPage() {
               placeholder="Enter phone number"
             />
           </div>
+          {FEATURE_TRANSFERS && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Branch Type</label>
+                <select
+                  value={formData.branchType}
+                  onChange={(e) => setFormData({ ...formData, branchType: e.target.value, sourceBranchId: '' })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                >
+                  {BRANCH_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              {formData.branchType === 'DEPENDENT' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Source Branch</label>
+                  <select
+                    value={formData.sourceBranchId}
+                    onChange={(e) => setFormData({ ...formData, sourceBranchId: e.target.value })}
+                    className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                    required
+                  >
+                    <option value="">Select source branch</option>
+                    {sourceBranches.map(b => (
+                      <option key={b.id} value={String(b.id)}>
+                        {getLocalizedName(b, i18n.language)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                    <span>&#9888;</span>
+                    Dependent branch relies on SOURCE branch inventory for stock
+                  </p>
+                </div>
+              )}
+              {formData.branchType === 'SOURCE' && (
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <span>&#9432;</span>
+                  SOURCE branches supply inventory to dependent branches
+                </p>
+              )}
+            </>
+          )}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => { setIsModalOpen(false); resetForm(); }}
               className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm"
             >
               Cancel
@@ -249,7 +346,7 @@ export default function BranchesPage() {
       </Modal>
 
       {/* Edit Branch Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Branch">
+      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setEditingBranch(null); resetForm(); }} title="Edit Branch">
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">Branch Name</label>
@@ -289,10 +386,56 @@ required
               className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
             />
           </div>
+          {FEATURE_TRANSFERS && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Branch Type</label>
+                <select
+                  value={formData.branchType}
+                  onChange={(e) => setFormData({ ...formData, branchType: e.target.value, sourceBranchId: '' })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                >
+                  {BRANCH_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              {formData.branchType === 'DEPENDENT' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Source Branch</label>
+                  <select
+                    value={formData.sourceBranchId}
+                    onChange={(e) => setFormData({ ...formData, sourceBranchId: e.target.value })}
+                    className="w-full px-4 py-3.5 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+                    required
+                  >
+                    <option value="">Select source branch</option>
+                    {sourceBranches
+                      .filter(b => editingBranch ? b.id !== editingBranch.id : true)
+                      .map(b => (
+                        <option key={b.id} value={String(b.id)}>
+                          {getLocalizedName(b, i18n.language)}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                    <span>&#9888;</span>
+                    Dependent branch relies on SOURCE branch inventory for stock
+                  </p>
+                </div>
+              )}
+              {formData.branchType === 'SOURCE' && (
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <span>&#9432;</span>
+                  SOURCE branches supply inventory to dependent branches
+                </p>
+              )}
+            </>
+          )}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsEditModalOpen(false)}
+              onClick={() => { setIsEditModalOpen(false); setEditingBranch(null); resetForm(); }}
               className="flex-1 px-6 py-3.5 border border-[#E5E1D8] text-gray-600 rounded-xl font-medium hover:bg-[#DFEDE2] transition-colors text-sm"
             >
               Cancel

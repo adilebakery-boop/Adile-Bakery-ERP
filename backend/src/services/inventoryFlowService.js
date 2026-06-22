@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client');
 const prisma = require('../config/prisma');
 const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString } = require('../utils/dateUtils');
 const { logAudit } = require('./auditService');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
 
 const ROLLOVER_TTL = 86_400_000;
@@ -527,7 +528,7 @@ async function getEstimatedRevenue(branchId, operationalDate, productId) {
 async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const product = await prisma.product.findUnique({
     where: { id: parseInt(productId) },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   if (!product) {
@@ -559,12 +560,14 @@ async function getFullInventoryFlow(branchId, operationalDate, productId) {
   const histPrice = await getHistoricalPrice(productId, operationalDate);
 
   return {
-    productId: product.id,
-    productName: product.name,
-    category: product.category,
-    unitType: product.unitType,
+    product: {
+      id: product.id,
+      name: product.name,
+      name_am: product.name_am,
+      category: product.category,
+      unitType: product.unitType,
+    },
     price: decimalToNumber(histPrice ?? product.price),
-    isActive: product.isActive,
     openingStock: decimalToNumber(openingStock),
     dayProduction: decimalToNumber(dayProduction),
     nightProduction: decimalToNumber(nightProduction),
@@ -660,7 +663,7 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
   // ── BATCH 5: Product metadata ──
   const products = await prisma.product.findMany({
     where: { id: { in: allProductIds } },
-    select: { id: true, name: true, category: true, price: true, unitType: true, isActive: true },
+    select: { id: true, name: true, name_am: true, category: true, price: true, unitType: true, isActive: true },
   });
 
   // ── BATCH 6: Price history — single batch load instead of per-product lookups ──
@@ -669,6 +672,45 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     where: { productId: { in: allProductIds } },
     orderBy: { validFrom: 'desc' },
   });
+
+  // ── BATCH 7: Transfer data (feature-flagged) ──
+  let branchType = null;
+  const receivedTransferMap = {};
+  const sentTransferMap = {};
+
+  if (process.env.FEATURE_TRANSFERS === 'true') {
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchIdNum },
+      select: { branchType: true },
+    });
+    branchType = branch?.branchType || 'INDEPENDENT';
+
+    if (branchType === 'DEPENDENT') {
+      const transfers = await prisma.productTransfer.findMany({
+        where: {
+          dependentBranchId: branchIdNum,
+          operationalDate: opDate,
+        },
+        select: { productId: true, receivedQuantity: true },
+      });
+      for (const t of transfers) {
+        receivedTransferMap[t.productId] = safePlus(receivedTransferMap[t.productId] || ZERO, toDecimal(t.receivedQuantity));
+      }
+    } else if (branchType === 'SOURCE') {
+      const transfers = await prisma.productTransfer.findMany({
+        where: {
+          sourceBranchId: branchIdNum,
+          operationalDate: opDate,
+        },
+        select: { productId: true, sentQuantity: true },
+      });
+      for (const t of transfers) {
+        if (t.sentQuantity !== null) {
+          sentTransferMap[t.productId] = safePlus(sentTransferMap[t.productId] || ZERO, toDecimal(t.sentQuantity));
+        }
+      }
+    }
+  }
 
   // ── IN-MEMORY COMPUTATION — NO DB CALLS BELOW ──
 
@@ -722,7 +764,13 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     const openingStock = openingMap[pid] || ZERO;
     const dayProduction = prodMap[pid]?.day || ZERO;
     const nightProduction = prodMap[pid]?.night || ZERO;
-    const sellableStock = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+    const baseSellable = safePlus(safePlus(openingStock, dayProduction), nightProduction);
+    const receivedQty = receivedTransferMap[pid] || ZERO;
+    const sentQty = sentTransferMap[pid] || ZERO;
+
+    // Transfer adjustment: received adds to dependent, sent subtracts from source
+    const sellableStock = safePlus(safeMinus(baseSellable, sentQty), receivedQty);
+
     const remainingStock = remainingMap[pid] || ZERO;
     const wasteQuantity = wasteMap[pid] || ZERO;
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQuantity);
@@ -731,12 +779,14 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     const estimatedRevenue = safeMultiply(estimatedSold, price);
 
     return {
-      productId: pid,
-      productName: product.name,
-      category: product.category,
-      unitType: product.unitType,
+      product: {
+        id: pid,
+        name: product.name,
+        name_am: product.name_am,
+        category: product.category,
+        unitType: product.unitType,
+      },
       price: decimalToNumber(price),
-      isActive: product.isActive,
       openingStock: decimalToNumber(openingStock),
       dayProduction: decimalToNumber(dayProduction),
       nightProduction: decimalToNumber(nightProduction),
@@ -746,6 +796,8 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
       wasteQuantity: decimalToNumber(wasteQuantity),
       estimatedSold: decimalToNumber(estimatedSold),
       estimatedRevenue: decimalToNumber(estimatedRevenue),
+      receivedTransfer: decimalToNumber(receivedQty),
+      sentTransfer: decimalToNumber(sentQty),
       operationalDate: toDateString(new Date(operationalDate)),
     };
   });
@@ -803,7 +855,7 @@ async function getInventoryFlowReport(branchId, operationalDate) {
     const snapshot = await prisma.dailySnapshot.findFirst({
       where: { branchId: parseInt(branchId), operationalDate: new Date(operationalDate), isInvalidated: false },
       include: {
-        items: { include: { product: { select: { id: true, name: true, category: true, price: true, unitType: true } } } },
+        items: { include: { product: { select: PRODUCT_SELECT_LOCALIZED } } },
         branch: { select: { id: true, name: true } },
       },
     });
@@ -820,10 +872,13 @@ async function getInventoryFlowReport(branchId, operationalDate) {
         operationalDate: toDateString(new Date(operationalDate)),
         isClosed: true,
         products: snapshot.items.map(item => ({
-          productId: item.productId,
-          productName: item.product.name,
-          category: item.product.category,
-          unitType: item.product.unitType,
+          product: {
+            id: item.productId,
+            name: item.product.name,
+            name_am: item.product.name_am,
+            category: item.product.category,
+            unitType: item.product.unitType,
+          },
           price: decimalToNumber(item.snapshotPrice ?? 0),
           openingStock: decimalToNumber(item.openingStock),
           dayProduction: decimalToNumber(item.dayProduction),

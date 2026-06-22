@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
+const AppError = require("./AppError");
 
 const REFRESH_TOKEN_BYTES = 40;
 const REFRESH_TOKEN_EXPIRES_DAYS = 7;
@@ -30,8 +31,6 @@ async function replaceToken(userId) {
   const { raw, tokenHash, expiresAt } = buildToken();
   const now = new Date();
 
-  await prisma.refreshToken.deleteMany({ where: { userId } });
-
   const result = await prisma.refreshToken.create({
     data: { userId, tokenHash, expiresAt, lastUsedAt: now },
   });
@@ -58,19 +57,13 @@ async function create(userId) {
 async function rotate(oldRawToken, userId) {
   const oldHash = hashToken(oldRawToken);
 
-  const existing = await prisma.refreshToken.findUnique({
-    where: { tokenHash: oldHash },
+  const deleted = await prisma.refreshToken.deleteMany({
+    where: { tokenHash: oldHash, userId },
   });
-  if (!existing) {
-    throw new Error("Refresh token not found");
-  }
-  if (existing.userId !== userId) {
-    throw new Error("Refresh token does not belong to this user");
-  }
 
-  await prisma.refreshToken.delete({
-    where: { id: existing.id },
-  });
+  if (deleted.count === 0) {
+    throw new AppError("Refresh token not found or already rotated", 401, "AUTH_TOKEN");
+  }
 
   return replaceToken(userId);
 }

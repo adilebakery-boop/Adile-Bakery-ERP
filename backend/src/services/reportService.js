@@ -1,15 +1,16 @@
 const inventoryFlowService = require('./inventoryFlowService');
 const { toDateString, getMonday, getSunday } = require('../utils/dateUtils');
 const prisma = require('../config/prisma');
+const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./inventoryFlowService');
 
 function filterProducts(products, category, productId) {
   let filtered = products;
   if (category) {
-    filtered = filtered.filter(p => p.category === category);
+    filtered = filtered.filter(p => (p.product?.category || p.category) === category);
   }
   if (productId) {
-    filtered = filtered.filter(p => p.productId === productId);
+    filtered = filtered.filter(p => String(p.product?.id || p.productId) === String(productId));
   }
   return filtered;
 }
@@ -132,7 +133,7 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
     }
 
     for (const p of dayProducts) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
@@ -283,7 +284,7 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
   const allProductsMap = new Map();
   for (const week of weeks) {
     for (const p of (week.products || [])) {
-      const key = `${p.productId}`;
+      const key = `${p.product?.id || p.productId}`;
       if (allProductsMap.has(key)) {
         const existing = allProductsMap.get(key);
         existing.openingStock = decimalToNumber(safePlus(existing.openingStock, p.openingStock));
@@ -331,9 +332,7 @@ const MONTH_NAMES_FULL = [
 
 function createProdEntry(item) {
   return {
-    productId: item.productId,
-    productName: item.productName,
-    category: item.category,
+    product: item.product,
     price: item.price,
     displayPrice: item.displayPrice || String(item.price || 0),
     totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -673,7 +672,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         },
         include: {
           items: {
-            include: { product: { select: { id: true, name: true, category: true, price: true } } }
+            include: { product: { select: PRODUCT_SELECT_LOCALIZED } }
           },
         },
       }),
@@ -713,9 +712,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into monthProductsMap
         if (!monthProductsMap[m][key]) {
           monthProductsMap[m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -726,9 +723,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         if (!branchProductsMap[branch.id][m]) branchProductsMap[branch.id][m] = {};
         if (!branchProductsMap[branch.id][m][key]) {
           branchProductsMap[branch.id][m][key] = createProdEntry({
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
           });
@@ -738,9 +733,7 @@ async function getYearlyReport(branchId, year, category, productId) {
         // Accumulate into productYearlyTotals
         if (!productYearlyTotals[key]) {
           productYearlyTotals[key] = {
-            productId: item.productId,
-            productName: item.product.name,
-            category: item.product.category,
+            product: item.product,
             price: Number(item.snapshotPrice ?? 0) || 0,
             displayPrice: String(Number(item.snapshotPrice ?? 0) || 0),
             totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
@@ -787,6 +780,49 @@ async function getYearlyReport(branchId, year, category, productId) {
 
     groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
   }));
+
+  // Post-process: normalize flat live-path entries to nested product objects
+  // Live path (groupLiveByMonth) creates {productId, productName: '', category: ''}
+  // while snapshot path creates {product: {id, name, ...}}. Normalize both to nested.
+  const missingPids = new Set();
+  for (let m = 1; m <= 12; m++) {
+    for (const entry of Object.values(monthProductsMap[m])) {
+      if (!entry.product) missingPids.add(entry.productId);
+    }
+    for (const branch of branches) {
+      const bMap = branchProductsMap[branch.id]?.[m];
+      if (bMap) for (const entry of Object.values(bMap)) if (!entry.product) missingPids.add(entry.productId);
+    }
+  }
+  for (const entry of Object.values(productYearlyTotals)) {
+    if (!entry.product) missingPids.add(entry.productId);
+  }
+  if (missingPids.size > 0) {
+    const missingProducts = await prisma.product.findMany({
+      where: { id: { in: [...missingPids] } },
+      select: { id: true, name: true, name_am: true, category: true, unitType: true },
+    });
+    const prodMap = {};
+    for (const p of missingProducts) prodMap[p.id] = p;
+    const normalizeEntry = (entry) => {
+      if (entry.product) return;
+      const pid = entry.productId;
+      const meta = prodMap[pid];
+      entry.product = meta
+        ? { id: meta.id, name: meta.name, name_am: meta.name_am, category: meta.category, unitType: meta.unitType }
+        : { id: pid, name: String(pid), name_am: '', category: '', unitType: '' };
+      delete entry.productId;
+      delete entry.productName;
+    };
+    for (let m = 1; m <= 12; m++) {
+      for (const entry of Object.values(monthProductsMap[m])) normalizeEntry(entry);
+      for (const branch of branches) {
+        const bMap = branchProductsMap[branch.id]?.[m];
+        if (bMap) for (const entry of Object.values(bMap)) normalizeEntry(entry);
+      }
+    }
+    for (const entry of Object.values(productYearlyTotals)) normalizeEntry(entry);
+  }
 
   // Build months array
   const months = [];
@@ -868,8 +904,8 @@ function exportToCSV(reportData) {
   ];
 
   const normalizedProducts = reportData.products.map(p => ({
-    productName: p.productName,
-    category: p.category,
+    productName: p.product?.name || p.productName || '',
+    category: p.product?.category || p.category || '',
     openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
     dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
     nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,

@@ -1,0 +1,17 @@
+# Anchored Summary — Adile Bakery ERP
+
+## Active Branch
+`hotfix/snapshot-productid-closure-regression`
+
+## Goal
+- Fix snapshot productId regression: `flow.productId` → `flow.product.id` in `closureService.js`
+
+## Status
+### Done
+- **Snapshot productId hotfix** — All 10 `flow.productId` → `flow.product.id` (9 in `validateBeforeClose`, 1 in `closeDay`) and `f.productId → f.product.id` (flowMap builder) in `backend/src/services/closureService.js`. Rebased on latest `origin/develop` (which already includes the canonical product model merge that changed inventory flow shape to nested `product: {id, ...}`). Module loads clean. Only `closureService.js` changed. **SAFE TO MERGE.**
+
+### Abandoned
+- `fix/snapshot-productid-regression` (v1) — obsolete multi-file approach superseded by PR #117
+
+## Key Files
+- `backend/src/services/closureService.js` — 10-line fix (the only change)

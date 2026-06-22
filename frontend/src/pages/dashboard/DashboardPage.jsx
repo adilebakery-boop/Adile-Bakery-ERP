@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getLocalizedName } from '../../utils/getLocalizedName';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Package, DollarSign, AlertCircle, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
@@ -10,7 +11,7 @@ import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skele
 import { ApiErrorState } from '../../components/ui/ErrorState';
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   };
 
   const getActivityLabel = (activity) => {
-    const productName = activity.product || activity.productName || activity.product?.name || 'Item';
+    const productName = activity.product?.name ? getLocalizedName(activity.product, i18n.language) : activity.product || activity.productName || 'Item';
     const branchName = activity.branchName ? ` (${activity.branchName})` : '';
     switch (activity.type?.toLowerCase()) {
       case 'production':
@@ -189,8 +190,8 @@ export default function DashboardPage() {
           <ApiErrorState error={activity.error} onRetry={activity.refetch} />
         ) : recentActivity.length > 0 ? (
           <div className="space-y-3">
-            {recentActivity.slice(0, 8).map((activity, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors">
+              {recentActivity.slice(0, 8).map((activity, idx) => (
+              <div key={activity.time || activity.createdAt || activity.timestamp || idx} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   activity.type?.toLowerCase() === 'production' ? 'bg-[#CAEAFD]/10 text-[#024A5B]' :
                   activity.type?.toLowerCase() === 'remaining' ? 'bg-green-50 text-green-500' :

@@ -76,7 +76,7 @@ export default function UsersPage() {
   const [branchFilter, setBranchFilter] = useState(isManager ? String(currentUser?.branchId ?? '') : '');
   const [roleFilter, setRoleFilter] = useState('');
 
-  const { data, isLoading: loading, isError } = useUsersQuery({
+  const { data, isLoading: loading, isFetching, isError } = useUsersQuery({
     page: currentPage,
     limit: itemsPerPage,
     ...(branchFilter && { branchId: branchFilter }),
@@ -98,10 +98,10 @@ export default function UsersPage() {
   const deleteMutation = useDeleteUserMutation();
 
   useEffect(() => {
-    if (users.length === 0 && currentPage > 1 && totalPages > 0) {
-      setCurrentPage(Math.max(1, Math.min(currentPage - 1, totalPages)));
+    if (!isFetching && totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
     }
-  }, [users.length, currentPage, totalPages]);
+  }, [isFetching, totalPages, currentPage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -217,11 +217,11 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center gap-4">
+        <div className="px-6 py-4 border-b border-[#E5E1D8] dark:border-[#1E3A3F] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <select
             value={branchFilter}
             onChange={(e) => { setBranchFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            className="w-full px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
             disabled={isManager}
           >
             {!isManager && <option value="">{t('users.allBranches')}</option>}
@@ -234,7 +234,7 @@ export default function UsersPage() {
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+            className="w-full px-4 py-2.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
           >
             <option value="">{t('users.allRoles')}</option>
             {ALL_ROLES.map((role) => (
@@ -245,7 +245,7 @@ export default function UsersPage() {
           </select>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-max">
             <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
               <tr>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">{t('users.fullName')}</th>
