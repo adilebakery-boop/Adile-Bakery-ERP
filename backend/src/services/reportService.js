@@ -628,7 +628,11 @@ async function getYearlyReport(branchId, year, category, productId) {
   const yearEnd = new Date(yearNum, 11, 31);
 
   const monthTotalsMap = {};
-  for (let m = 1; m <= 12; m++) monthTotalsMap[m] = emptyMonthTotals();
+  const monthTransfers = {};
+  for (let m = 1; m <= 12; m++) {
+    monthTotalsMap[m] = emptyMonthTotals();
+    monthTransfers[m] = { received: 0, sent: 0 };
+  }
 
   const productYearlyTotals = {};
   const branchYearlyTotals = {};
@@ -746,6 +750,8 @@ async function getYearlyReport(branchId, year, category, productId) {
 
         yearTransfers.received += Number(item.receivedTransfer || 0);
         yearTransfers.sent += Number(item.sentTransfer || 0);
+        monthTransfers[m].received += Number(item.receivedTransfer || 0);
+        monthTransfers[m].sent += Number(item.sentTransfer || 0);
       }
     }
 
@@ -788,16 +794,19 @@ async function getYearlyReport(branchId, year, category, productId) {
             { dependentBranchId: branch.id },
           ],
         },
-        select: { sourceBranchId: true, dependentBranchId: true, receivedQuantity: true, sentQuantity: true },
+        select: { sourceBranchId: true, dependentBranchId: true, receivedQuantity: true, sentQuantity: true, operationalDate: true },
       }),
     ]);
 
     for (const t of transferRecords) {
+      const tm = t.operationalDate.getMonth() + 1;
       if (t.dependentBranchId === branch.id) {
         yearTransfers.received += Number(t.receivedQuantity) || 0;
+        monthTransfers[tm].received += Number(t.receivedQuantity) || 0;
       }
       if (t.sourceBranchId === branch.id) {
         yearTransfers.sent += Number(t.sentQuantity) || 0;
+        monthTransfers[tm].sent += Number(t.sentQuantity) || 0;
       }
     }
 
@@ -856,6 +865,8 @@ async function getYearlyReport(branchId, year, category, productId) {
       month: m,
       monthName: MONTH_NAMES_FULL[m - 1],
       totals: monthTotalsMap[m],
+      receivedTransfer: monthTransfers[m].received,
+      sentTransfer: monthTransfers[m].sent,
       products: monthProducts,
       branchesData: !branchId ? branches.map(b => ({
         branchId: b.id,
@@ -890,8 +901,6 @@ async function getYearlyReport(branchId, year, category, productId) {
   const products = Object.values(productYearlyTotals).sort((a, b) =>
     (b.totalEstimatedRevenue || 0) - (a.totalEstimatedRevenue || 0)
   );
-
-  console.log("[YEARLY DEBUG] yearTransfers:", yearTransfers);
 
   return {
     branchId: branchId ? parseInt(branchId) : null,
