@@ -2,7 +2,39 @@ const prisma = require('../../config/prisma');
 
 const transferService = {
   async create(data, userId) {
-    const { productId, dependentBranchId, receivedQuantity, operationalDate } = data;
+    const { branchType = 'DEPENDENT', productId, operationalDate } = data;
+
+    if (branchType === 'SOURCE') {
+      const { sourceBranchId, dependentBranchId, sentQuantity } = data;
+
+      const branch = await prisma.branch.findUnique({ where: { id: sourceBranchId } });
+      if (!branch || branch.branchType !== 'SOURCE') {
+        const err = new Error('Source branch not found or not configured as SOURCE');
+        err.status = 400;
+        throw err;
+      }
+
+      const transfer = await prisma.productTransfer.create({
+        data: {
+          productId,
+          sourceBranchId,
+          dependentBranchId,
+          sentQuantity,
+          operationalDate: new Date(operationalDate),
+          createdBy: userId,
+        },
+        include: {
+          product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
+          sourceBranch: { select: { id: true, name: true } },
+          dependentBranch: { select: { id: true, name: true } },
+          creator: { select: { id: true, name: true, username: true } },
+        },
+      });
+
+      return transfer;
+    }
+
+    const { dependentBranchId, receivedQuantity } = data;
 
     const dependentBranch = await prisma.branch.findUnique({ where: { id: dependentBranchId } });
     if (!dependentBranch || dependentBranch.branchType !== 'DEPENDENT') {
@@ -15,23 +47,6 @@ const transferService = {
     if (!sourceBranchId) {
       const err = new Error('Dependent branch has no source branch configured');
       err.status = 400;
-      throw err;
-    }
-
-    const existing = await prisma.productTransfer.findUnique({
-      where: {
-        productId_sourceBranchId_dependentBranchId_operationalDate: {
-          productId,
-          sourceBranchId,
-          dependentBranchId,
-          operationalDate: new Date(operationalDate),
-        },
-      },
-    });
-
-    if (existing) {
-      const err = new Error('Transfer already exists for this product, source, dependent, and date');
-      err.status = 409;
       throw err;
     }
 
@@ -48,6 +63,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
       },
     });
 
@@ -92,6 +108,7 @@ const transferService = {
           product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
           sourceBranch: { select: { id: true, name: true } },
           dependentBranch: { select: { id: true, name: true } },
+          creator: { select: { id: true, name: true, username: true } },
         },
       }),
       prisma.productTransfer.count({ where }),
@@ -115,6 +132,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
       },
     });
 
@@ -145,6 +163,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
       },
     });
 
@@ -169,6 +188,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true, username: true } },
       },
     });
 

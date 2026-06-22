@@ -37,6 +37,7 @@ export default function ReportsPage() {
 
   const canManageAll = isManagerOrAdmin();
   const isAllBranches = branchId === '' || branchId === 'all';
+const isSingleBranch = !isAllBranches && branchId !== '';
   const showBranchColumn = isAllBranches;
   const effectiveBranchId = canManageAll ? branchId : null;
 
@@ -338,6 +339,7 @@ export default function ReportsPage() {
                         {/* TODO(future): Rename 'Sellable' — this value is opening + dayProd + nightProd (available inventory), NOT estimated sales. Consider 'Available Stock' or 'Total Stock'. */}
                         <th className="hidden md:table-cell px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.sellable')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.remaining')}</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.transfers')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.waste')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.estSold')}</th>
                         <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('reports.revenue')}</th>
@@ -354,6 +356,11 @@ export default function ReportsPage() {
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.nightProduction || 0}</td>
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.sellableStock || 0}</td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.remainingStock || 0}</td>
+                          <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">
+                            {p.receivedTransfer || p.sentTransfer
+                              ? `+${p.receivedTransfer || 0} / -${p.sentTransfer || 0}`
+                              : '—'}
+                          </td>
                           <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">{p.wasteQuantity || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-medium text-[#024A5B] dark:text-white">{p.estimatedSold || 0}</td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-[#024A5B]">
@@ -447,6 +454,13 @@ export default function ReportsPage() {
                       );
                     }
                     const dayTotals = day.totals;
+                    const dayTransfers = day.products?.reduce(
+                      (acc, p) => ({
+                        rec: acc.rec + (Number(p.receivedTransfer) || 0),
+                        sent: acc.sent + (Number(p.sentTransfer) || 0),
+                      }),
+                      { rec: 0, sent: 0 }
+                    ) || { rec: 0, sent: 0 };
                     return (
                       <ReportSummaryCard
                         key={day.date}
@@ -455,6 +469,12 @@ export default function ReportsPage() {
                         fields={[
                           { label: t('reports.dayProduction'), value: dayTotals.totalDayProduction },
                           { label: t('reports.nightProduction'), value: dayTotals.totalNightProduction },
+                          ...(isSingleBranch ? [{
+                            label: t('reports.transfers'),
+                            value: dayTransfers.rec || dayTransfers.sent
+                              ? `+${dayTransfers.rec.toLocaleString()} / -${dayTransfers.sent.toLocaleString()}`
+                              : '—',
+                          }] : []),
                           { label: t('reports.remaining'), value: dayTotals.totalRemainingStock },
                           { label: t('reports.waste'), value: dayTotals.totalWasteQuantity },
                           { label: t('reports.estSold'), value: dayTotals.totalEstimatedSold, highlighted: true },
@@ -496,6 +516,22 @@ export default function ReportsPage() {
                       );
                     }
                     const weekTotals = week.totals;
+                    const weekTransfers = week.days?.reduce(
+                      (acc, day) => {
+                        const daySum = (day.products || []).reduce(
+                          (dAcc, p) => ({
+                            rec: dAcc.rec + (Number(p.receivedTransfer) || 0),
+                            sent: dAcc.sent + (Number(p.sentTransfer) || 0),
+                          }),
+                          { rec: 0, sent: 0 }
+                        );
+                        return {
+                          rec: acc.rec + daySum.rec,
+                          sent: acc.sent + daySum.sent,
+                        };
+                      },
+                      { rec: 0, sent: 0 }
+                    ) || { rec: 0, sent: 0 };
                     return (
                       <ReportSummaryCard
                         key={week.weekStartDate}
@@ -504,6 +540,12 @@ export default function ReportsPage() {
                         fields={[
                           { label: t('reports.dayProduction'), value: weekTotals.totalDayProduction },
                           { label: t('reports.nightProduction'), value: weekTotals.totalNightProduction },
+                          ...(isSingleBranch ? [{
+                            label: t('reports.transfers'),
+                            value: weekTransfers.rec || weekTransfers.sent
+                              ? `+${weekTransfers.rec.toLocaleString()} / -${weekTransfers.sent.toLocaleString()}`
+                              : '—',
+                          }] : []),
                           { label: t('reports.remaining'), value: weekTotals.totalRemainingStock },
                           { label: t('reports.waste'), value: weekTotals.totalWasteQuantity },
                           { label: t('reports.estSold'), value: weekTotals.totalEstimatedSold, highlighted: true },
@@ -552,6 +594,12 @@ export default function ReportsPage() {
                         fields={[
                           { label: t('reports.production'), value: (monthTotals.totalDayProduction || 0) + (monthTotals.totalNightProduction || 0) },
                           { label: t('reports.remaining'), value: monthTotals.totalRemainingStock },
+                          ...(isSingleBranch ? [{
+                            label: t('reports.transfers'),
+                            value: month.receivedTransfer || month.sentTransfer
+                              ? `+${(month.receivedTransfer || 0).toLocaleString()} / -${(month.sentTransfer || 0).toLocaleString()}`
+                              : '—',
+                          }] : []),
                           { label: t('reports.waste'), value: monthTotals.totalWasteQuantity },
                           { label: t('reports.estSold'), value: monthTotals.totalEstimatedSold, highlighted: true },
                           { label: t('reports.revenue'), value: monthTotals.totalEstimatedRevenue, highlighted: true, revenue: true },
@@ -566,6 +614,12 @@ export default function ReportsPage() {
                   fields={[
                     { label: t('reports.production'), value: (totals.totalDayProduction || 0) + (totals.totalNightProduction || 0) },
                     { label: t('reports.remaining'), value: totals.totalRemainingStock },
+                    ...(isSingleBranch ? [{
+                      label: t('reports.transfers'),
+                      value: reportData.yearTransfers?.received || reportData.yearTransfers?.sent
+                        ? `+${(reportData.yearTransfers.received || 0).toLocaleString()} / -${(reportData.yearTransfers.sent || 0).toLocaleString()}`
+                        : '—',
+                    }] : []),
                     { label: t('reports.waste'), value: totals.totalWasteQuantity },
                     { label: t('reports.estSold'), value: totals.totalEstimatedSold },
                     { label: t('reports.revenue'), value: totals.totalEstimatedRevenue, revenue: true },
