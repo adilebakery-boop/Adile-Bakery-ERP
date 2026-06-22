@@ -3,7 +3,7 @@ const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const getToday = asyncHandler(async (req, res) => {
   const { operationalDate } = req.query;
-  const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.query.branchId || req.user.branchId);
+  const branchId = req.user.role === 'ADMIN' ? (req.query.branchId || req.user.branchId) : req.user.branchId;
   const date = operationalDate || new Date().toISOString().split('T')[0];
   const metrics = await dashboardService.getTodayMetrics(branchId, date, req.user.userId, req.user.role);
   res.json({
@@ -29,7 +29,7 @@ const getAllBranchesStatus = asyncHandler(async (req, res) => {
 const getRecentActivity = asyncHandler(async (req, res) => {
   const { branchId, limit, operationalDate } = req.query;
   const date = operationalDate || new Date().toISOString().split('T')[0];
-  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
+  const resolvedBranchId = req.user.role === 'ADMIN' ? (branchId || req.user.branchId) : req.user.branchId;
   const activities = await dashboardService.getRecentActivity(
     resolvedBranchId,
     date,
@@ -47,7 +47,7 @@ const getRecentActivity = asyncHandler(async (req, res) => {
 const getOverview = asyncHandler(async (req, res) => {
   const { operationalDate, branchId } = req.query;
   const date = operationalDate || new Date().toISOString().split('T')[0];
-  const resolvedBranchId = req.user.role === 'MANAGER' ? req.user.branchId : (branchId || req.user.branchId);
+  const resolvedBranchId = req.user.role === 'ADMIN' ? (branchId || req.user.branchId) : req.user.branchId;
   const overview = await dashboardService.getDashboardOverview(
     resolvedBranchId,
     date,
