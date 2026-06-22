@@ -221,23 +221,26 @@ const isSingleBranch = !isAllBranches && branchId !== '';
       )}
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] relative border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
-        <div className="p-6 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
-              {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 sm:px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all flex-1 sm:flex-none whitespace-nowrap ${
-                    activeTab === tab ? 'bg-white dark:bg-[#12262A] text-[#024A5B] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500'
-                  }`}
-                >
-                  {t(`reports.${tab}`)}
-                </button>
-              ))}
-            </div>
+        {/* Layer 1: Sticky Tabs */}
+        <div className="sticky top-0 z-30 bg-white dark:bg-[#12262A] pt-6 px-6 pb-3 rounded-t-[24px]">
+          <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
+            {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 sm:px-6 py-2.5 rounded-[40px] text-sm font-medium transition-all flex-1 sm:flex-none whitespace-nowrap ${
+                  activeTab === tab ? 'bg-white dark:bg-[#12262A] text-[#024A5B] dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500'
+                }`}
+              >
+                {t(`reports.${tab}`)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+        {/* Layer 2: Filter Controls */}
+        <div className="px-6 pb-6 pt-3 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
+          <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
               <div className="relative w-full sm:w-auto">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
                 <input
@@ -312,7 +315,6 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                 </label>
               )}
             </div>
-          </div>
         </div>
 
         {loading ? (
