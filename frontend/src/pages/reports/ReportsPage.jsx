@@ -220,9 +220,9 @@ const isSingleBranch = !isAllBranches && branchId !== '';
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
+      <div className="bg-white dark:bg-[#12262A] rounded-[24px] relative border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="p-6 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
               {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
                 <button
@@ -298,7 +298,7 @@ const isSingleBranch = !isAllBranches && branchId !== '';
               )}
 
               {activeTab === 'daily' && (
-                <label className="flex items-center gap-2 cursor-pointer select-none">
+                <label className="relative z-10 flex items-center gap-2 cursor-pointer select-none">
                   <button
                     type="button"
                     role="switch"
