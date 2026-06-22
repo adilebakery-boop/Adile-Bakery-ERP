@@ -222,7 +222,7 @@ const isSingleBranch = !isAllBranches && branchId !== '';
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]" style={{ boxShadow: '0 4px 20px -2px rgba(0, 31, 63, 0.05)' }}>
         <div className="p-6 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-[50px] p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
               {['daily', 'weekly', 'monthly', 'yearly'].map((tab) => (
                 <button
@@ -237,7 +237,7 @@ const isSingleBranch = !isAllBranches && branchId !== '';
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
               <div className="relative w-full sm:w-auto">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
                 <input
