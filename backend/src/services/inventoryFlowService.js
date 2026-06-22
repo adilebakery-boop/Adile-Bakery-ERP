@@ -4,6 +4,7 @@ const { calculateOperationalDate, addOneDay, getPreviousDay, toDateString } = re
 const { logAudit } = require('./auditService');
 const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { ZERO, toDecimal } = require('../utils/decimalUtils');
+const { getEffectivePrice } = require('./utils/getEffectivePrice');
 
 const ROLLOVER_TTL = 86_400_000;
 
@@ -315,24 +316,19 @@ async function buildSnapshotItems(tx, branchId, date) {
     orderBy: { validFrom: 'desc' },
   });
   const lookupDate = toDateString(date);
-  const priceMap = {};
+  const historyByProduct = {};
   for (const ph of allPriceHistory) {
-    if (!priceMap[ph.productId]) {
-      const fromDate = toDateString(ph.validFrom);
-      const toDate = ph.validTo ? toDateString(ph.validTo) : null;
-      if (fromDate <= lookupDate && (!toDate || lookupDate < toDate)) {
-        priceMap[ph.productId] = toDecimal(ph.price);
-      }
-    }
+    if (!historyByProduct[ph.productId]) historyByProduct[ph.productId] = [];
+    historyByProduct[ph.productId].push(ph);
   }
 
-  const fallbackPrices = await tx.product.findMany({
+  const basePriceProducts = await tx.product.findMany({
     where: { id: { in: allIds } },
     select: { id: true, price: true },
   });
-  const fallbackMap = {};
-  for (const p of fallbackPrices) {
-    fallbackMap[p.id] = p.price ? toDecimal(p.price) : ZERO;
+  const productBasePriceMap = {};
+  for (const p of basePriceProducts) {
+    productBasePriceMap[p.id] = Number(p.price) || 0;
   }
 
   const items = [];
@@ -396,7 +392,12 @@ async function buildSnapshotItems(tx, branchId, date) {
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQty);
     if (estimatedSold.lt(ZERO)) estimatedSold = ZERO;
 
-    const price = priceMap[productId] || fallbackMap[productId] || ZERO;
+    const price = toDecimal(getEffectivePrice({
+      productId,
+      date: lookupDate,
+      priceHistoryMap: historyByProduct,
+      productBasePriceMap,
+    }));
     // TEMPORARY clamp: estimatedRevenue must fit DECIMAL(12,2).
     // Only triggers on stress-test seed data with unrealistically
     // high prices x quantities; real bakery operations stay well
@@ -740,22 +741,17 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     openingMap[r.productId] = toDecimal(r.quantity);
   }
 
-  // Build price map — first matching history entry wins (most recent validFrom first)
-  const priceMap = {};
+  // Build price history map grouped by productId
+  const historyByProduct = {};
   for (const ph of priceHistory) {
-    if (!(ph.productId in priceMap)) {
-      const fromDate = toDateString(ph.validFrom);
-      const toDate = ph.validTo ? toDateString(ph.validTo) : null;
-      if (fromDate <= lookupDate && (!toDate || lookupDate < toDate)) {
-        priceMap[ph.productId] = toDecimal(ph.price);
-      }
-    }
+    if (!historyByProduct[ph.productId]) historyByProduct[ph.productId] = [];
+    historyByProduct[ph.productId].push(ph);
   }
 
   // Fallback prices for products without matching history
-  const fallbackPrices = {};
+  const productBasePriceMap = {};
   for (const p of products) {
-    fallbackPrices[p.id] = p.price ? toDecimal(p.price) : ZERO;
+    productBasePriceMap[p.id] = Number(p.price) || 0;
   }
 
   // Compute all product flows in pure JS (NO DATABASE CALLS)
@@ -775,7 +771,12 @@ async function getInventoryFlowForAllProducts(branchId, operationalDate) {
     const wasteQuantity = wasteMap[pid] || ZERO;
     let estimatedSold = safeMinus(safeMinus(sellableStock, remainingStock), wasteQuantity);
     if (estimatedSold.lt(ZERO)) estimatedSold = ZERO;
-    const price = priceMap[pid] || fallbackPrices[pid] || ZERO;
+    const price = toDecimal(getEffectivePrice({
+      productId: pid,
+      date: lookupDate,
+      priceHistoryMap: historyByProduct,
+      productBasePriceMap,
+    }));
     const estimatedRevenue = safeMultiply(estimatedSold, price);
 
     return {

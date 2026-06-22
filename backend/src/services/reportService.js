@@ -3,6 +3,7 @@ const { toDateString, getMonday, getSunday } = require('../utils/dateUtils');
 const prisma = require('../config/prisma');
 const { PRODUCT_SELECT_LOCALIZED } = require('../constants/prismaSelects');
 const { safePlus, safeMinus, safeMultiply, decimalToNumber } = require('./inventoryFlowService');
+const { getEffectivePrice } = require('./utils/getEffectivePrice');
 
 function filterProducts(products, category, productId) {
   let filtered = products;
@@ -338,6 +339,7 @@ function createProdEntry(item) {
     totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
     totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0,
     totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+    totalReceivedTransfer: 0, totalSentTransfer: 0,
   };
 }
 
@@ -350,6 +352,8 @@ function addToProd(entry, src) {
   entry.totalWasteQuantity = decimalToNumber(safePlus(entry.totalWasteQuantity, src.waste ?? src.totalWasteQuantity ?? 0));
   entry.totalEstimatedSold = decimalToNumber(safePlus(entry.totalEstimatedSold, src.sold ?? src.totalEstimatedSold ?? 0));
   entry.totalEstimatedRevenue = decimalToNumber(safePlus(entry.totalEstimatedRevenue, src.revenue ?? src.totalEstimatedRevenue ?? 0));
+  entry.totalReceivedTransfer = decimalToNumber(safePlus(entry.totalReceivedTransfer, src.receivedTransfer ?? 0));
+  entry.totalSentTransfer = decimalToNumber(safePlus(entry.totalSentTransfer, src.sentTransfer ?? 0));
 }
 
 function emptyMonthTotals() {
@@ -358,6 +362,7 @@ function emptyMonthTotals() {
     totalNightProductionPreparedFor: 0, totalSellableStock: 0,
     totalRemainingStock: 0, totalWasteQuantity: 0,
     totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+    totalReceivedTransfer: 0, totalSentTransfer: 0,
   };
 }
 
@@ -366,6 +371,7 @@ function emptyBranchMonthTotals() {
     totalDayProduction: 0, totalNightProduction: 0, totalSellableStock: 0,
     totalRemainingStock: 0, totalWasteQuantity: 0,
     totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+    totalReceivedTransfer: 0, totalSentTransfer: 0,
   };
 }
 
@@ -376,7 +382,7 @@ function computeDisplayPrice(allPrices) {
   return '0';
 }
 
-function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter, productYearlyTotals = {}) {
+function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotalsMap, branchProductsMap, branchId, yearNum, category, pidFilter, productYearlyTotals = {}, productBasePriceMap = {}) {
   const snapshotPriceSetsLocal = snapshotPriceSets || {};
 
   const dayProdByDate = {};
@@ -490,17 +496,12 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
         const sellable = openingStock + dayProd + nightProd + receivedTransfer - sentTransfer;
         const dailySold = Math.max(0, sellable - (remaining + waste));
 
-        const entries = historyByProduct[pid] || [];
-        let histPrice = 0;
-        for (let i = entries.length - 1; i >= 0; i--) {
-          const e = entries[i];
-          const fromDate = e.validFrom.toISOString().split('T')[0];
-          const toDate = e.validTo ? e.validTo.toISOString().split('T')[0] : null;
-          if (fromDate <= dk && (!toDate || dk < toDate)) {
-            histPrice = Number(e.price);
-            break;
-          }
-        }
+        const histPrice = getEffectivePrice({
+          productId: pid,
+          date: dk,
+          priceHistoryMap: historyByProduct,
+          productBasePriceMap,
+        });
 
         if (!livePriceSets[pid]) livePriceSets[pid] = new Set();
         livePriceSets[pid].add(histPrice);
@@ -547,6 +548,7 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
             totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
             totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0,
             totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+            totalReceivedTransfer: 0, totalSentTransfer: 0,
           };
         } else if (displayOverride) {
           map[mapKey].displayPrice = displayOverride;
@@ -559,6 +561,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
         entry.totalWasteQuantity = decimalToNumber(safePlus(entry.totalWasteQuantity, prod.waste));
         entry.totalEstimatedSold = decimalToNumber(safePlus(entry.totalEstimatedSold, prod.estimatedSold));
         entry.totalEstimatedRevenue = decimalToNumber(safePlus(entry.totalEstimatedRevenue, prod.estimatedRevenue));
+        entry.totalReceivedTransfer = decimalToNumber(safePlus(entry.totalReceivedTransfer, prod.receivedTransfer || 0));
+        entry.totalSentTransfer = decimalToNumber(safePlus(entry.totalSentTransfer, prod.sentTransfer || 0));
       };
 
       if (!monthProductsMap[m][key]) {
@@ -568,6 +572,7 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
           totalDayProduction: 0, totalNightProduction: 0, totalSellableStock: 0,
           totalRemainingStock: 0, totalWasteQuantity: 0,
           totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+          totalReceivedTransfer: 0, totalSentTransfer: 0,
         };
       } else {
         monthProductsMap[m][key].displayPrice = displayPrice;
@@ -580,6 +585,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
       mpEntry.totalWasteQuantity = decimalToNumber(safePlus(mpEntry.totalWasteQuantity, prod.waste));
       mpEntry.totalEstimatedSold = decimalToNumber(safePlus(mpEntry.totalEstimatedSold, prod.estimatedSold));
       mpEntry.totalEstimatedRevenue = decimalToNumber(safePlus(mpEntry.totalEstimatedRevenue, prod.estimatedRevenue));
+      mpEntry.totalReceivedTransfer = decimalToNumber(safePlus(mpEntry.totalReceivedTransfer, prod.receivedTransfer || 0));
+      mpEntry.totalSentTransfer = decimalToNumber(safePlus(mpEntry.totalSentTransfer, prod.sentTransfer || 0));
 
       if (!branchProductsMap[branchId][m]) branchProductsMap[branchId][m] = {};
       if (!branchProductsMap[branchId][m][key]) {
@@ -589,6 +596,7 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
           totalDayProduction: 0, totalNightProduction: 0, totalSellableStock: 0,
           totalRemainingStock: 0, totalWasteQuantity: 0,
           totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+          totalReceivedTransfer: 0, totalSentTransfer: 0,
         };
       } else {
         branchProductsMap[branchId][m][key].displayPrice = displayPrice;
@@ -601,6 +609,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
       bpEntry.totalWasteQuantity = decimalToNumber(safePlus(bpEntry.totalWasteQuantity, prod.waste));
       bpEntry.totalEstimatedSold = decimalToNumber(safePlus(bpEntry.totalEstimatedSold, prod.estimatedSold));
       bpEntry.totalEstimatedRevenue = decimalToNumber(safePlus(bpEntry.totalEstimatedRevenue, prod.estimatedRevenue));
+      bpEntry.totalReceivedTransfer = decimalToNumber(safePlus(bpEntry.totalReceivedTransfer, prod.receivedTransfer || 0));
+      bpEntry.totalSentTransfer = decimalToNumber(safePlus(bpEntry.totalSentTransfer, prod.sentTransfer || 0));
 
       monthTotalsMap[m].totalDayProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalDayProduction, prod.dayProd));
       monthTotalsMap[m].totalNightProduction = decimalToNumber(safePlus(monthTotalsMap[m].totalNightProduction, prod.nightProd));
@@ -609,6 +619,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
       monthTotalsMap[m].totalWasteQuantity = decimalToNumber(safePlus(monthTotalsMap[m].totalWasteQuantity, prod.waste));
       monthTotalsMap[m].totalEstimatedSold = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedSold, prod.estimatedSold));
       monthTotalsMap[m].totalEstimatedRevenue = decimalToNumber(safePlus(monthTotalsMap[m].totalEstimatedRevenue, prod.estimatedRevenue));
+      monthTotalsMap[m].totalReceivedTransfer = decimalToNumber(safePlus(monthTotalsMap[m].totalReceivedTransfer, prod.receivedTransfer || 0));
+      monthTotalsMap[m].totalSentTransfer = decimalToNumber(safePlus(monthTotalsMap[m].totalSentTransfer, prod.sentTransfer || 0));
 
       if (!branchYearlyTotalsMap[branchId]) branchYearlyTotalsMap[branchId] = {};
       if (!branchYearlyTotalsMap[branchId][m]) {
@@ -622,6 +634,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
       btEntry.totalWasteQuantity = decimalToNumber(safePlus(btEntry.totalWasteQuantity, prod.waste));
       btEntry.totalEstimatedSold = decimalToNumber(safePlus(btEntry.totalEstimatedSold, prod.estimatedSold));
       btEntry.totalEstimatedRevenue = decimalToNumber(safePlus(btEntry.totalEstimatedRevenue, prod.estimatedRevenue));
+      btEntry.totalReceivedTransfer = decimalToNumber(safePlus(btEntry.totalReceivedTransfer, prod.receivedTransfer || 0));
+      btEntry.totalSentTransfer = decimalToNumber(safePlus(btEntry.totalSentTransfer, prod.sentTransfer || 0));
 
       if (!productYearlyTotals[key]) {
         productYearlyTotals[key] = {
@@ -629,6 +643,7 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
           totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
           totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0,
           totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+          totalReceivedTransfer: 0, totalSentTransfer: 0,
         };
       } else {
         productYearlyTotals[key].displayPrice = displayPrice;
@@ -641,6 +656,8 @@ function groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferR
       pyEntry.totalWasteQuantity = decimalToNumber(safePlus(pyEntry.totalWasteQuantity, prod.waste));
       pyEntry.totalEstimatedSold = decimalToNumber(safePlus(pyEntry.totalEstimatedSold, prod.estimatedSold));
       pyEntry.totalEstimatedRevenue = decimalToNumber(safePlus(pyEntry.totalEstimatedRevenue, prod.estimatedRevenue));
+      pyEntry.totalReceivedTransfer = decimalToNumber(safePlus(pyEntry.totalReceivedTransfer, prod.receivedTransfer || 0));
+      pyEntry.totalSentTransfer = decimalToNumber(safePlus(pyEntry.totalSentTransfer, prod.sentTransfer || 0));
     }
   }
 }
@@ -695,6 +712,15 @@ async function getYearlyReport(branchId, year, category, productId) {
     historyByProduct[ph.productId].push(ph);
   }
 
+  // Build fallback price map from Product.price (used when no PriceHistory matches)
+  const allProductPrices = await prisma.product.findMany({
+    select: { id: true, price: true },
+  });
+  const productBasePriceMap = {};
+  for (const p of allProductPrices) {
+    productBasePriceMap[p.id] = Number(p.price) || 0;
+  }
+
   await Promise.all(branches.map(async (branch) => {
     // ── SNAPSHOT PATH ──────────────────────────────────────────────────────
     const [snapshots] = await Promise.all([
@@ -735,6 +761,8 @@ async function getYearlyReport(branchId, year, category, productId) {
           waste: Number(item.wasteQuantity) || 0,
           sold: Number(item.estimatedSold) || 0,
           revenue: Number(item.estimatedRevenue) || 0,
+          receivedTransfer: Number(item.receivedTransfer) || 0,
+          sentTransfer: Number(item.sentTransfer) || 0,
         };
 
         // Accumulate into month totals
@@ -773,6 +801,7 @@ async function getYearlyReport(branchId, year, category, productId) {
             totalOpeningStock: 0, totalDayProduction: 0, totalNightProduction: 0,
             totalSellableStock: 0, totalRemainingStock: 0, totalWasteQuantity: 0,
             totalEstimatedSold: 0, totalEstimatedRevenue: 0,
+            totalReceivedTransfer: 0, totalSentTransfer: 0,
           };
         }
         addToProd(productYearlyTotals[key], fields);
@@ -839,7 +868,7 @@ async function getYearlyReport(branchId, year, category, productId) {
       }
     }
 
-    groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals);
+    groupLiveByMonth(prodRecords, remainingRecords, wasteRecords, transferRecords, historyByProduct, snapshotPriceSets, monthProductsMap, monthTotalsMap, branchYearlyTotals, branchProductsMap, branch.id, yearNum, category, pidFilter, productYearlyTotals, productBasePriceMap);
   }));
 
   // Post-process: normalize flat live-path entries to nested product objects
@@ -953,6 +982,8 @@ function escapeCSV(value) {
 }
 
 function exportToCSV(reportData) {
+  const isSingleBranch = reportData.branchId && reportData.branchId !== '';
+
   const headers = [
     'Product',
     'Category',
@@ -962,24 +993,30 @@ function exportToCSV(reportData) {
     'Night Prepared For Next',
     'Sellable Stock',
     'Remaining Stock',
+    ...(isSingleBranch ? ['Transfers'] : []),
     'Waste',
     'Estimated Sold',
     'Estimated Revenue',
   ];
 
-  const normalizedProducts = reportData.products.map(p => ({
-    productName: p.product?.name || p.productName || '',
-    category: p.product?.category || p.category || '',
-    openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
-    dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
-    nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,
-    nightProductionPreparedFor: p.nightProductionPreparedFor ?? 0,
-    sellableStock: p.sellableStock ?? p.totalSellableStock ?? 0,
-    remainingStock: p.remainingStock ?? p.totalRemainingStock ?? 0,
-    wasteQuantity: p.wasteQuantity ?? p.totalWasteQuantity ?? 0,
-    estimatedSold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
-    estimatedRevenue: p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0,
-  })).filter(p => p.dayProduction !== 0 || p.nightProduction !== 0 || p.sellableStock !== 0 || p.remainingStock !== 0 || p.wasteQuantity !== 0 || p.estimatedSold !== 0 || p.estimatedRevenue !== 0);
+  const normalizedProducts = reportData.products.map(p => {
+    const recv = p.totalReceivedTransfer ?? p.receivedTransfer ?? 0;
+    const sent = p.totalSentTransfer ?? p.sentTransfer ?? 0;
+    return {
+      productName: p.product?.name || p.productName || '',
+      category: p.product?.category || p.category || '',
+      openingStock: p.openingStock ?? p.totalOpeningStock ?? 0,
+      dayProduction: p.dayProduction ?? p.totalDayProduction ?? 0,
+      nightProduction: p.nightProduction ?? p.totalNightProduction ?? 0,
+      nightProductionPreparedFor: p.nightProductionPreparedFor ?? 0,
+      sellableStock: p.sellableStock ?? p.totalSellableStock ?? 0,
+      remainingStock: p.remainingStock ?? p.totalRemainingStock ?? 0,
+      transfers: recv || sent ? `+${recv} / -${sent}` : '—',
+      wasteQuantity: p.wasteQuantity ?? p.totalWasteQuantity ?? 0,
+      estimatedSold: p.estimatedSold ?? p.totalEstimatedSold ?? 0,
+      estimatedRevenue: p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0,
+    };
+  }).filter(p => p.dayProduction !== 0 || p.nightProduction !== 0 || p.sellableStock !== 0 || p.remainingStock !== 0 || p.transfers !== '—' || p.wasteQuantity !== 0 || p.estimatedSold !== 0 || p.estimatedRevenue !== 0);
 
   if (normalizedProducts.length === 0) {
     return [headers.map(escapeCSV).join(','), escapeCSV('No operational activity recorded.')].join('\n');
@@ -994,23 +1031,35 @@ function exportToCSV(reportData) {
     p.nightProductionPreparedFor,
     p.sellableStock,
     p.remainingStock,
+    ...(isSingleBranch ? [p.transfers] : []),
     p.wasteQuantity,
     p.estimatedSold,
     p.estimatedRevenue,
   ]);
 
-  const totalsRow = [
-    escapeCSV('TOTAL'),
-    '',
+  const totalValues = [
     reportData.totals.totalOpeningStock ?? reportData.totals.totalOpening ?? 0,
     reportData.totals.totalDayProduction ?? 0,
     reportData.totals.totalNightProduction ?? 0,
     reportData.totals.totalNightProductionPreparedFor ?? 0,
     reportData.totals.totalSellableStock ?? 0,
     reportData.totals.totalRemainingStock ?? 0,
+  ];
+  const totalRecv = reportData.yearTransfers?.received || 0;
+  const totalSent = reportData.yearTransfers?.sent || 0;
+  const totalTransfersStr = totalRecv || totalSent ? `+${totalRecv} / -${totalSent}` : '—';
+  const totalValuesAfter = [
     reportData.totals.totalWasteQuantity ?? 0,
     reportData.totals.totalEstimatedSold ?? 0,
     reportData.totals.totalEstimatedRevenue ?? 0,
+  ];
+
+  const totalsRow = [
+    escapeCSV('TOTAL'),
+    '',
+    ...totalValues,
+    ...(isSingleBranch ? [totalTransfersStr] : []),
+    ...totalValuesAfter,
   ];
 
   const csvContent = [
