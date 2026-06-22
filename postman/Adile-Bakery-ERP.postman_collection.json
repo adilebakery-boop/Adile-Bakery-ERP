@@ -63,7 +63,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleId\": 2,\n  \"branchId\": 1\n}",
+              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleName\": \"MANAGER\",\n  \"branchId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -161,7 +161,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleId\": 3,\n  \"branchId\": 1\n}",
+              "raw": "{\n  \"name\": \"New User\",\n  \"username\": \"new.user\",\n  \"password\": \"password123\",\n  \"roleName\": \"BAKER\",\n  \"branchId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -193,7 +193,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Name\",\n  \"roleId\": 2,\n  \"branchId\": 2\n}",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"roleName\": \"MANAGER\",\n  \"branchId\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
