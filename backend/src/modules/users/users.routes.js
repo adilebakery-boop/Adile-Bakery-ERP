@@ -28,14 +28,14 @@ router.get(
   authenticate,
   allowRoles('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    const { page: pageQ, limit: limitQ, branchId: queryBranchId, roleId } = req.query;
+    const { page: pageQ, limit: limitQ, branchId: queryBranchId, roleName } = req.query;
     const page = parseInt(pageQ) || 1;
     const limit = parseInt(limitQ) || 10;
     const skip = (page - 1) * limit;
 
     const where = {
       isActive: true,
-      ...(roleId && { roleId: Number(roleId) }),
+      ...(roleName && { role: { name: roleName } }),
     };
 
     if (req.user.role === 'MANAGER') {
@@ -157,10 +157,10 @@ router.post(
   allowRoles('ADMIN', 'MANAGER'),
   validate(createUserSchema),
   asyncHandler(async (req, res) => {
-    const { name, username, password, roleId, branchId, email } = req.body;
+    const { name, username, password, roleName, branchId, email } = req.body;
     const currentUserRole = req.user.role;
 
-    const targetRole = await prisma.role.findUnique({ where: { id: roleId } });
+    const targetRole = await prisma.role.findUnique({ where: { name: roleName } });
     if (!targetRole) {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
@@ -184,14 +184,14 @@ router.post(
 
     if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
       const user = await prisma.user.create({
-        data: { name, username, passwordHash, roleId, branchId: branchId || null, email: email || null },
+        data: { name, username, passwordHash, roleId: targetRole.id, branchId: branchId || null, email: email || null },
         include: { role: true }
       });
       return res.status(201).json({ success: true, message: 'User created successfully', data: user });
     }
 
     const user = await prisma.user.create({
-      data: { name, username, passwordHash, roleId, branchId, email: email || null },
+      data: { name, username, passwordHash, roleId: targetRole.id, branchId, email: email || null },
       include: { role: true }
     });
     res.status(201).json({ success: true, message: 'User created successfully', data: user });
@@ -235,7 +235,7 @@ router.put(
   validate(updateUserSchema),
   asyncHandler(async (req, res) => {
     const targetUserId = parseInt(req.params.id);
-    const { name, username, roleId, branchId, isBlocked, email } = req.body;
+    const { name, username, roleName, branchId, isBlocked, email } = req.body;
     const currentUserRole = req.user.role;
 
     const canManage = await canManageTargetUser(req.user, targetUserId);
@@ -243,8 +243,9 @@ router.put(
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
     }
 
-    if (roleId) {
-      const targetRole = await prisma.role.findUnique({ where: { id: roleId } });
+    let targetRole = null;
+    if (roleName) {
+      targetRole = await prisma.role.findUnique({ where: { name: roleName } });
       if (!targetRole) {
         return res.status(400).json({ success: false, message: 'Invalid role' });
       }
@@ -257,22 +258,6 @@ router.put(
           return res.status(403).json({ success: false, message: 'Managers can only assign operational roles' });
         }
       }
-
-      if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
-        const user = await prisma.user.update({
-          where: { id: targetUserId },
-          data: { 
-            name, 
-            username,
-            roleId, 
-            branchId: branchId || null, 
-            isBlocked,
-            email: email === undefined ? undefined : (email || null)
-          },
-          include: { role: true }
-        });
-        return res.json({ success: true, message: 'User updated successfully', data: user });
-      }
     }
 
     const user = await prisma.user.update({
@@ -280,7 +265,7 @@ router.put(
       data: { 
         name, 
         username,
-        roleId, 
+        roleId: targetRole?.id,
         branchId, 
         isBlocked,
         email: email === undefined ? undefined : (email || null)

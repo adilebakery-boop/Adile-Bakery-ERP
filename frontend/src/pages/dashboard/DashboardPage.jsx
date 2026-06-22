@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
 
   const navigate = useNavigate();
-  const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : 'all');
+  const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : undefined);
 
   const { overview, activity } = useDashboardData({
     branchId: targetBranchId,

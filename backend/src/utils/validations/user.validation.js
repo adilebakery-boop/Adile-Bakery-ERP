@@ -35,7 +35,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username must be less than 50 characters'),
   password: passwordSchema,
-  roleId: z.number().int().positive('Role ID must be a positive integer'),
+  roleName: z.string().min(1, 'Role name is required'),
   branchId: z.number().int().positive('Branch ID must be a positive integer').nullable().optional(),
   email: emailSchema
 });
@@ -43,7 +43,7 @@ const createUserSchema = z.object({
 const updateUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters').optional(),
   username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username must be less than 50 characters').optional(),
-  roleId: z.number().int().positive('Role ID must be a positive integer').optional(),
+  roleName: z.string().min(1, 'Role name is required').optional(),
   branchId: z.number().int().positive('Branch ID must be a positive integer').nullable().optional(),
   email: emailSchema
 });

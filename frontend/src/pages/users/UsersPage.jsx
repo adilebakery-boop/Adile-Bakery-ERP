@@ -82,7 +82,7 @@ export default function UsersPage() {
     page: currentPage,
     limit: itemsPerPage,
     ...(branchFilter && { branchId: branchFilter }),
-    ...(roleFilter && { roleId: roleFilter }),
+    ...(roleFilter && { roleName: roleFilter }),
   });
   const users = data?.users || [];
   const pagination = data?.pagination || null;
@@ -109,12 +109,11 @@ export default function UsersPage() {
     e.preventDefault();
     setError('');
 
-    const roleObj = getAllowedRoles().find(r => r.value === formData.role);
     const submitData = {
       name: formData.name,
       username: formData.username,
       password: formData.password,
-      roleId: roleObj?.id,
+      roleName: formData.role,
       email: formData.email || null,
     };
 
@@ -150,11 +149,10 @@ export default function UsersPage() {
     e.preventDefault();
     setError('');
 
-    const roleObj = getAllowedRoles().find(r => r.value === formData.role);
     const submitData = {
       name: formData.name,
       username: formData.username,
-      roleId: roleObj?.id,
+      roleName: formData.role,
       email: formData.email || null,
     };
 
@@ -240,7 +238,7 @@ export default function UsersPage() {
           >
             <option value="">{t('users.allRoles')}</option>
             {ALL_ROLES.map((role) => (
-              <option key={role.id} value={role.id}>
+              <option key={role.value} value={role.value}>
                 {t(`roles.${role.labelKey}`)}
               </option>
             ))}
