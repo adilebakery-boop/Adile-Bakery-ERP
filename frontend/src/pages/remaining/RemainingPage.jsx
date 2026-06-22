@@ -95,7 +95,7 @@ export default function RemainingPage() {
   const flowProductsMap = useMemo(() => {
     const map = {};
     (flowData?.products || []).forEach(p => {
-      map[p.productId] = p;
+      map[p.product?.id] = p;
     });
     return map;
   }, [flowData]);
@@ -125,7 +125,9 @@ export default function RemainingPage() {
     if (!flow) return false;
     return (flow.openingStock || 0) > 0 ||
            (flow.dayProduction || 0) > 0 ||
-           (flow.nightProduction || 0) > 0;
+           (flow.nightProduction || 0) > 0 ||
+           (flow.receivedTransfer || 0) > 0 ||
+           (flow.sentTransfer || 0) > 0;
   }, [existingRemainings, flowProductsMap]);
 
   const displayProducts = useMemo(() => {
