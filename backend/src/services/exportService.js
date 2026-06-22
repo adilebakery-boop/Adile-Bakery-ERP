@@ -146,7 +146,9 @@ function isZeroProduct(p) {
     && (p.totalRemainingStock ?? p.remainingStock ?? 0) === 0
     && (p.totalWasteQuantity ?? p.wasteQuantity ?? 0) === 0
     && (p.totalEstimatedSold ?? p.estimatedSold ?? 0) === 0
-    && (p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0) === 0;
+    && (p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0) === 0
+    && (p.totalReceivedTransfer ?? p.receivedTransfer ?? 0) === 0
+    && (p.totalSentTransfer ?? p.sentTransfer ?? 0) === 0;
 }
 
 function addDataTable(worksheet, products, startRow, includeNightProduction = true, includeTransfers = false) {
@@ -209,8 +211,8 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
       toNumber(p.totalRemainingStock || p.remainingStock),
     ];
 
-    const recv = toNumber(p.receivedTransfer || 0);
-    const sent = toNumber(p.sentTransfer || 0);
+    const recv = toNumber(p.totalReceivedTransfer ?? p.receivedTransfer ?? 0);
+    const sent = toNumber(p.totalSentTransfer ?? p.sentTransfer ?? 0);
     const transfersStr = recv || sent ? `+${recv} / -${sent}` : '—';
 
     const postTransferCols = [
@@ -274,8 +276,8 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     products.reduce((sum, p) => sum + toNumber(p.totalRemainingStock || p.remainingStock), 0),
   ];
 
-  const totalRecv = products.reduce((sum, p) => sum + toNumber(p.receivedTransfer || 0), 0);
-  const totalSent = products.reduce((sum, p) => sum + toNumber(p.sentTransfer || 0), 0);
+  const totalRecv = products.reduce((sum, p) => sum + toNumber(p.totalReceivedTransfer ?? p.receivedTransfer ?? 0), 0);
+  const totalSent = products.reduce((sum, p) => sum + toNumber(p.totalSentTransfer ?? p.sentTransfer ?? 0), 0);
   const totalTransfersStr = totalRecv || totalSent ? `+${totalRecv} / -${totalSent}` : '—';
 
   const postTotalValues = [
