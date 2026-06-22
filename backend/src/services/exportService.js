@@ -149,7 +149,7 @@ function isZeroProduct(p) {
     && (p.totalEstimatedRevenue ?? p.estimatedRevenue ?? 0) === 0;
 }
 
-function addDataTable(worksheet, products, startRow, includeNightProduction = true) {
+function addDataTable(worksheet, products, startRow, includeNightProduction = true, includeTransfers = false) {
   products = sortProductsAlphabetically(products).filter(p => !isZeroProduct(p));
   const headers = [
     'Product',
@@ -160,6 +160,7 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     includeNightProduction ? 'Night Prod.' : null,
     'Sellable',
     'Remaining',
+    ...(includeTransfers ? ['Transfers'] : []),
     'Waste',
     'Est. Sold',
     'Revenue',
@@ -200,12 +201,19 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
   }
 
   for (const p of products) {
-    const numericCols = [
+    const preTransferCols = [
       toNumber(p.totalOpeningStock || p.openingStock),
       toNumber(p.totalDayProduction || p.dayProduction),
       includeNightProduction ? toNumber(p.totalNightProduction || p.nightProduction || 0) : 0,
       toNumber(p.totalSellableStock || p.sellableStock),
       toNumber(p.totalRemainingStock || p.remainingStock),
+    ];
+
+    const recv = toNumber(p.receivedTransfer || 0);
+    const sent = toNumber(p.sentTransfer || 0);
+    const transfersStr = recv || sent ? `+${recv} / -${sent}` : '—';
+
+    const postTransferCols = [
       toNumber(p.totalWasteQuantity || p.wasteQuantity),
       toNumber(p.totalEstimatedSold || p.estimatedSold),
       toNumber(p.totalEstimatedRevenue || p.estimatedRevenue),
@@ -230,10 +238,27 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     worksheet.getCell(row, 3).border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
 
     let col = 4;
-    for (let i = 0; i < numericCols.length; i++) {
+    for (let i = 0; i < preTransferCols.length; i++) {
       const cell = worksheet.getCell(row, col);
-      cell.value = numericCols[i];
-      cell.numFmt = i === numericCols.length - 1 ? '#,##0.00' : '#,##0';
+      cell.value = preTransferCols[i];
+      cell.numFmt = '#,##0';
+      cell.alignment = { horizontal: 'right' };
+      cell.border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
+      col++;
+    }
+
+    if (includeTransfers) {
+      const cell = worksheet.getCell(row, col);
+      cell.value = transfersStr;
+      cell.alignment = { horizontal: 'center' };
+      cell.border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
+      col++;
+    }
+
+    for (let i = 0; i < postTransferCols.length; i++) {
+      const cell = worksheet.getCell(row, col);
+      cell.value = postTransferCols[i];
+      cell.numFmt = i === postTransferCols.length - 1 ? '#,##0.00' : '#,##0';
       cell.alignment = { horizontal: 'right' };
       cell.border = { top: { style: 'thin', color: { argb: BORDER_COLOR } }, bottom: { style: 'thin', color: { argb: BORDER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
       col++;
@@ -241,12 +266,19 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
     row++;
   }
 
-  const totalValues = [
+  const preTotalValues = [
     products.reduce((sum, p) => sum + toNumber(p.totalOpeningStock || p.openingStock), 0),
     products.reduce((sum, p) => sum + toNumber(p.totalDayProduction || p.dayProduction), 0),
     includeNightProduction ? products.reduce((sum, p) => sum + toNumber(p.totalNightProduction || p.nightProduction || 0), 0) : 0,
     products.reduce((sum, p) => sum + toNumber(p.totalSellableStock || p.sellableStock), 0),
     products.reduce((sum, p) => sum + toNumber(p.totalRemainingStock || p.remainingStock), 0),
+  ];
+
+  const totalRecv = products.reduce((sum, p) => sum + toNumber(p.receivedTransfer || 0), 0);
+  const totalSent = products.reduce((sum, p) => sum + toNumber(p.sentTransfer || 0), 0);
+  const totalTransfersStr = totalRecv || totalSent ? `+${totalRecv} / -${totalSent}` : '—';
+
+  const postTotalValues = [
     products.reduce((sum, p) => sum + toNumber(p.totalWasteQuantity || p.wasteQuantity), 0),
     products.reduce((sum, p) => sum + toNumber(p.totalEstimatedSold || p.estimatedSold), 0),
     products.reduce((sum, p) => sum + toNumber(p.totalEstimatedRevenue || p.estimatedRevenue), 0),
@@ -267,10 +299,31 @@ function addDataTable(worksheet, products, startRow, includeNightProduction = tr
   worksheet.getCell(row, 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
 
   col = 4;
-  for (let i = 0; i < totalValues.length; i++) {
+  for (let i = 0; i < preTotalValues.length; i++) {
     const cell = worksheet.getCell(row, col);
-    cell.value = totalValues[i];
-    cell.numFmt = i === totalValues.length - 1 ? '#,##0.00' : '#,##0';
+    cell.value = preTotalValues[i];
+    cell.numFmt = '#,##0';
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    cell.alignment = { horizontal: 'right' };
+    cell.border = { top: { style: 'medium', color: { argb: HEADER_COLOR } }, bottom: { style: 'medium', color: { argb: HEADER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
+    col++;
+  }
+
+  if (includeTransfers) {
+    const cell = worksheet.getCell(row, col);
+    cell.value = totalTransfersStr;
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
+    cell.alignment = { horizontal: 'center' };
+    cell.border = { top: { style: 'medium', color: { argb: HEADER_COLOR } }, bottom: { style: 'medium', color: { argb: HEADER_COLOR } }, left: { style: 'thin', color: { argb: BORDER_COLOR } }, right: { style: 'thin', color: { argb: BORDER_COLOR } } };
+    col++;
+  }
+
+  for (let i = 0; i < postTotalValues.length; i++) {
+    const cell = worksheet.getCell(row, col);
+    cell.value = postTotalValues[i];
+    cell.numFmt = i === postTotalValues.length - 1 ? '#,##0.00' : '#,##0';
     cell.font = { bold: true };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
     cell.alignment = { horizontal: 'right' };
@@ -589,7 +642,7 @@ async function exportDailyReport(reportData, options = {}) {
     };
 
     currentRow = addKPISection(worksheet, kpis, currentRow);
-    addDataTable(worksheet, reportData.products, currentRow, true);
+    addDataTable(worksheet, reportData.products, currentRow, true, options.exportMode === 'SINGLE_BRANCH');
 
     autoSizeColumns(worksheet, 11);
   }
@@ -687,7 +740,7 @@ async function exportWeeklyReport(reportData, options = {}) {
       };
 
       currentRow = addKPISection(worksheet, dayKpis, currentRow);
-      addDataTable(worksheet, day.products || [], currentRow, true);
+      addDataTable(worksheet, day.products || [], currentRow, true, options.exportMode === 'SINGLE_BRANCH');
     }
 
     autoSizeColumns(worksheet, 11);
@@ -964,24 +1017,24 @@ async function exportMonthlyReport(reportData, options = {}) {
           topCategory: null,
         };
 
-        currentRow = addKPISection(worksheet, dayKpis, currentRow);
-        currentRow = addDataTable(worksheet, day.products || [], currentRow, true);
-      } else {
-        const dayKpis = {
-          totalEstimatedRevenue: day.totals.totalEstimatedRevenue,
-          totalEstimatedSold: day.totals.totalEstimatedSold,
-          totalWasteQuantity: day.totals.totalWasteQuantity,
-          totalDayProduction: day.totals.totalDayProduction,
-          totalNightProduction: day.totals.totalNightProduction || 0,
-          totalRemainingStock: day.totals.totalRemainingStock,
-          totalSellableStock: day.totals.totalSellableStock,
-          topProduct: null,
-          topCategory: null,
-        };
+          currentRow = addKPISection(worksheet, dayKpis, currentRow);
+          currentRow = addDataTable(worksheet, day.products || [], currentRow, true, options.exportMode === 'SINGLE_BRANCH');
+        } else {
+          const dayKpis = {
+            totalEstimatedRevenue: day.totals.totalEstimatedRevenue,
+            totalEstimatedSold: day.totals.totalEstimatedSold,
+            totalWasteQuantity: day.totals.totalWasteQuantity,
+            totalDayProduction: day.totals.totalDayProduction,
+            totalNightProduction: day.totals.totalNightProduction || 0,
+            totalRemainingStock: day.totals.totalRemainingStock,
+            totalSellableStock: day.totals.totalSellableStock,
+            topProduct: null,
+            topCategory: null,
+          };
 
-        currentRow = addKPISection(worksheet, dayKpis, currentRow);
-        currentRow = addDataTable(worksheet, day.products || [], currentRow, true);
-      }
+          currentRow = addKPISection(worksheet, dayKpis, currentRow);
+          currentRow = addDataTable(worksheet, day.products || [], currentRow, true, options.exportMode === 'SINGLE_BRANCH');
+        }
       currentRow++;
     }
 
@@ -1980,10 +2033,10 @@ async function exportYearlyReport(reportData, options = {}) {
       worksheet.getCell(currentRow, 7).font = { bold: true };
       worksheet.getCell(currentRow, 7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_COLOR } };
       currentRow++;
-      currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+      currentRow = addDataTable(worksheet, month.products || [], currentRow, true, options.exportMode === 'SINGLE_BRANCH');
       autoSizeColumns(worksheet, 11);
 } else {
-    currentRow = addDataTable(worksheet, month.products || [], currentRow, true);
+    currentRow = addDataTable(worksheet, month.products || [], currentRow, true, options.exportMode === 'SINGLE_BRANCH');
     autoSizeColumns(worksheet, 11);
   }
 }
