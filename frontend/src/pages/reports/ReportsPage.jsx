@@ -83,7 +83,9 @@ const isSingleBranch = !isAllBranches && branchId !== '';
       (p.dayProduction || 0) > 0 ||
       (p.nightProduction || 0) > 0 ||
       (p.wasteQuantity || 0) > 0 ||
-      (p.remainingStock || 0) > 0
+      (p.remainingStock || 0) > 0 ||
+      (p.receivedTransfer || 0) > 0 ||
+      (p.sentTransfer || 0) > 0
     );
   });
   const days = reportData.days || [];
