@@ -236,7 +236,7 @@ export default function TransfersPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
-        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Transfers</h1>
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Stock Transfers</h1>
       </div>
 
       {actionSuccess && (
@@ -335,12 +335,14 @@ export default function TransfersPage() {
                 </select>
               </div>
             )}
-            <div>
+          </div>
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
               <select
                 value={form.productId}
                 onChange={(e) => setForm({ ...form, productId: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
               >
                 <option value="">Select product</option>
@@ -349,8 +351,6 @@ export default function TransfersPage() {
                 ))}
               </select>
             </div>
-          </div>
-          <div className="flex items-end gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
               <input
