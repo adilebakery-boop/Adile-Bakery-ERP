@@ -59,7 +59,7 @@ export default function TransfersPage() {
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sourceBranchFilter, setSourceBranchFilter] = useState('');
+  const [dependentBranchFilter, setDependentBranchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
@@ -77,7 +77,7 @@ export default function TransfersPage() {
     ...branchFilter,
     startDate,
     endDate,
-    sourceBranchId: sourceBranchFilter || undefined,
+    dependentBranchId: dependentBranchFilter || undefined,
     limit: 10000,
   });
 
@@ -160,7 +160,7 @@ export default function TransfersPage() {
 
   const mutations = useTransferMutations();
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, sourceBranchFilter, categoryFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, dependentBranchFilter, categoryFilter]);
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput), 300);
     return () => clearTimeout(timer);
@@ -399,12 +399,12 @@ export default function TransfersPage() {
           />
         </div>
         <select
-          value={sourceBranchFilter}
-          onChange={(e) => setSourceBranchFilter(e.target.value)}
+          value={dependentBranchFilter}
+          onChange={(e) => setDependentBranchFilter(e.target.value)}
           className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
         >
           <option value="">All Branches</option>
-          {branches.map(b => (
+          {dependentBranches.map(b => (
             <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
           ))}
         </select>
@@ -415,7 +415,7 @@ export default function TransfersPage() {
         >
           <option value="">All Categories</option>
           {categories.map(c => (
-            <option key={c.id} value={c.id}>{getLocalizedName(c, i18n.language)}</option>
+            <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
 
