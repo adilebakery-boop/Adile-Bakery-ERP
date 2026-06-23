@@ -12,7 +12,8 @@
     "products": "Products",
     "branches": "Branches",
     "users": "Users",
-    "profile": "Profile"
+    "profile": "Profile",
+    "transfers": "Stock Transfers"
   },
   "common": {
     "save": "Save",
