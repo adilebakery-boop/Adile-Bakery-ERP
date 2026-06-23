@@ -10,6 +10,7 @@ import { useProductsQuery } from '../../features/products/hooks/queries/useProdu
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 import { useTransfersQuery } from '../../features/transfers/hooks/queries/useTransfersQuery';
 import { useTransferMutations } from '../../features/transfers/hooks/mutations/useTransferMutations';
+import { useProductCategoriesQuery } from '../../features/products/hooks/queries/useProductCategoriesQuery';
 
 const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
 
@@ -42,6 +43,11 @@ export default function TransfersPage() {
   const isAdmin = userRole === 'ADMIN';
   const isLocked = !isAdmin;
 
+  const endDate = new Date().toISOString().split('T')[0];
+  const pastDate = new Date();
+  pastDate.setDate(pastDate.getDate() - 5);
+  const startDate = pastDate.toISOString().split('T')[0];
+
   const [form, setForm] = useState({
     branchType: isAdmin ? 'DEPENDENT' : '',
     branchId: '',
@@ -51,10 +57,10 @@ export default function TransfersPage() {
     date: new Date().toISOString().split('T')[0],
   });
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sourceBranchFilter, setSourceBranchFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
@@ -69,8 +75,9 @@ export default function TransfersPage() {
   const branchFilter = canManageAll || isTransferOperator ? {} : { dependentBranchId: userBranchId };
   const { data: transfersData, isLoading, isError, error: fetchError, refetch } = useTransfersQuery({
     ...branchFilter,
-    startDate: startDate || undefined,
-    endDate: endDate || undefined,
+    startDate,
+    endDate,
+    sourceBranchId: sourceBranchFilter || undefined,
     limit: 10000,
   });
 
@@ -78,6 +85,7 @@ export default function TransfersPage() {
   const products = productsResult?.data || [];
 
   const { data: branches = [] } = useActiveBranchesQuery();
+  const { data: categories = [] } = useProductCategoriesQuery();
   const filteredBranches = useMemo(() => {
     if (form.branchType === 'DEPENDENT') {
       return branches.filter(b => b.branchType === 'DEPENDENT');
@@ -89,15 +97,32 @@ export default function TransfersPage() {
 
   const dependentBranches = useMemo(() => branches.filter(b => b.branchType === 'DEPENDENT'), [branches]);
 
+  const resolvedSourceBranchName = useMemo(() => {
+    if (form.branchType !== 'DEPENDENT' || !form.branchId) return '';
+    const depBranch = branches.find(b => String(b.id) === String(form.branchId));
+    if (!depBranch?.sourceBranchId) return '';
+    const srcBranch = branches.find(b => String(b.id) === String(depBranch.sourceBranchId));
+    return srcBranch ? getLocalizedName(srcBranch, i18n.language) : '';
+  }, [form.branchType, form.branchId, branches, i18n.language]);
+
   const allTransfers = useMemo(() => {
     const list = transfersData || [];
-    if (!searchTerm) return list;
-    const q = searchTerm.toLowerCase();
-    return list.filter(t => {
-      const name = getLocalizedName(t.product, i18n.language) || t.product?.name || '';
-      return name.toLowerCase().includes(q);
-    });
-  }, [transfersData, searchTerm, i18n.language]);
+    let filtered = list;
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter(t => {
+        const name = getLocalizedName(t.product, i18n.language) || t.product?.name || '';
+        return name.toLowerCase().includes(q);
+      });
+    }
+    if (categoryFilter) {
+      filtered = filtered.filter(t => {
+        const catId = t.product?.category?.id || t.product?.category;
+        return String(catId) === categoryFilter;
+      });
+    }
+    return filtered;
+  }, [transfersData, searchTerm, categoryFilter, i18n.language]);
 
   const groupedTransfers = useMemo(() => {
     const groups = {};
@@ -135,7 +160,7 @@ export default function TransfersPage() {
 
   const mutations = useTransferMutations();
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, startDate, endDate]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, sourceBranchFilter, categoryFilter]);
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput), 300);
     return () => clearTimeout(timer);
@@ -219,7 +244,7 @@ export default function TransfersPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
-        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Transfers</h1>
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Stock Transfers</h1>
       </div>
 
       {actionSuccess && (
@@ -262,42 +287,46 @@ export default function TransfersPage() {
                 )}
               </select>
             </div>
-            {form.branchType === 'SOURCE' ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
-                  <select
-                    value={form.branchId}
-                    onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
-                    disabled={isLocked}
-                    required
-                  >
-                    {!isLocked && <option value="">Select source branch</option>}
-                    {sourceBranches.map(b => (
-                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">To Branch</label>
-                  <select
-                    value={form.toBranchId}
-                    onChange={(e) => setForm({ ...form, toBranchId: e.target.value })}
-                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
-                    disabled={isLocked}
-                    required
-                  >
-                    {!isLocked && <option value="">Select destination branch</option>}
-                    {dependentBranches.map(b => (
-                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
+              {form.branchType === 'SOURCE' ? (
+                <select
+                  value={form.branchId}
+                  onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                  disabled={isLocked}
+                  required
+                >
+                  {!isLocked && <option value="">Select source branch</option>}
+                  {sourceBranches.map(b => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={resolvedSourceBranchName || 'Auto-resolved'}
+                  disabled
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+                />
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{form.branchType === 'SOURCE' ? 'To Branch' : 'Branch'}</label>
+              {form.branchType === 'SOURCE' ? (
+                <select
+                  value={form.toBranchId}
+                  onChange={(e) => setForm({ ...form, toBranchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                  disabled={isLocked}
+                  required
+                >
+                  {!isLocked && <option value="">Select destination branch</option>}
+                  {dependentBranches.map(b => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))}
+                </select>
+              ) : (
                 <select
                   value={form.branchId}
                   onChange={(e) => setForm({ ...form, branchId: e.target.value })}
@@ -316,14 +345,16 @@ export default function TransfersPage() {
                     ))
                   )}
                 </select>
-              </div>
-            )}
-            <div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
               <select
                 value={form.productId}
                 onChange={(e) => setForm({ ...form, productId: e.target.value })}
-                className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+                className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
               >
                 <option value="">Select product</option>
@@ -332,8 +363,6 @@ export default function TransfersPage() {
                 ))}
               </select>
             </div>
-          </div>
-          <div className="flex items-end gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
               <input
@@ -365,24 +394,31 @@ export default function TransfersPage() {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
             placeholder="Search products..."
           />
         </div>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="px-4 py-3 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
-          title="Start date"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="px-4 py-3 bg-[#DFEDE2] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm"
-          title="End date"
-        />
+        <select
+          value={sourceBranchFilter}
+          onChange={(e) => setSourceBranchFilter(e.target.value)}
+          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+        >
+          <option value="">All Branches</option>
+          {branches.map(b => (
+            <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+          ))}
+        </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
+        >
+          <option value="">All Categories</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{getLocalizedName(c, i18n.language)}</option>
+          ))}
+        </select>
+
       </div>
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]">
