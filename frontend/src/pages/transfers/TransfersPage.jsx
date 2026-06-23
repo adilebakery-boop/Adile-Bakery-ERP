@@ -97,6 +97,14 @@ export default function TransfersPage() {
 
   const dependentBranches = useMemo(() => branches.filter(b => b.branchType === 'DEPENDENT'), [branches]);
 
+  const resolvedSourceBranchName = useMemo(() => {
+    if (form.branchType !== 'DEPENDENT' || !form.branchId) return '';
+    const depBranch = branches.find(b => String(b.id) === String(form.branchId));
+    if (!depBranch?.sourceBranchId) return '';
+    const srcBranch = branches.find(b => String(b.id) === String(depBranch.sourceBranchId));
+    return srcBranch ? getLocalizedName(srcBranch, i18n.language) : '';
+  }, [form.branchType, form.branchId, branches, i18n.language]);
+
   const allTransfers = useMemo(() => {
     const list = transfersData || [];
     let filtered = list;
@@ -279,42 +287,46 @@ export default function TransfersPage() {
                 )}
               </select>
             </div>
-            {form.branchType === 'SOURCE' ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
-                  <select
-                    value={form.branchId}
-                    onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
-                    disabled={isLocked}
-                    required
-                  >
-                    {!isLocked && <option value="">Select source branch</option>}
-                    {sourceBranches.map(b => (
-                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">To Branch</label>
-                  <select
-                    value={form.toBranchId}
-                    onChange={(e) => setForm({ ...form, toBranchId: e.target.value })}
-                    className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
-                    disabled={isLocked}
-                    required
-                  >
-                    {!isLocked && <option value="">Select destination branch</option>}
-                    {dependentBranches.map(b => (
-                      <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
+              {form.branchType === 'SOURCE' ? (
+                <select
+                  value={form.branchId}
+                  onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                  disabled={isLocked}
+                  required
+                >
+                  {!isLocked && <option value="">Select source branch</option>}
+                  {sourceBranches.map(b => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={resolvedSourceBranchName || 'Auto-resolved'}
+                  disabled
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
+                />
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{form.branchType === 'SOURCE' ? 'To Branch' : 'Branch'}</label>
+              {form.branchType === 'SOURCE' ? (
+                <select
+                  value={form.toBranchId}
+                  onChange={(e) => setForm({ ...form, toBranchId: e.target.value })}
+                  className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl outline-none text-sm dark:text-white"
+                  disabled={isLocked}
+                  required
+                >
+                  {!isLocked && <option value="">Select destination branch</option>}
+                  {dependentBranches.map(b => (
+                    <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
+                  ))}
+                </select>
+              ) : (
                 <select
                   value={form.branchId}
                   onChange={(e) => setForm({ ...form, branchId: e.target.value })}
@@ -333,8 +345,8 @@ export default function TransfersPage() {
                     ))
                   )}
                 </select>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <div className="flex items-end gap-4">
             <div className="flex-1">
