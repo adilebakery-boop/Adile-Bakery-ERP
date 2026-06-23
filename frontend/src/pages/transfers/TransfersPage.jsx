@@ -16,6 +16,12 @@ const FEATURE_TRANSFERS = import.meta.env.VITE_FEATURE_TRANSFERS === 'true';
 
 export default function TransfersPage() {
   const { t, i18n } = useTranslation();
+
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '-';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+};
   const userRole = getUserRole();
 
   if (!FEATURE_TRANSFERS) {
@@ -337,7 +343,7 @@ export default function TransfersPage() {
                   {!isLocked && form.branchType && <option value="">{t('transfers.selectBranch')}</option>}
                   {isLocked ? (
                     <option value={form.branchId}>
-                      {branches.find(b => String(b.id) === String(form.branchId))?.name || '...'}
+                      {getLocalizedName(branches.find(b => String(b.id) === String(form.branchId)), i18n.language) || '...'}
                     </option>
                   ) : (
                     filteredBranches.map(b => (
@@ -468,10 +474,10 @@ export default function TransfersPage() {
                         {getLocalizedName(group.product, i18n.language)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {group.operationalDate ? formatOperationalDate(group.operationalDate.split('T')[0]) : '-'}
+                        {group.operationalDate ? formatDateDDMMYYYY(group.operationalDate.split('T')[0]) : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {group.sourceBranch?.name || '-'} → {group.dependentBranch?.name || '-'}
+                        {group.sourceBranch ? getLocalizedName(group.sourceBranch, i18n.language) : '-'} → {group.dependentBranch ? getLocalizedName(group.dependentBranch, i18n.language) : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                         {group.entries.length} {t('transfers.entries')}
@@ -506,8 +512,8 @@ export default function TransfersPage() {
                               <tbody>
                                 {group.entries.map(entry => (
                                   <tr key={entry.id} className="hover:bg-[#DFEDE2]/60 dark:hover:bg-[#1E3A3F]/60 transition-colors">
-                                    <td className="px-4 py-2 text-xs text-gray-500">{entry.sourceBranch?.name || '-'}</td>
-                                    <td className="px-4 py-2 text-xs text-gray-500">{entry.dependentBranch?.name || '-'}</td>
+                                    <td className="px-4 py-2 text-xs text-gray-500">{entry.sourceBranch ? getLocalizedName(entry.sourceBranch, i18n.language) : '-'}</td>
+                                    <td className="px-4 py-2 text-xs text-gray-500">{entry.dependentBranch ? getLocalizedName(entry.dependentBranch, i18n.language) : '-'}</td>
                                     <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{Number(entry.receivedQuantity)}</td>
                                     <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">
                                       {entry.sentQuantity !== null ? Number(entry.sentQuantity) : '-'}
@@ -565,7 +571,7 @@ export default function TransfersPage() {
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('transfers.editTransfer')}>
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.product')}</label>
             <input
               type="text"
               value={getLocalizedName(editingTransfer?.product, i18n.language) || ''}
@@ -577,7 +583,7 @@ export default function TransfersPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.branchFlow')}</label>
             <input
               type="text"
-              value={`${editingTransfer?.sourceBranch?.name || '-'} → ${editingTransfer?.dependentBranch?.name || '-'}`}
+              value={`${editingTransfer?.sourceBranch ? getLocalizedName(editingTransfer.sourceBranch, i18n.language) : '-'} → ${editingTransfer?.dependentBranch ? getLocalizedName(editingTransfer.dependentBranch, i18n.language) : '-'}`}
               disabled
               className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
             />
@@ -586,7 +592,7 @@ export default function TransfersPage() {
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.date')}</label>
             <input
               type="text"
-              value={editingTransfer?.operationalDate ? formatOperationalDate(editingTransfer.operationalDate.split('T')[0]) : '-'}
+              value={editingTransfer?.operationalDate ? formatDateDDMMYYYY(editingTransfer.operationalDate.split('T')[0]) : '-'}
               disabled
               className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
             />
