@@ -348,8 +348,8 @@ export default function TransfersPage() {
               )}
             </div>
           </div>
-          <div className="flex items-end gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row items-end gap-4">
+            <div className="w-full md:flex-1">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
               <select
                 value={form.productId}
@@ -363,7 +363,7 @@ export default function TransfersPage() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="w-full md:w-40">
               <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
               <input
                 type="number"
@@ -379,7 +379,7 @@ export default function TransfersPage() {
             <button
               type="submit"
               disabled={mutations.createTransfer.isPending}
-              className="px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
+              className="w-full md:w-auto px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
               {mutations.createTransfer.isPending ? 'Saving...' : 'Record Transfer'}
             </button>
