@@ -43,6 +43,11 @@ export default function TransfersPage() {
   const isAdmin = userRole === 'ADMIN';
   const isLocked = !isAdmin;
 
+  const endDate = new Date().toISOString().split('T')[0];
+  const pastDate = new Date();
+  pastDate.setDate(pastDate.getDate() - 5);
+  const startDate = pastDate.toISOString().split('T')[0];
+
   const [form, setForm] = useState({
     branchType: isAdmin ? 'DEPENDENT' : '',
     branchId: '',
@@ -52,8 +57,6 @@ export default function TransfersPage() {
     date: new Date().toISOString().split('T')[0],
   });
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sourceBranchFilter, setSourceBranchFilter] = useState('');
@@ -72,8 +75,8 @@ export default function TransfersPage() {
   const branchFilter = canManageAll || isTransferOperator ? {} : { dependentBranchId: userBranchId };
   const { data: transfersData, isLoading, isError, error: fetchError, refetch } = useTransfersQuery({
     ...branchFilter,
-    startDate: startDate || undefined,
-    endDate: endDate || undefined,
+    startDate,
+    endDate,
     sourceBranchId: sourceBranchFilter || undefined,
     limit: 10000,
   });
@@ -149,7 +152,7 @@ export default function TransfersPage() {
 
   const mutations = useTransferMutations();
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, startDate, endDate, sourceBranchFilter, categoryFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, sourceBranchFilter, categoryFilter]);
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput), 300);
     return () => clearTimeout(timer);
@@ -403,20 +406,7 @@ export default function TransfersPage() {
             <option key={c.id} value={c.id}>{getLocalizedName(c, i18n.language)}</option>
           ))}
         </select>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
-          title="Start date"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
-          title="End date"
-        />
+
       </div>
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]">
