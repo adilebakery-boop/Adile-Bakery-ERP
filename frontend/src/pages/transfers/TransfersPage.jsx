@@ -59,7 +59,7 @@ export default function TransfersPage() {
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sourceBranchFilter, setSourceBranchFilter] = useState('');
+  const [dependentBranchFilter, setDependentBranchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
@@ -77,7 +77,7 @@ export default function TransfersPage() {
     ...branchFilter,
     startDate,
     endDate,
-    sourceBranchId: sourceBranchFilter || undefined,
+    dependentBranchId: dependentBranchFilter || undefined,
     limit: 10000,
   });
 
@@ -160,7 +160,7 @@ export default function TransfersPage() {
 
   const mutations = useTransferMutations();
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, sourceBranchFilter, categoryFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, dependentBranchFilter, categoryFilter]);
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput), 300);
     return () => clearTimeout(timer);
@@ -206,7 +206,7 @@ export default function TransfersPage() {
         quantity: '',
         date: new Date().toISOString().split('T')[0],
       });
-      setActionSuccess('Transfer created successfully');
+      setActionSuccess(t('transfers.createSuccess'));
     } catch (err) {
       setActionError(err.message);
     }
@@ -224,7 +224,7 @@ export default function TransfersPage() {
     if (!editingTransfer) return;
     try {
       await mutations.updateReceived.mutateAsync({ id: editingTransfer.id, data: { receivedQuantity: Number(editQuantity) } });
-      setActionSuccess('Transfer updated');
+      setActionSuccess(t('transfers.updateSuccess'));
       setIsEditModalOpen(false);
       setEditingTransfer(null);
     } catch (err) {
@@ -244,7 +244,7 @@ export default function TransfersPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-8">
-        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">Stock Transfers</h1>
+        <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('transfers.title')}</h1>
       </div>
 
       {actionSuccess && (
@@ -258,7 +258,7 @@ export default function TransfersPage() {
         <form onSubmit={handleCreateTransfer} className="space-y-5">
           <div className="flex flex-col md:grid md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Transfer Date</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.transferDate')}</label>
               <input
                 type="date"
                 value={form.date}
@@ -268,7 +268,7 @@ export default function TransfersPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Type</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.branchType')}</label>
               <select
                 value={form.branchType}
                 onChange={(e) => setForm({ ...form, branchType: e.target.value, branchId: '' })}
@@ -276,19 +276,19 @@ export default function TransfersPage() {
                 disabled={isLocked}
                 required
               >
-                {!isLocked && <option value="">Select type</option>}
+                {!isLocked && <option value="">{t('transfers.selectType')}</option>}
                 {isLocked ? (
                   <option value={form.branchType}>{form.branchType}</option>
                 ) : (
                   <>
-                    <option value="SOURCE">SOURCE</option>
-                    <option value="DEPENDENT">DEPENDENT</option>
+                    <option value="SOURCE">{t('transfers.source')}</option>
+                    <option value="DEPENDENT">{t('transfers.dependent')}</option>
                   </>
                 )}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">From Branch</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.fromBranch')}</label>
               {form.branchType === 'SOURCE' ? (
                 <select
                   value={form.branchId}
@@ -297,7 +297,7 @@ export default function TransfersPage() {
                   disabled={isLocked}
                   required
                 >
-                  {!isLocked && <option value="">Select source branch</option>}
+                  {!isLocked && <option value="">{t('transfers.selectSourceBranch')}</option>}
                   {sourceBranches.map(b => (
                     <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
                   ))}
@@ -305,14 +305,14 @@ export default function TransfersPage() {
               ) : (
                 <input
                   type="text"
-                  value={resolvedSourceBranchName || 'Auto-resolved'}
+                  value={resolvedSourceBranchName || t('transfers.autoResolved')}
                   disabled
                   className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl text-sm dark:text-white cursor-not-allowed opacity-70"
                 />
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{form.branchType === 'SOURCE' ? 'To Branch' : 'Branch'}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{form.branchType === 'SOURCE' ? t('transfers.toBranch') : t('transfers.branch')}</label>
               {form.branchType === 'SOURCE' ? (
                 <select
                   value={form.toBranchId}
@@ -321,7 +321,7 @@ export default function TransfersPage() {
                   disabled={isLocked}
                   required
                 >
-                  {!isLocked && <option value="">Select destination branch</option>}
+                  {!isLocked && <option value="">{t('transfers.selectDestBranch')}</option>}
                   {dependentBranches.map(b => (
                     <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
                   ))}
@@ -334,7 +334,7 @@ export default function TransfersPage() {
                   disabled={isLocked}
                   required
                 >
-                  {!isLocked && form.branchType && <option value="">Select branch</option>}
+                  {!isLocked && form.branchType && <option value="">{t('transfers.selectBranch')}</option>}
                   {isLocked ? (
                     <option value={form.branchId}>
                       {branches.find(b => String(b.id) === String(form.branchId))?.name || '...'}
@@ -348,23 +348,23 @@ export default function TransfersPage() {
               )}
             </div>
           </div>
-          <div className="flex items-end gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
+          <div className="flex flex-col md:flex-row items-end gap-4">
+            <div className="w-full md:flex-1">
+<label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.product')}</label>
               <select
                 value={form.productId}
                 onChange={(e) => setForm({ ...form, productId: e.target.value })}
                 className="w-full px-4 py-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
               >
-                <option value="">Select product</option>
+                <option value="">{t('transfers.selectProduct')}</option>
                 {products.map(p => (
                   <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
+            <div className="w-full md:w-40">
+<label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.quantity')}</label>
               <input
                 type="number"
                 step="any"
@@ -379,9 +379,9 @@ export default function TransfersPage() {
             <button
               type="submit"
               disabled={mutations.createTransfer.isPending}
-              className="px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
+              className="w-full md:w-auto px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
-              {mutations.createTransfer.isPending ? 'Saving...' : 'Record Transfer'}
+              {mutations.createTransfer.isPending ? t('transfers.saving') : t('transfers.recordTransfer')}
             </button>
           </div>
         </form>
@@ -395,16 +395,16 @@ export default function TransfersPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white"
-            placeholder="Search products..."
+            placeholder={t('transfers.searchProducts')}
           />
         </div>
         <select
-          value={sourceBranchFilter}
-          onChange={(e) => setSourceBranchFilter(e.target.value)}
+          value={dependentBranchFilter}
+          onChange={(e) => setDependentBranchFilter(e.target.value)}
           className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
         >
-          <option value="">All Branches</option>
-          {branches.map(b => (
+          <option value="">{t('transfers.allBranches')}</option>
+          {dependentBranches.map(b => (
             <option key={b.id} value={b.id}>{getLocalizedName(b, i18n.language)}</option>
           ))}
         </select>
@@ -413,9 +413,9 @@ export default function TransfersPage() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
         >
-          <option value="">All Categories</option>
+          <option value="">{t('transfers.allCategories')}</option>
           {categories.map(c => (
-            <option key={c.id} value={c.id}>{getLocalizedName(c, i18n.language)}</option>
+            <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
 
@@ -427,12 +427,12 @@ export default function TransfersPage() {
             <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
               <tr>
                 <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-10"></th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Branch Flow</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Entries</th>
-                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Qty</th>
-                <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.product')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.date')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.branchFlow')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.entries')}</th>
+                <th className="px-6 py-4 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.totalQty')}</th>
+                <th className="px-6 py-4 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('transfers.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E1D8] dark:divide-[#1E3A3F]">
@@ -446,7 +446,7 @@ export default function TransfersPage() {
                 </tr>
               ) : displayGroups.length === 0 ? (
                 <tr>
-                  <td colSpan={COL_COUNT}><EmptyState type="transfers" message="No transfers found" /></td>
+                  <td colSpan={COL_COUNT}><EmptyState type="transfers" message={t('transfers.noTransfers')} /></td>
                 </tr>
               ) : (
                 displayGroups.flatMap((group) => {
@@ -474,7 +474,7 @@ export default function TransfersPage() {
                         {group.sourceBranch?.name || '-'} → {group.dependentBranch?.name || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {group.entries.length} Entries
+                        {group.entries.length} {t('transfers.entries')}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                         {Number(group.totalQuantity).toLocaleString()}
@@ -484,7 +484,7 @@ export default function TransfersPage() {
                           onClick={(e) => { e.stopPropagation(); toggleGroupExpand(group.key); }}
                           className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                         >
-                          {isExpanded ? 'Hide' : 'View'}
+                          {isExpanded ? t('transfers.hide') : t('transfers.view')}
                         </button>
                       </td>
                     </tr>,
@@ -495,12 +495,12 @@ export default function TransfersPage() {
                             <table className="w-full">
                               <thead>
                                 <tr className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-                                  <th className="px-4 py-2 text-left">From</th>
-                                  <th className="px-4 py-2 text-left">To</th>
-                                  <th className="px-4 py-2 text-left">Qty</th>
-                                  <th className="px-4 py-2 text-left">Sent</th>
-                                  <th className="px-4 py-2 text-left">User</th>
-                                  <th className="px-4 py-2 text-right">Action</th>
+                                  <th className="px-4 py-2 text-left">{t('transfers.from')}</th>
+                                  <th className="px-4 py-2 text-left">{t('transfers.to')}</th>
+                                  <th className="px-4 py-2 text-left">{t('transfers.qty')}</th>
+                                  <th className="px-4 py-2 text-left">{t('transfers.sent')}</th>
+                                  <th className="px-4 py-2 text-left">{t('transfers.user')}</th>
+                                  <th className="px-4 py-2 text-right">{t('transfers.action')}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -521,7 +521,7 @@ export default function TransfersPage() {
                                         className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors"
                                       >
                                         <Edit2 className="w-3 h-3" />
-                                        Edit
+                                        {t('transfers.edit')}
                                       </button>
                                     </td>
                                   </tr>
@@ -550,7 +550,7 @@ export default function TransfersPage() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="text-sm text-gray-500">
-            Page {currentPage} of {totalPages}
+            {t('transfers.pageOf', { current: currentPage, total: totalPages })}
           </span>
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
@@ -562,7 +562,7 @@ export default function TransfersPage() {
         </div>
       )}
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Transfer">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('transfers.editTransfer')}>
         <form onSubmit={handleEditSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Product</label>
@@ -574,7 +574,7 @@ export default function TransfersPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Branch Flow</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.branchFlow')}</label>
             <input
               type="text"
               value={`${editingTransfer?.sourceBranch?.name || '-'} → ${editingTransfer?.dependentBranch?.name || '-'}`}
@@ -583,7 +583,7 @@ export default function TransfersPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Date</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.date')}</label>
             <input
               type="text"
               value={editingTransfer?.operationalDate ? formatOperationalDate(editingTransfer.operationalDate.split('T')[0]) : '-'}
@@ -592,7 +592,7 @@ export default function TransfersPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">Quantity</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-500 mb-2">{t('transfers.quantity')}</label>
             <input
               type="number"
               step="any"
@@ -609,14 +609,14 @@ export default function TransfersPage() {
               onClick={() => setIsEditModalOpen(false)}
               className="flex-1 px-6 py-3 border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1E3A3F] transition-colors"
             >
-              Cancel
+              {t('transfers.cancel')}
             </button>
             <button
               type="submit"
               disabled={mutations.updateReceived.isPending}
               className="flex-1 px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70"
             >
-              {mutations.updateReceived.isPending ? 'Saving...' : 'Save'}
+              {mutations.updateReceived.isPending ? t('transfers.saving') : t('transfers.save')}
             </button>
           </div>
         </form>
