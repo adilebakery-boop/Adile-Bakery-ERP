@@ -5,6 +5,24 @@ const createBranchSchema = z.object({
     .min(1, 'Branch name is required')
     .max(100, 'Branch name must not exceed 100 characters')
     .transform(val => val.trim()),
+  name_am: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
+  address: z
+    .string()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
+  phone: z
+    .string()
+    .max(20)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
   branchType: z.enum(['SOURCE', 'DEPENDENT', 'INDEPENDENT']).optional(),
   sourceBranchId: z.coerce.number().int().positive().optional().nullable(),
 });
@@ -15,6 +33,24 @@ const updateBranchSchema = z.object({
     .max(100, 'Branch name must not exceed 100 characters')
     .transform(val => val.trim())
     .optional(),
+  name_am: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
+  address: z
+    .string()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
+  phone: z
+    .string()
+    .max(20)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
   isActive: z.boolean().optional(),
   branchType: z.enum(['SOURCE', 'DEPENDENT', 'INDEPENDENT']).optional(),
   sourceBranchId: z.coerce.number().int().positive().optional().nullable(),

@@ -18,6 +18,12 @@ const createProductSchema = z.object({
     .min(1, 'Product name is required')
     .max(100, 'Product name must not exceed 100 characters')
     .transform(val => val.trim()),
+  name_am: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
   category: z.enum(ProductCategory, { errorMap: () => ({ message: 'Invalid product category' }) }),
   price: z.coerce.number({ invalid_type_error: 'Price must be a number' })
     .positive('Price must be positive')
@@ -32,6 +38,12 @@ const updateProductSchema = z.object({
     .max(100, 'Product name must not exceed 100 characters')
     .transform(val => val.trim())
     .optional(),
+  name_am: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform(val => val?.trim() || null),
   category: z.enum(ProductCategory, { errorMap: () => ({ message: 'Invalid product category' }) }).optional(),
   price: z.coerce.number({ invalid_type_error: 'Price must be a number' })
     .positive('Price must be positive')
