@@ -22,6 +22,7 @@ const createProductSchema = z.object({
   price: z.coerce.number({ invalid_type_error: 'Price must be a number' })
     .positive('Price must be positive')
     .max(999999.99, 'Price must not exceed 999999.99'),
+  unitType: z.enum(UnitType, { errorMap: () => ({ message: 'Invalid unit type' }) }),
   productionShift: z.enum(ProductionShift, { errorMap: () => ({ message: 'Invalid production shift' }) }).optional(),
 });
 
