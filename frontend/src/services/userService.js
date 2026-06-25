@@ -21,6 +21,14 @@ export const userService = {
   deleteUser: async (id) => {
     return safeCall(api.delete(`/users/${id}`));
   },
+
+  getDeactivatedUsers: async () => {
+    return safeCall(api.get('/users/deactivated'));
+  },
+
+  restoreUser: async (id) => {
+    return safeCall(api.put(`/users/${id}/restore`));
+  },
 };
 
 export default userService;

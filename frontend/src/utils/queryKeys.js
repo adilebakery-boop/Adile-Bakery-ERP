@@ -47,6 +47,7 @@ export const queryKeys = {
   users: {
     list: (filters) => filters ? ['users', 'list', filters] : ['users', 'list'],
     byId: (id) => ['users', id],
+    deactivated: (filters = {}) => ['users', 'deactivated', filters],
   },
   transfers: {
     list: (filters = {}) => ['transfers', 'list', filters],
