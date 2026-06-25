@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Shield, ShieldOff, RotateCcw, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUser, isManagerOrAdmin } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
@@ -8,6 +8,8 @@ import { useUsersQuery } from '../../features/users/hooks/queries/useUsersQuery'
 import { useCreateUserMutation } from '../../features/users/hooks/mutations/useCreateUserMutation';
 import { useUpdateUserMutation } from '../../features/users/hooks/mutations/useUpdateUserMutation';
 import { useDeleteUserMutation } from '../../features/users/hooks/mutations/useDeleteUserMutation';
+import { useRestoreUserMutation } from '../../features/users/hooks/mutations/useRestoreUserMutation';
+import { useDeactivatedUsersQuery } from '../../features/users/hooks/queries/useDeactivatedUsersQuery';
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 
 const ALL_ROLES = [
@@ -98,6 +100,12 @@ export default function UsersPage() {
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
+  const restoreMutation = useRestoreUserMutation();
+
+  const [isDeactivatedModalOpen, setIsDeactivatedModalOpen] = useState(false);
+
+  const { data: deactivatedUsers = [], isLoading: deactivatedLoading } =
+    useDeactivatedUsersQuery({ enabled: isDeactivatedModalOpen });
 
   useEffect(() => {
     if (!isFetching && totalPages > 0 && currentPage > totalPages) {
@@ -187,6 +195,14 @@ export default function UsersPage() {
     }
   };
 
+  const handleRestoreUser = async (id) => {
+    try {
+      await restoreMutation.mutateAsync(id);
+    } catch (err) {
+      setError(err.message || 'Failed to restore user');
+    }
+  };
+
   const handleToggleBlock = async (user) => {
     if (!canUserBlockTarget(user.role?.name)) return;
     try {
@@ -205,10 +221,19 @@ export default function UsersPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <h1 className="text-[32px] font-bold text-[#024A5B] dark:text-white">{t('users.title')}</h1>
         {canManage && (
-          <button onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsModalOpen(true); }} className="px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            {t('users.addUser')}
-          </button>
+          <div className="flex flex-row flex-wrap gap-2">
+            <button
+              onClick={() => setIsDeactivatedModalOpen(true)}
+              className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Deactivated Users
+            </button>
+            <button onClick={() => { setFormData({ name: '', username: '', password: '', role: '', branchId: '', email: '' }); setIsModalOpen(true); }} className="px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              {t('users.addUser')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -451,6 +476,42 @@ export default function UsersPage() {
             <button type="submit" disabled={updateMutation.isPending} className="flex-1 px-6 py-3.5 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm disabled:opacity-70">{updateMutation.isPending ? 'Saving...' : 'Save'}</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={isDeactivatedModalOpen} onClose={() => setIsDeactivatedModalOpen(false)} title="Deactivated Users">
+        {deactivatedLoading ? (
+          <div className="py-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-500" />
+          </div>
+        ) : deactivatedUsers.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">No deactivated users</div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {deactivatedUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-3 bg-[#DFEDE2] rounded-xl">
+                <div>
+                  <div className="font-medium text-[#024A5B]">{user.name}</div>
+                  <div className="text-sm text-gray-500">{user.role?.name} — {user.username}</div>
+                </div>
+                <button
+                  onClick={() => handleRestoreUser(user.id)}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Restore"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
+          <button
+            onClick={() => setIsDeactivatedModalOpen(false)}
+            className="w-full px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm"
+          >
+            Close
+          </button>
+        </div>
       </Modal>
     </div>
   );

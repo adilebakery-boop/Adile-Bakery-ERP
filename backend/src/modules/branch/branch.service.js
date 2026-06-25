@@ -58,7 +58,7 @@ const branchService = {
     const limitNum = Number(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    const where = {};
+    const where = { isActive: true };
 
     if (user?.role === 'MANAGER' && user?.branchId) {
       where.id = Number(user.branchId);
