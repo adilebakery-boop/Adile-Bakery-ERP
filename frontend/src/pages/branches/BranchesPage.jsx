@@ -17,7 +17,7 @@ export default function BranchesPage() {
   const user = getUser();
   const canManage = user?.role === 'ADMIN';
 
-  const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery();
+  const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery({ limit: 100 });
   const { addBranch, editBranch, removeBranch, restoreBranch } = useBranchMutations();
 
   const sourceBranches = useMemo(() =>

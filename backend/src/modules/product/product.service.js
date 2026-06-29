@@ -195,7 +195,7 @@ const productService = {
   },
 
   async getDeleted(options = {}) {
-    const { page = 1, limit = 10, search } = options;
+    const { page = 1, limit = 100, search } = options;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     const where = { isActive: false };
