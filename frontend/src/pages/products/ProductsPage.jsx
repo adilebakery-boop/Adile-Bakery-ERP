@@ -57,7 +57,7 @@ export default function ProductsPage() {
   const pagination = data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
 
   const { data: deletedProducts = [], isLoading: deletedLoading, refetch: refetchDeleted } = useDeletedProductsQuery(
-    {},
+    { limit: 100 },
     { enabled: isDeletedModalOpen }
   );
 
