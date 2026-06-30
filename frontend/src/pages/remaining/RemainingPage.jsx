@@ -120,7 +120,8 @@ export default function RemainingPage() {
   }, [branches, canManageAll, selectedBranchId]);
 
   const hasActivity = useCallback((productId) => {
-    if (existingRemainings[productId] !== undefined) return true;
+    const existing = existingRemainings[productId];
+    if (existing !== undefined && Number(existing.remainingQuantity) > 0) return true;
     const flow = flowProductsMap[productId];
     if (!flow) return false;
     return (flow.openingStock || 0) > 0 ||
