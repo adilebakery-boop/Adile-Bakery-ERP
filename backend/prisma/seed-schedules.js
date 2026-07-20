@@ -1,6 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 const { getConfig } = require('./seed-config');
+
+if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOWED !== 'true') {
+  console.error('Refusing to run seed scripts in production. Set SEED_ALLOWED=true to override.');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient();
 
 function toDateString(d) {
   return d.toISOString().split('T')[0];
