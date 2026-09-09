@@ -16,9 +16,12 @@
     "seed:reset": "npx prisma migrate reset --force && npm run seed:all",
     "seed:verify": "node prisma/seed-verify.js",
     "test": "vitest run",
-    "test:invariants": "vitest run tests/invariant/transferConsistency.test.js"
+    "test:invariants": "vitest run tests/invariant/transferConsistency.test.js",
+    "backup": "node scripts/runBackup.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1128.0",
+    "@aws-sdk/lib-storage": "^3.1128.0",
     "@prisma/client": "^5.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
