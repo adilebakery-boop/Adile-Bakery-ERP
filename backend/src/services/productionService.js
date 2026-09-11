@@ -171,18 +171,20 @@ async function create(data, user) {
   const todayStr = getAddisDateString();
   const [yNow, mNow, dNow] = todayStr.split('-').map(Number);
   const todayUTC = new Date(Date.UTC(yNow, mNow - 1, dNow));
+  const maxPastDays = (user.role === 'ADMIN' || user.role === 'MANAGER') ? 4 : 2;
   const minDateUTC = new Date(todayUTC);
-  minDateUTC.setUTCDate(minDateUTC.getUTCDate() - 2);
+  minDateUTC.setUTCDate(minDateUTC.getUTCDate() - maxPastDays);
   if (prodDate < minDateUTC || prodDate > todayUTC) {
-    const error = new Error('Production date must be within the last 2 days or today');
+    const error = new Error(`Production date must be within the last ${maxPastDays} days or today`);
     error.status = 400;
     throw error;
   }
 
   const opDate = calculateOperationalDate(prodDate, shift);
 
+  const editWindowDays = (user.role === 'ADMIN' || user.role === 'MANAGER') ? 5 : 3;
   if (!canEditOperationalRecord(opDate, user.role)) {
-    const error = new Error('Production records can only be created within the 3-day edit window');
+    const error = new Error(`Production records can only be created within the ${editWindowDays}-day edit window`);
     error.status = 403;
     throw error;
   }
@@ -216,8 +218,9 @@ async function update(id, data, user) {
 
   requireBranchAccess(existing.branchId, user, 'production');
 
+  const editWindowDays = (user.role === 'ADMIN' || user.role === 'MANAGER') ? 5 : 3;
   if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
-    const error = new Error('Production records can only be edited within the 3-day edit window');
+    const error = new Error(`Production records can only be edited within the ${editWindowDays}-day edit window`);
     error.status = 403;
     throw error;
   }
@@ -273,8 +276,9 @@ async function remove(id, user) {
 
   requireBranchAccess(existing.branchId, user, 'production');
 
+  const editWindowDays = (user.role === 'ADMIN' || user.role === 'MANAGER') ? 5 : 3;
   if (!canEditOperationalRecord(existing.operationalDate, user.role)) {
-    const error = new Error('Production records can only be deleted within the 3-day edit window');
+    const error = new Error(`Production records can only be deleted within the ${editWindowDays}-day edit window`);
     error.status = 403;
     throw error;
   }
