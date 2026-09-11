@@ -26,10 +26,12 @@ export default function ProductionPage() {
   const [product, setProduct] = useState('');
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [selectedProductShift, setSelectedProductShift] = useState(null);
+  const canManageAll = isManagerOrAdmin();
+  const maxPastDays = canManageAll ? 4 : 2;
   const today = new Date();
   const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() - 2);
+  minDate.setDate(minDate.getDate() - maxPastDays);
   const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
 
   const [productionDate, setProductionDate] = useState(() => {
@@ -67,7 +69,6 @@ export default function ProductionPage() {
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
-  const canManageAll = isManagerOrAdmin();
 
   const entriesBranchId = canManageAll ? (selectedFilterBranch ? Number(selectedFilterBranch) : null) : userBranchId;
 
@@ -172,7 +173,7 @@ export default function ProductionPage() {
     }
 
     if (productionDate < minDateStr || productionDate > maxDateStr) {
-      setError('Production date must be within the last 2 days or today');
+      setError(`Production date must be within the last ${maxPastDays} days or today`);
       return;
     }
 

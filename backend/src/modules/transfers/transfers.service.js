@@ -1,8 +1,17 @@
 const prisma = require('../../config/prisma');
+const { canEditOperationalRecord } = require('../../utils/dateUtils');
 
 const transferService = {
-  async create(data, userId) {
+  async create(data, userId, user) {
     const { branchType = 'DEPENDENT', productId, operationalDate } = data;
+
+    const userRole = user?.role;
+    if (!canEditOperationalRecord(operationalDate, userRole)) {
+      const editWindowDays = (userRole === 'ADMIN' || userRole === 'MANAGER') ? 5 : 3;
+      const err = new Error(`Transfer records can only be created within the ${editWindowDays}-day edit window`);
+      err.status = 403;
+      throw err;
+    }
 
     if (branchType === 'SOURCE') {
       const { sourceBranchId, dependentBranchId, sentQuantity } = data;
@@ -148,6 +157,14 @@ const transferService = {
   async updateSent(id, data, userId, user) {
     const transfer = await this.findById(id);
 
+    const userRole = user?.role;
+    if (!canEditOperationalRecord(transfer.operationalDate, userRole)) {
+      const editWindowDays = (userRole === 'ADMIN' || userRole === 'MANAGER') ? 5 : 3;
+      const err = new Error(`Transfer records can only be edited within the ${editWindowDays}-day edit window`);
+      err.status = 403;
+      throw err;
+    }
+
     if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       if (Number(user.branchId) !== transfer.sourceBranchId) {
         const err = new Error('You can only update sent quantity for your own source branch');
@@ -172,6 +189,14 @@ const transferService = {
 
   async updateReceived(id, data, userId, user) {
     const transfer = await this.findById(id);
+
+    const userRole = user?.role;
+    if (!canEditOperationalRecord(transfer.operationalDate, userRole)) {
+      const editWindowDays = (userRole === 'ADMIN' || userRole === 'MANAGER') ? 5 : 3;
+      const err = new Error(`Transfer records can only be edited within the ${editWindowDays}-day edit window`);
+      err.status = 403;
+      throw err;
+    }
 
     if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
       if (Number(user.branchId) !== transfer.dependentBranchId) {

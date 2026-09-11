@@ -30,10 +30,10 @@ const isTransferEnabled = (req, res, next) => {
 router.use(isTransferEnabled);
 router.use(authenticate);
 
-const ALL_ROLES = ['ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'];
+const TRANSFER_ROLES = ['ADMIN', 'MANAGER', 'TRANSFER_OPERATOR'];
 const ADMIN_MANAGER_ONLY = ['ADMIN', 'MANAGER'];
 
-router.get('/', allowRoles(...ALL_ROLES), (req, res, next) => {
+router.get('/', allowRoles(...TRANSFER_ROLES), (req, res, next) => {
   try {
     querySchema.parse(req.query);
     next();
@@ -42,12 +42,12 @@ router.get('/', allowRoles(...ALL_ROLES), (req, res, next) => {
   }
 }, transferController.findAll);
 
-router.get('/:id', allowRoles(...ALL_ROLES), transferController.findById);
+router.get('/:id', allowRoles(...TRANSFER_ROLES), transferController.findById);
 
-router.post('/', allowRoles(...ALL_ROLES), validate(createTransferSchema), transferController.create);
+router.post('/', allowRoles(...TRANSFER_ROLES), validate(createTransferSchema), transferController.create);
 
-router.put('/:id/sent', allowRoles(...ALL_ROLES), validate(updateSentSchema), transferController.updateSent);
+router.put('/:id/sent', allowRoles(...TRANSFER_ROLES), validate(updateSentSchema), transferController.updateSent);
 
-router.put('/:id/received', allowRoles(...ALL_ROLES), validate(updateReceivedSchema), transferController.updateReceived);
+router.put('/:id/received', allowRoles(...TRANSFER_ROLES), validate(updateReceivedSchema), transferController.updateReceived);
 
 module.exports = router;

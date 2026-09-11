@@ -2,7 +2,7 @@ const transferService = require('./transfers.service');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const create = asyncHandler(async (req, res) => {
-  const transfer = await transferService.create(req.body, req.user?.userId);
+  const transfer = await transferService.create(req.body, req.user?.userId, req.user);
   res.status(201).json({ success: true, message: 'Transfer created', data: transfer });
 });
 
