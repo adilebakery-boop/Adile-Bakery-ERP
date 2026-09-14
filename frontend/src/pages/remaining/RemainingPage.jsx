@@ -47,11 +47,13 @@ export default function RemainingPage() {
     timeZone: 'Africa/Addis_Ababa',
     year: 'numeric', month: '2-digit', day: '2-digit',
   });
+  const canManageAll = isManagerOrAdmin();
+  const maxPastDays = canManageAll ? 4 : 2;
   const [ty, tm, td] = todayAddis.split('-');
   const todayLocal = new Date(Date.UTC(parseInt(ty), parseInt(tm) - 1, parseInt(td)));
   const availableDates = [todayAddis];
   const dateLabels = { [todayAddis]: `${t('remaining.today')}` };
-  for (let i = 1; i <= 2; i++) {
+  for (let i = 1; i <= maxPastDays; i++) {
     const d = new Date(todayLocal);
     d.setUTCDate(d.getUTCDate() - i);
     const ds = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
@@ -59,7 +61,6 @@ export default function RemainingPage() {
     dateLabels[ds] = formatOperationalDate(ds);
   }
 
-  const canManageAll = isManagerOrAdmin();
   const effectiveBranchId = canManageAll ? selectedBranchId : userBranchId;
   const { data: closureStatus } = useClosureStatus(effectiveBranchId, selectedDate);
   const isClosed = closureStatus === 'CLOSED';
