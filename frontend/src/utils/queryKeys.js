@@ -22,8 +22,8 @@ export const queryKeys = {
   inventory: {
     production: {
       grouped: (branchId, filters = {}) => {
-        const { page, limit, startDate, endDate, operationalDate, productId } = filters;
-        return ['inventory', 'production', branchId, 'grouped', { page, limit, startDate, endDate, operationalDate, productId }];
+        const { page, limit, startDate, endDate, operationalDate, productId, category } = filters;
+        return ['inventory', 'production', branchId, 'grouped', { page, limit, startDate, endDate, operationalDate, productId, category }];
       },
     },
     remaining: {

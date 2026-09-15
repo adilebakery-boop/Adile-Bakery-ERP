@@ -18,7 +18,7 @@ function toDecimal(value) {
 }
 
 async function findAll(filters = {}, user) {
-  const { branchId, operationalDate, shift, productId, startDate, endDate, page = 1, limit = 20 } = filters;
+  const { branchId, operationalDate, shift, productId, category, startDate, endDate, page = 1, limit = 20 } = filters;
   const where = {};
 
   if (user) {
@@ -28,6 +28,18 @@ async function findAll(filters = {}, user) {
   if (branchId) where.branchId = parseInt(branchId);
   if (productId) where.productId = parseInt(productId);
   if (shift) where.shift = shift;
+
+  if (category) {
+    if (where.product?.category?.in) {
+      if (where.product.category.in.includes(category)) {
+        where.product = { category };
+      } else {
+        where.product = { category: 'NONE' };
+      }
+    } else {
+      where.product = { category };
+    }
+  }
 
   if (operationalDate) {
     where.operationalDate = new Date(operationalDate);
@@ -328,7 +340,7 @@ async function getTodayProductions(branchId, user) {
 }
 
 async function findAllGrouped(filters = {}, user) {
-  const { branchId, operationalDate, shift, productId, startDate, endDate, page, limit } = filters;
+  const { branchId, operationalDate, shift, productId, category, startDate, endDate, page, limit } = filters;
   const where = {};
 
   if (user) {
@@ -338,6 +350,18 @@ async function findAllGrouped(filters = {}, user) {
   if (branchId) where.branchId = parseInt(branchId);
   if (productId) where.productId = parseInt(productId);
   if (shift) where.shift = shift;
+
+  if (category) {
+    if (where.product?.category?.in) {
+      if (where.product.category.in.includes(category)) {
+        where.product = { category };
+      } else {
+        where.product = { category: 'NONE' };
+      }
+    } else {
+      where.product = { category };
+    }
+  }
 
   if (operationalDate) {
     where.operationalDate = new Date(operationalDate);

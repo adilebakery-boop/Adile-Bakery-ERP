@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Loader2, RefreshCw, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
-import { getCategoriesForRole } from '../../utils/permissions';
+import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
@@ -20,6 +20,11 @@ const SHIFTS = [
   { value: 'DAY', labelKey: 'shifts.day' },
   { value: 'NIGHT', labelKey: 'shifts.night' },
 ];
+
+const CATEGORY_OPTIONS = Object.values(CATEGORIES).map((cat) => ({
+  value: cat,
+  labelKey: `productCategories.${cat}`,
+}));
 
 export default function ProductionPage() {
   const { t, i18n } = useTranslation();
@@ -51,6 +56,7 @@ export default function ProductionPage() {
     const uid = getUserBranchId();
     return uid ? uid.toString() : '';
   });
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState('');
   const [selectedFilterProduct, setSelectedFilterProduct] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,6 +94,19 @@ export default function ProductionPage() {
 
   const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
   const fullProductList = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
+  const filteredProductList = selectedFilterCategory
+    ? fullProductList.filter(p => p.category === selectedFilterCategory)
+    : fullProductList;
+
+  const handleCategoryChange = (newCategory) => {
+    setSelectedFilterCategory(newCategory);
+    if (newCategory && selectedFilterProduct) {
+      const selectedProd = fullProductList.find(p => p.id === Number(selectedFilterProduct));
+      if (selectedProd && selectedProd.category !== newCategory) {
+        setSelectedFilterProduct('');
+      }
+    }
+  };
 
   const { data: branches = [] } = useActiveBranchesQuery();
 
@@ -100,16 +119,21 @@ export default function ProductionPage() {
   } = useProductionEntriesQuery(entriesBranchId, {
     limit: 10000,
     productId: selectedFilterProduct || undefined,
+    category: canManageAll ? (selectedFilterCategory || undefined) : undefined,
   });
 
   const groupedEntries = response?.data || [];
 
+  const categoryFilteredGroups = (canManageAll && selectedFilterCategory)
+    ? groupedEntries.filter(g => g.product?.category === selectedFilterCategory)
+    : groupedEntries;
+
   const searchedGroups = searchTerm
-    ? groupedEntries.filter(g => {
+    ? categoryFilteredGroups.filter(g => {
         const name = getLocalizedName(g.product, i18n.language) || g.product?.name || '';
         return name.toLowerCase().includes(searchTerm.toLowerCase());
       })
-    : groupedEntries;
+    : categoryFilteredGroups;
 
   const totalGroups = searchedGroups.length;
   const totalPages = Math.ceil(totalGroups / itemsPerPage);
@@ -124,7 +148,7 @@ export default function ProductionPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedFilterBranch, selectedFilterProduct, searchTerm]);
+  }, [selectedFilterBranch, selectedFilterCategory, selectedFilterProduct, searchTerm]);
 
   useEffect(() => {
     if (canManageAll && branches.length > 0) {
@@ -506,13 +530,25 @@ export default function ProductionPage() {
               ))}
             </select>
           )}
+          {canManageAll && (
+            <select
+              value={selectedFilterCategory}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            >
+              <option value="">{t('production.allCategories')}</option>
+              {CATEGORY_OPTIONS.map((cat) => (
+                <option key={cat.value} value={cat.value}>{t(cat.labelKey)}</option>
+              ))}
+            </select>
+          )}
           <select
             value={selectedFilterProduct}
             onChange={(e) => setSelectedFilterProduct(e.target.value)}
             className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
           >
             <option value="">{t('production.allProducts')}</option>
-            {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
+            {(Array.isArray(filteredProductList) ? filteredProductList : []).map((p) => (
               <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
             ))}
           </select>
