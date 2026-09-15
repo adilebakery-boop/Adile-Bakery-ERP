@@ -36,15 +36,22 @@ app.use(helmet());
 app.use(cors({
   origin: function (origin, cb) {
     if (!origin) return cb(null, true);
-    var allowed = [
+    const allowedExact = [
+      'https://adilebakeryerp.com',
+      'https://www.adilebakeryerp.com',
       'http://localhost:5173',
       'http://localhost:3000',
       'https://adile-bakery-erp.vercel.app',
       process.env.FRONTEND_URL,
     ];
-    if (allowed.indexOf(origin) !== -1) return cb(null, true);
-    if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.split(',').indexOf(origin) !== -1) return cb(null, true);
-    if (/^https:\/\/adile-bakery-[a-z0-9-]+-nathanzerfu-s-projects\.vercel\.app$/.test(origin)) return cb(null, true);
+    if (allowedExact.includes(origin)) return cb(null, true);
+    if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.split(',').map(s => s.trim()).includes(origin)) return cb(null, true);
+
+    const isVercelPreview =
+      origin.startsWith('https://adile-bakery-erp') &&
+      origin.endsWith('.vercel.app');
+    if (isVercelPreview) return cb(null, true);
+
     cb(null, false);
   },
   credentials: true,
