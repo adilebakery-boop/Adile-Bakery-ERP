@@ -73,12 +73,18 @@ export default function RemainingPage() {
   const {
     data: remainingsData,
     isLoading: isLoadingRemainings,
+    isFetching: isFetchingRemainings,
     isError: remainingsError,
     error: remainingsErrorObj,
     refetch: refetchRemainings,
   } = useRemainingEntriesQuery(effectiveBranchId, selectedDate);
 
-  const { data: flowData, isLoading: isLoadingFlow } = useQuery({
+  const {
+    data: flowData,
+    isLoading: isLoadingFlow,
+    isFetching: isFetchingFlow,
+    refetch: refetchFlow,
+  } = useQuery({
     queryKey: ['inventory-flow', effectiveBranchId, selectedDate],
     queryFn: async () => {
       if (!effectiveBranchId) return { products: [] };
@@ -92,6 +98,12 @@ export default function RemainingPage() {
     enabled: !!effectiveBranchId && !!selectedDate,
     staleTime: 30 * 1000,
   });
+
+  const isRefreshing = isFetchingRemainings || isFetchingFlow;
+  const handleRefresh = () => {
+    refetchRemainings();
+    refetchFlow();
+  };
 
   const flowProductsMap = useMemo(() => {
     const map = {};
@@ -359,11 +371,13 @@ export default function RemainingPage() {
 
   const refreshButton = (
     <button
-      onClick={() => refetchRemainings()}
-      className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors"
+      type="button"
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors disabled:opacity-50"
       title={t('common.refresh')}
     >
-      <RefreshCw className="w-5 h-5 text-gray-500 dark:text-gray-500" />
+      <RefreshCw className={`w-5 h-5 text-gray-500 dark:text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
     </button>
   );
 

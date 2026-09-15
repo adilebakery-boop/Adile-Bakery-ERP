@@ -113,6 +113,7 @@ export default function ProductionPage() {
   const {
     data: response,
     isLoading: isLoadingEntries,
+    isFetching: isFetchingEntries,
     isError: entriesError,
     error: entriesErrorObj,
     refetch: refetchEntries,
@@ -561,11 +562,13 @@ export default function ProductionPage() {
             {canManageAll ? t('production.allProductionRecords') : t('production.todaysEntries')}
           </h2>
           <button
+            type="button"
             onClick={() => refetchEntries()}
-            className="p-2 hover:bg-[#DFEDE2] rounded-lg transition-colors"
+            disabled={isFetchingEntries}
+            className="p-2 hover:bg-[#DFEDE2] rounded-lg transition-colors disabled:opacity-50"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-4 h-4 text-gray-500" />
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isFetchingEntries ? 'animate-spin' : ''}`} />
           </button>
         </div>
 

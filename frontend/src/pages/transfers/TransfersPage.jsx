@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw } from 'lucide-react';
 import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
@@ -86,7 +86,7 @@ const formatDateDDMMYYYY = (dateStr) => {
   const [editQuantity, setEditQuantity] = useState('');
 
   const branchFilter = canManageAll || isTransferOperator ? {} : { dependentBranchId: userBranchId };
-  const { data: transfersData, isLoading, isError, error: fetchError, refetch } = useTransfersQuery({
+  const { data: transfersData, isLoading, isFetching, isError, error: fetchError, refetch } = useTransfersQuery({
     ...branchFilter,
     startDate,
     endDate,
@@ -448,6 +448,20 @@ const formatDateDDMMYYYY = (dateStr) => {
       </div>
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]">
+        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">
+            {t('transfers.title')}
+          </h2>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="p-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors disabled:opacity-50"
+            title={t('common.refresh')}
+          >
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isFetching ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
