@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
-import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw } from 'lucide-react';
+import { getUserRole, getUserBranchId, getBranchType, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
@@ -46,6 +46,13 @@ const formatDateDDMMYYYY = (dateStr) => {
   const canManageAll = isManagerOrAdmin();
   const isTransferOperator = userRole === 'TRANSFER_OPERATOR';
 
+  const maxPastDays = canManageAll ? 4 : 2;
+  const today = new Date();
+  const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() - maxPastDays);
+  const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+
   const isAdmin = userRole === 'ADMIN';
   const isLocked = !isAdmin;
 
@@ -79,7 +86,7 @@ const formatDateDDMMYYYY = (dateStr) => {
   const [editQuantity, setEditQuantity] = useState('');
 
   const branchFilter = canManageAll || isTransferOperator ? {} : { dependentBranchId: userBranchId };
-  const { data: transfersData, isLoading, isError, error: fetchError, refetch } = useTransfersQuery({
+  const { data: transfersData, isLoading, isFetching, isError, error: fetchError, refetch } = useTransfersQuery({
     ...branchFilter,
     startDate,
     endDate,
@@ -188,6 +195,12 @@ const formatDateDDMMYYYY = (dateStr) => {
   const handleCreateTransfer = async (e) => {
     e.preventDefault();
     clearMessages();
+
+    if (form.date < minDateStr || form.date > maxDateStr) {
+      setActionError(t('transfers.dateRangeError', { defaultValue: `Transfer date must be within the last ${maxPastDays} days or today` }));
+      return;
+    }
+
     const isSource = form.branchType === 'SOURCE';
     const payload = {
       branchType: form.branchType,
@@ -220,6 +233,11 @@ const formatDateDDMMYYYY = (dateStr) => {
 
   const handleEditClick = (transfer) => {
     clearMessages();
+    const opDateStr = transfer.operationalDate ? transfer.operationalDate.split('T')[0] : '';
+    if (!canEditOperationalRecord(opDateStr, userRole)) {
+      setActionError(t('transfers.editWindowExpired', { defaultValue: `Transfer records can only be edited within the allowed edit window` }));
+      return;
+    }
     setEditingTransfer(transfer);
     setEditQuantity(String(transfer.receivedQuantity || ''));
     setIsEditModalOpen(true);
@@ -269,6 +287,8 @@ const formatDateDDMMYYYY = (dateStr) => {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
+                min={minDateStr}
+                max={maxDateStr}
                 className="w-full px-4 py-3.5 bg-[#DFEDE2] dark:bg-[#1E3A3F] border-0 rounded-xl focus:ring-2 focus:ring-[#024A5B] outline-none text-sm dark:text-white"
                 required
               />
@@ -428,6 +448,20 @@ const formatDateDDMMYYYY = (dateStr) => {
       </div>
 
       <div className="bg-white dark:bg-[#12262A] rounded-[24px] overflow-hidden border border-[#E5E1D8] dark:border-[#1E3A3F]">
+        <div className="px-6 py-5 border-b border-[#E5E1D8] dark:border-[#1E3A3F] flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[#024A5B] dark:text-white">
+            {t('transfers.title')}
+          </h2>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="p-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors disabled:opacity-50"
+            title={t('common.refresh')}
+          >
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isFetching ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#DFEDE2]/50 dark:bg-[#1E3A3F]">
@@ -522,13 +556,20 @@ const formatDateDDMMYYYY = (dateStr) => {
                                       {entry.creator?.name || entry.creator?.username || '-'}
                                     </td>
                                     <td className="px-4 py-2 text-right">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors"
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                        {t('transfers.edit')}
-                                      </button>
+                                      {canEditOperationalRecord(entry.operationalDate ? entry.operationalDate.split('T')[0] : '', userRole) ? (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleEditClick(entry); }}
+                                          className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                          {t('transfers.edit')}
+                                        </button>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-600 cursor-not-allowed" title={t('transfers.editWindowExpired', { defaultValue: 'Edit window expired' })}>
+                                          <Edit2 className="w-3 h-3" />
+                                          {t('transfers.edit')}
+                                        </span>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}

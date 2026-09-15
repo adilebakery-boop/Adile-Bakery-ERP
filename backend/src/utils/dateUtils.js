@@ -134,6 +134,7 @@ function getDateRangeForOperationalDay(operationalDate) {
 }
 
 const EDIT_WINDOW_DAYS = 3;
+const ADMIN_EDIT_WINDOW_DAYS = 5;
 
 function canEditOperationalRecord(operationalDate, role) {
   if (!operationalDate) return false;
@@ -150,9 +151,8 @@ function canEditOperationalRecord(operationalDate, role) {
   const today = new Date(Date.UTC(addisNow.getFullYear(), addisNow.getMonth(), addisNow.getDate()));
   const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return false;
-  if (diffDays === 0) return true;
-  if (diffDays <= 2) return role === 'ADMIN' || role === 'MANAGER';
-  return false;
+  const maxDays = (role === 'ADMIN' || role === 'MANAGER') ? ADMIN_EDIT_WINDOW_DAYS : EDIT_WINDOW_DAYS;
+  return diffDays < maxDays;
 }
 
 function getEditWindowDeadline(operationalDate, maxDays = EDIT_WINDOW_DAYS) {
@@ -184,6 +184,7 @@ module.exports = {
   canEditOperationalRecord,
   getEditWindowDeadline,
   EDIT_WINDOW_DAYS,
+  ADMIN_EDIT_WINDOW_DAYS,
   startOfDay,
   subDays,
 };

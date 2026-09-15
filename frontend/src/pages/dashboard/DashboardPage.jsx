@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getLocalizedName } from '../../utils/getLocalizedName';
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Package, DollarSign, AlertCircle, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import { getUserRole, getUserBranchId, getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { useDashboardData } from '../../features/dashboard/hooks/useDashboardData';
-import { queryKeys } from '../../utils/queryKeys';
 import { DashboardCardsSkeleton, ActivitySkeleton } from '../../components/skeletons';
 import { ApiErrorState } from '../../components/ui/ErrorState';
 
@@ -16,12 +14,11 @@ export default function DashboardPage() {
   const userBranchId = getUserBranchId();
   const isManager = isManagerOrAdmin();
   const operationalDate = getOperationalDate();
-  const queryClient = useQueryClient();
 
   const navigate = useNavigate();
   const targetBranchId = isManager ? 'all' : (userBranchId ? Number(userBranchId) : undefined);
 
-  const { overview, activity } = useDashboardData({
+  const { overview, activity, isFetching } = useDashboardData({
     branchId: targetBranchId,
     date: operationalDate,
     isManager,
@@ -42,9 +39,9 @@ export default function DashboardPage() {
 
   const recentActivity = activity.data || [];
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview(targetBranchId, operationalDate) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.activity(targetBranchId, operationalDate) });
+  const handleRefresh = async () => {
+    await Promise.all([overview.refetch(), activity.refetch()]);
+    setLastUpdated(new Date());
   };
 
   const getActivityIcon = (type) => {
@@ -83,8 +80,14 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handleRefresh} className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors">
-            <RefreshCw className="w-5 h-5 text-gray-500" />
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="p-2 hover:bg-[#DFEDE2] rounded-xl transition-colors disabled:opacity-50"
+            title={t('common.refresh')}
+          >
+            <RefreshCw className={`w-5 h-5 text-gray-500 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>

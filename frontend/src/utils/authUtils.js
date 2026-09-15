@@ -68,6 +68,9 @@ export const clearAuth = () => {
 
 export const isAuthenticated = () => !!getToken();
 
+const EDIT_WINDOW_DAYS = 3;
+const ADMIN_EDIT_WINDOW_DAYS = 5;
+
 export const canEditOperationalRecord = (operationalDate, role) => {
   if (!operationalDate) return false;
   const [y, m, d] = operationalDate.split('-');
@@ -81,7 +84,7 @@ export const canEditOperationalRecord = (operationalDate, role) => {
   const today = new Date(Date.UTC(parseInt(ty), parseInt(tm) - 1, parseInt(td)));
   const diffDays = Math.floor((today - opDate) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return false;
-  if (diffDays === 0) return true;
-  if (diffDays <= 2) return role === 'ADMIN' || role === 'MANAGER';
-  return false;
+  const userRole = role || getUserRole();
+  const maxDays = (userRole === 'ADMIN' || userRole === 'MANAGER') ? ADMIN_EDIT_WINDOW_DAYS : EDIT_WINDOW_DAYS;
+  return diffDays < maxDays;
 };

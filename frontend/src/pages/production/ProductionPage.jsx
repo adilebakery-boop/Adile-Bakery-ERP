@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Loader2, RefreshCw, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getUserRole, getUserBranchId, formatOperationalDate, isManagerOrAdmin, canEditOperationalRecord } from '../../utils/authUtils';
-import { getCategoriesForRole } from '../../utils/permissions';
+import { getCategoriesForRole, CATEGORIES } from '../../utils/permissions';
 import { getLocalizedName } from '../../utils/getLocalizedName';
 import { ApiErrorState, EmptyState } from '../../components/ui';
 import { TableSkeleton } from '../../components/skeletons';
@@ -21,15 +21,22 @@ const SHIFTS = [
   { value: 'NIGHT', labelKey: 'shifts.night' },
 ];
 
+const CATEGORY_OPTIONS = Object.values(CATEGORIES).map((cat) => ({
+  value: cat,
+  labelKey: `productCategories.${cat}`,
+}));
+
 export default function ProductionPage() {
   const { t, i18n } = useTranslation();
   const [product, setProduct] = useState('');
   const [selectedProductUnitType, setSelectedProductUnitType] = useState(null);
   const [selectedProductShift, setSelectedProductShift] = useState(null);
+  const canManageAll = isManagerOrAdmin();
+  const maxPastDays = canManageAll ? 4 : 2;
   const today = new Date();
   const maxDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() - 2);
+  minDate.setDate(minDate.getDate() - maxPastDays);
   const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
 
   const [productionDate, setProductionDate] = useState(() => {
@@ -49,6 +56,7 @@ export default function ProductionPage() {
     const uid = getUserBranchId();
     return uid ? uid.toString() : '';
   });
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState('');
   const [selectedFilterProduct, setSelectedFilterProduct] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,7 +75,6 @@ export default function ProductionPage() {
   const userRole = getUserRole();
   const userBranchId = getUserBranchId();
   const allowedCategories = getCategoriesForRole(userRole);
-  const canManageAll = isManagerOrAdmin();
 
   const entriesBranchId = canManageAll ? (selectedFilterBranch ? Number(selectedFilterBranch) : null) : userBranchId;
 
@@ -87,28 +94,47 @@ export default function ProductionPage() {
 
   const { data: productsResult, isLoading: isLoadingProducts } = useProductsQuery({ isActive: true, limit: 100 });
   const fullProductList = (productsResult?.data || []).filter(p => allowedCategories.includes(p.category));
+  const filteredProductList = selectedFilterCategory
+    ? fullProductList.filter(p => p.category === selectedFilterCategory)
+    : fullProductList;
+
+  const handleCategoryChange = (newCategory) => {
+    setSelectedFilterCategory(newCategory);
+    if (newCategory && selectedFilterProduct) {
+      const selectedProd = fullProductList.find(p => p.id === Number(selectedFilterProduct));
+      if (selectedProd && selectedProd.category !== newCategory) {
+        setSelectedFilterProduct('');
+      }
+    }
+  };
 
   const { data: branches = [] } = useActiveBranchesQuery();
 
   const {
     data: response,
     isLoading: isLoadingEntries,
+    isFetching: isFetchingEntries,
     isError: entriesError,
     error: entriesErrorObj,
     refetch: refetchEntries,
   } = useProductionEntriesQuery(entriesBranchId, {
     limit: 10000,
     productId: selectedFilterProduct || undefined,
+    category: canManageAll ? (selectedFilterCategory || undefined) : undefined,
   });
 
   const groupedEntries = response?.data || [];
 
+  const categoryFilteredGroups = (canManageAll && selectedFilterCategory)
+    ? groupedEntries.filter(g => g.product?.category === selectedFilterCategory)
+    : groupedEntries;
+
   const searchedGroups = searchTerm
-    ? groupedEntries.filter(g => {
+    ? categoryFilteredGroups.filter(g => {
         const name = getLocalizedName(g.product, i18n.language) || g.product?.name || '';
         return name.toLowerCase().includes(searchTerm.toLowerCase());
       })
-    : groupedEntries;
+    : categoryFilteredGroups;
 
   const totalGroups = searchedGroups.length;
   const totalPages = Math.ceil(totalGroups / itemsPerPage);
@@ -123,7 +149,7 @@ export default function ProductionPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedFilterBranch, selectedFilterProduct, searchTerm]);
+  }, [selectedFilterBranch, selectedFilterCategory, selectedFilterProduct, searchTerm]);
 
   useEffect(() => {
     if (canManageAll && branches.length > 0) {
@@ -172,7 +198,7 @@ export default function ProductionPage() {
     }
 
     if (productionDate < minDateStr || productionDate > maxDateStr) {
-      setError('Production date must be within the last 2 days or today');
+      setError(`Production date must be within the last ${maxPastDays} days or today`);
       return;
     }
 
@@ -505,13 +531,25 @@ export default function ProductionPage() {
               ))}
             </select>
           )}
+          {canManageAll && (
+            <select
+              value={selectedFilterCategory}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
+            >
+              <option value="">{t('production.allCategories')}</option>
+              {CATEGORY_OPTIONS.map((cat) => (
+                <option key={cat.value} value={cat.value}>{t(cat.labelKey)}</option>
+              ))}
+            </select>
+          )}
           <select
             value={selectedFilterProduct}
             onChange={(e) => setSelectedFilterProduct(e.target.value)}
             className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-[#12262A] border border-[#E5E1D8] dark:border-[#1E3A3F] rounded-xl focus:ring-2 focus:ring-[#024A5B] focus:border-transparent outline-none text-sm dark:text-white min-w-[140px]"
           >
             <option value="">{t('production.allProducts')}</option>
-            {(Array.isArray(fullProductList) ? fullProductList : []).map((p) => (
+            {(Array.isArray(filteredProductList) ? filteredProductList : []).map((p) => (
               <option key={p.id} value={p.id}>{getLocalizedName(p, i18n.language)}</option>
             ))}
           </select>
@@ -524,11 +562,13 @@ export default function ProductionPage() {
             {canManageAll ? t('production.allProductionRecords') : t('production.todaysEntries')}
           </h2>
           <button
+            type="button"
             onClick={() => refetchEntries()}
-            className="p-2 hover:bg-[#DFEDE2] rounded-lg transition-colors"
+            disabled={isFetchingEntries}
+            className="p-2 hover:bg-[#DFEDE2] rounded-lg transition-colors disabled:opacity-50"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-4 h-4 text-gray-500" />
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isFetchingEntries ? 'animate-spin' : ''}`} />
           </button>
         </div>
 

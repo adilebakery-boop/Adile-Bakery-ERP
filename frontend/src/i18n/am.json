@@ -131,7 +131,8 @@
     "shiftLockedTooltip": "ፈረቃ ከመዝገብ ፈጠራ በኋላ መቀየር አይቻልም (የሂሳብ ደንብ)",
     "searchProduction": "የምርት መዝገቦችን ይፈልጉ...",
     "allBranches": "ሁሉም ቅርንጫፎች",
-    "allProducts": "ሁሉም ምርቶች"
+    "allProducts": "ሁሉም ምርቶች",
+    "allCategories": "ሁሉም ምድቦች"
   },
   "remaining": {
     "title": "የቀረ ክምችት",

@@ -131,7 +131,8 @@
     "shiftLockedTooltip": "Shift cannot be changed after record creation (accounting rule)",
     "searchProduction": "Search production records...",
     "allBranches": "All Branches",
-    "allProducts": "All Products"
+    "allProducts": "All Products",
+    "allCategories": "All Categories"
   },
   "remaining": {
     "title": "Remaining Stock",

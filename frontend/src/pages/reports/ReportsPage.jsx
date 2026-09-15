@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Download, Loader2, ChevronDown, AlertCircle, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { getOperationalDate, formatOperationalDate, isManagerOrAdmin } from '../../utils/authUtils';
 import { getLocalizedName, BRANCH_NAMES } from '../../utils/getLocalizedName';
 import reportService from '../../services/reportService';
@@ -73,6 +73,7 @@ const isSingleBranch = !isAllBranches && branchId !== '';
 
   const reportData = activeQuery.data || {};
   const loading = activeQuery.isLoading;
+  const isFetching = activeQuery.isFetching;
   const error = activeQuery.error;
 
 
@@ -240,7 +241,8 @@ const isSingleBranch = !isAllBranches && branchId !== '';
 
         {/* Layer 2: Filter Controls */}
         <div className="px-6 pb-6 pt-3 border-b border-[#E5E1D8] dark:border-[#1E3A3F]">
-          <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-2 flex-wrap items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-2 flex-wrap items-start sm:items-center">
               <div className="relative w-full sm:w-auto">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-500" />
                 <input
@@ -315,6 +317,16 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                 </label>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => activeQuery.refetch()}
+              disabled={isFetching}
+              className="p-2.5 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-xl transition-colors disabled:opacity-50 self-end sm:self-center"
+              title={t('common.refresh')}
+            >
+              <RefreshCw className={`w-4 h-4 text-gray-500 dark:text-gray-400 ${isFetching ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {loading ? (

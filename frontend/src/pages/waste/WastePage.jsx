@@ -74,7 +74,7 @@ export default function WastePage() {
     limit: 10000,
   };
 
-  const { data, isLoading, isError, error: queryError, refetch } = useWasteQuery(filters);
+  const { data, isLoading, isFetching, isError, error: queryError, refetch } = useWasteQuery(filters);
   const wastes = data?.data || [];
 
   const { data: branches = [] } = useActiveBranchesQuery();
@@ -440,11 +440,13 @@ export default function WastePage() {
             {t('waste.title')}
           </h2>
           <button
+            type="button"
             onClick={() => refetch()}
-            className="p-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors"
+            disabled={isFetching}
+            className="p-2 hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors disabled:opacity-50"
             title={t('common.refresh')}
           >
-            <RefreshCw className="w-4 h-4 text-gray-500" />
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
