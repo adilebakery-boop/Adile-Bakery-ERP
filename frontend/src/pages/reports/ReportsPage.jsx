@@ -13,6 +13,7 @@ import { useMonthlyReportQuery } from '../../features/reports/hooks/queries/useM
 import { useYearlyReportQuery } from '../../features/reports/hooks/queries/useYearlyReportQuery';
 import ReportSummaryCard from '../../components/reports/ReportSummaryCard';
 import ReportTotalsBar from '../../components/reports/ReportTotalsBar';
+import MonthlyWeekDrawer from '../../components/reports/MonthlyWeekDrawer';
 
 const DAY_NAMES = {
   Monday: 'ሰኞ', Tuesday: 'ማክሰኞ', Wednesday: 'ረቡዕ', Thursday: 'ሐሙስ',
@@ -97,6 +98,10 @@ const isSingleBranch = !isAllBranches && branchId !== '';
   const days = reportData.days || [];
   const weeks = reportData.weeks || [];
   const months = reportData.months || [];
+  const selectedMonthlyWeekIndex = activeTab === 'monthly' && expandedWeekId
+    ? weeks.findIndex((w) => `${w.weekStartDate}_${w.weekEndDate || ''}` === expandedWeekId)
+    : -1;
+  const selectedMonthlyWeek = selectedMonthlyWeekIndex !== -1 ? weeks[selectedMonthlyWeekIndex] : null;
   const hasData = activeTab === 'daily' ? products.length > 0
     : activeTab === 'weekly' ? days.length > 0
     : activeTab === 'monthly' ? weeks.length > 0
@@ -620,6 +625,14 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                     { label: t('reports.revenue'), value: totals.totalRevenue, revenue: true },
                   ]}
                 />
+
+                {selectedMonthlyWeek && (
+                  <MonthlyWeekDrawer
+                    week={selectedMonthlyWeek}
+                    title={`${t('reports.week')} ${selectedMonthlyWeekIndex + 1}`}
+                    onClose={() => setExpandedWeekId(null)}
+                  />
+                )}
               </div>
             )}
 

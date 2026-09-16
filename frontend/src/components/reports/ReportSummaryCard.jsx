@@ -14,7 +14,9 @@ export default function ReportSummaryCard({
     <div
       className={`bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl p-4 transition-all duration-200 ${
         isExpandable
-          ? 'cursor-pointer select-none hover:ring-1 hover:ring-[#024A5B]/30 dark:hover:ring-white/20'
+          ? `cursor-pointer select-none hover:ring-1 hover:ring-[#024A5B]/30 dark:hover:ring-white/20 ${
+              isExpanded ? 'md:ring-2 md:ring-[#024A5B] dark:md:ring-[#CAEAFD]' : ''
+            }`
           : ''
       }`}
       onClick={isExpandable ? onToggle : undefined}
@@ -40,7 +42,7 @@ export default function ReportSummaryCard({
           {isExpandable && (
             <ChevronDown
               className={`w-4 h-4 text-[#024A5B] dark:text-gray-300 transition-transform duration-200 ${
-                isExpanded ? 'rotate-180' : ''
+                isExpanded ? 'max-md:rotate-180' : ''
               }`}
             />
           )}
@@ -65,7 +67,7 @@ export default function ReportSummaryCard({
         ))}
       </div>
       {isExpandable && isExpanded && (
-        <div className="border-t border-[#024A5B]/15 dark:border-white/10 pt-3 mt-3 space-y-2">
+        <div className="md:hidden border-t border-[#024A5B]/15 dark:border-white/10 pt-3 mt-3 space-y-2">
           {children}
         </div>
       )}
