@@ -584,6 +584,8 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                           week.days.map((day) => {
                             const parts = (day.date || '').split('-');
                             const dateLabel = parts.length === 3 ? `${parts[2]}/${parts[1]}` : day.date;
+                            const weekday = day.dayName ? day.dayName.slice(0, 3) : '';
+                            const fullDateLabel = weekday ? `${dateLabel} — ${weekday}` : dateLabel;
                             const dayRev = Number(day.totals?.totalEstimatedRevenue) || 0;
                             const formattedRev = dayRev.toLocaleString(undefined, {
                               minimumFractionDigits: dayRev % 1 !== 0 ? 2 : 0,
@@ -591,7 +593,7 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                             });
                             return (
                               <div key={day.date} className="flex justify-between items-center text-xs">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">{dateLabel}</span>
+                                <span className="text-gray-600 dark:text-gray-300 font-medium">{fullDateLabel}</span>
                                 <span className="font-semibold text-[#024A5B] dark:text-[#CAEAFD]">
                                   {formattedRev} ETB
                                 </span>
