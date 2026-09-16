@@ -33,7 +33,12 @@ export default function ReportsPage() {
   const [productId, setProductId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [expandedWeekId, setExpandedWeekId] = useState(null);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    setExpandedWeekId(null);
+  }, [activeTab, date, branchId, category, productId]);
 
   const canManageAll = isManagerOrAdmin();
   const isAllBranches = branchId === '' || branchId === 'all';
@@ -550,11 +555,17 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                       },
                       { rec: 0, sent: 0 }
                     ) || { rec: 0, sent: 0 };
+                    const weekId = `${week.weekStartDate}_${week.weekEndDate || ''}`;
+                    const isExpanded = expandedWeekId === weekId;
                     return (
                       <ReportSummaryCard
                         key={week.weekStartDate}
                         title={title}
                         subtitle={week.weekStartDate || '-'}
+                        isExpandable={true}
+                        isExpanded={isExpanded}
+                        className={isExpanded ? 'md:col-span-2' : ''}
+                        onToggle={() => setExpandedWeekId(isExpanded ? null : weekId)}
                         fields={[
                           { label: t('reports.dayProduction'), value: weekTotals.totalDayProduction },
                           { label: t('reports.nightProduction'), value: weekTotals.totalNightProduction },
@@ -569,7 +580,33 @@ const isSingleBranch = !isAllBranches && branchId !== '';
                           { label: t('reports.estSold'), value: weekTotals.totalEstimatedSold, highlighted: true },
                           { label: t('reports.revenue'), value: weekTotals.totalEstimatedRevenue, highlighted: true, revenue: true },
                         ]}
-                      />
+                      >
+                        {(week.days && week.days.length > 0) ? (
+                          week.days.map((day) => {
+                            const parts = (day.date || '').split('-');
+                            const dateLabel = parts.length === 3 ? `${parts[2]}/${parts[1]}` : day.date;
+                            const weekday = day.dayName ? day.dayName.slice(0, 3) : '';
+                            const fullDateLabel = weekday ? `${dateLabel} — ${weekday}` : dateLabel;
+                            const dayRev = Number(day.totals?.totalEstimatedRevenue) || 0;
+                            const formattedRev = dayRev.toLocaleString(undefined, {
+                              minimumFractionDigits: dayRev % 1 !== 0 ? 2 : 0,
+                              maximumFractionDigits: 2,
+                            });
+                            return (
+                              <div key={day.date} className="flex justify-between items-center text-xs">
+                                <span className="text-gray-600 dark:text-gray-300 font-medium">{fullDateLabel}</span>
+                                <span className="font-semibold text-[#024A5B] dark:text-[#CAEAFD]">
+                                  {formattedRev} ETB
+                                </span>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="text-xs text-gray-400 dark:text-gray-500 italic text-center py-1">
+                            {t('reports.noDataForPeriod')}
+                          </div>
+                        )}
+                      </ReportSummaryCard>
                     );
                   })}
                 </div>

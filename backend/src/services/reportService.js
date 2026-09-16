@@ -83,22 +83,12 @@ async function getDailyReport(branchId, date, category, productId) {
   };
 }
 
-async function getWeeklyReport(branchId, weekStartDate, category, productId) {
+async function getDateRangeReport(branchId, dateStrs, category, productId, metadata = {}) {
   const branches = !branchId
     ? await prisma.branch.findMany({ orderBy: { name: 'asc' } })
     : [{ id: parseInt(branchId), name: '' }];
 
-  const inputDate = new Date(weekStartDate);
-  const startDate = getMonday(inputDate);
-
-  // Build all 7 date strings for the week
-  const dateStrs = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
-    return toDateString(d);
-  });
-
-  // Fetch ALL day×branch reports in parallel — eliminates sequential 7-day loop
+  // Fetch ALL day×branch reports in parallel
   const dayResults = await Promise.all(dateStrs.map(async (dateStr) => {
     const branchResults = await Promise.all(
       branches.map(b => inventoryFlowService.getInventoryFlowReport(b.id, dateStr))
@@ -187,9 +177,9 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
   return {
     branchId: branchId ? parseInt(branchId) : null,
     branchName,
-    weekStartDate: toDateString(startDate),
-    weekEndDate: toDateString(getSunday(startDate)),
-    reportType: 'WEEKLY',
+    weekStartDate: metadata.weekStartDate || dateStrs[0],
+    weekEndDate: metadata.weekEndDate || dateStrs[dateStrs.length - 1],
+    reportType: metadata.reportType || 'WEEKLY',
     days: weekData,
     products: allProducts,
     totals: aggregatedTotals,
@@ -200,62 +190,76 @@ async function getWeeklyReport(branchId, weekStartDate, category, productId) {
   };
 }
 
+async function getWeeklyReport(branchId, weekStartDate, category, productId) {
+  const inputDate = new Date(weekStartDate);
+  const startDate = getMonday(inputDate);
+
+  // Build all 7 date strings for the full Monday–Sunday operational week
+  const dateStrs = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    return toDateString(d);
+  });
+
+  return getDateRangeReport(branchId, dateStrs, category, productId, {
+    weekStartDate: toDateString(startDate),
+    weekEndDate: toDateString(getSunday(startDate)),
+    reportType: 'WEEKLY',
+  });
+}
+
+function getMonthWeekSpecs(year, month) {
+  const yearNum = parseInt(year);
+  const monthNum = parseInt(month);
+  const lastDay = new Date(Date.UTC(yearNum, monthNum, 0)).getUTCDate();
+
+  const specs = [];
+  let currentDay = 1;
+
+  const firstDate = new Date(Date.UTC(yearNum, monthNum - 1, 1));
+  const firstDow = firstDate.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+  if (firstDow !== 1) {
+    // Partial week at start of month (up to upcoming Sunday, or end of month)
+    const daysToSunday = firstDow === 0 ? 0 : 7 - firstDow;
+    const weekEndDay = Math.min(currentDay + daysToSunday, lastDay);
+    const startStr = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    const endStr = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(weekEndDay).padStart(2, '0')}`;
+    specs.push({ start: startStr, end: endStr, startDay: currentDay, endDay: weekEndDay });
+    currentDay = weekEndDay + 1;
+  }
+
+  while (currentDay <= lastDay) {
+    const weekEndDay = Math.min(currentDay + 6, lastDay);
+    const startStr = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    const endStr = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(weekEndDay).padStart(2, '0')}`;
+    specs.push({ start: startStr, end: endStr, startDay: currentDay, endDay: weekEndDay });
+    currentDay = weekEndDay + 1;
+  }
+
+  return specs;
+}
+
 async function getMonthlyReport(branchId, year, month, category, productId) {
   const yearNum = parseInt(year);
   const monthNum = parseInt(month);
-  const startDate = new Date(yearNum, monthNum - 1, 1);
-  const endDate = new Date(yearNum, monthNum, 0);
-  const weeks = [];
 
-  const firstDayOfWeek = startDate.getDay();
-  let currentWeekStart = new Date(startDate);
+  const weekSpecs = getMonthWeekSpecs(yearNum, monthNum);
 
-  // Collect all week start dates FIRST (no DB calls)
-  const weekSpecs = [];
-
-  if (firstDayOfWeek !== 1) {
-    const daysToSunday = (7 - firstDayOfWeek) % 7;
-    if (daysToSunday > 0) {
-      const partialWeekEnd = new Date(startDate);
-      partialWeekEnd.setDate(partialWeekEnd.getDate() + daysToSunday);
-      if (partialWeekEnd > endDate) {
-        partialWeekEnd.setTime(endDate.getTime());
+  // Fetch ALL weeks in parallel — each strictly bounded to its dates within the month
+  const weeks = await Promise.all(
+    weekSpecs.map(spec => {
+      const dateStrs = [];
+      for (let d = spec.startDay; d <= spec.endDay; d++) {
+        dateStrs.push(`${yearNum}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
       }
-      weekSpecs.push({
-        weekStartStr: toDateString(currentWeekStart),
-        weekEndStr: toDateString(partialWeekEnd),
+      return getDateRangeReport(branchId, dateStrs, category, productId, {
+        weekStartDate: spec.start,
+        weekEndDate: spec.end,
+        reportType: 'WEEKLY',
       });
-      currentWeekStart = new Date(partialWeekEnd);
-      currentWeekStart.setDate(currentWeekStart.getDate() + 1);
-    }
-  }
-
-  while (currentWeekStart <= endDate) {
-    const weekEnd = new Date(currentWeekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    if (weekEnd > endDate) {
-      weekEnd.setTime(endDate.getTime());
-    }
-    weekSpecs.push({
-      weekStartStr: toDateString(currentWeekStart),
-      weekEndStr: toDateString(weekEnd),
-    });
-    currentWeekStart = new Date(weekEnd);
-    currentWeekStart.setDate(currentWeekStart.getDate() + 1);
-  }
-
-  // Fetch ALL weeks in parallel — eliminates sequential 4-5 week loop
-  const weekReports = await Promise.all(
-    weekSpecs.map(spec =>
-      getWeeklyReport(branchId, spec.weekStartStr, category, productId)
-        .then(report => {
-          report.weekStartDate = spec.weekStartStr;
-          report.weekEndDate = spec.weekEndStr;
-          return report;
-        })
-    )
+    })
   );
-  weeks.push(...weekReports);
 
   const aggregatedTotals = weeks.reduce(
     (acc, week) => ({
@@ -314,7 +318,7 @@ async function getMonthlyReport(branchId, year, month, category, productId) {
     branchName,
     year: parseInt(year),
     month: parseInt(month),
-    monthName: new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'long' }),
+    monthName: new Date(Date.UTC(yearNum, monthNum - 1, 1)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' }),
     reportType: 'MONTHLY',
     weeks,
     products: allProducts,
@@ -1078,4 +1082,6 @@ module.exports = {
   getMonthlyReport,
   getYearlyReport,
   exportToCSV,
+  getMonthWeekSpecs,
+  getDateRangeReport,
 };
