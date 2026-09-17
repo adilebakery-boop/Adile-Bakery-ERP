@@ -14,9 +14,10 @@ async function runBackup() {
   isBackupRunning = true;
   try {
     const { AWS_REGION, AWS_S3_BUCKET, DATABASE_URL } = process.env;
+    const bucketName = AWS_S3_BUCKET || process.env.S3_BUCKET_NAME;
 
     // AWS credentials will be automatically picked up from AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    if (!AWS_REGION || !AWS_S3_BUCKET || !DATABASE_URL) {
+    if (!AWS_REGION || !bucketName || !DATABASE_URL) {
       throw new Error('[BACKUP] Missing required environment variables (AWS_REGION, AWS_S3_BUCKET, DATABASE_URL)');
     }
 
@@ -61,6 +62,7 @@ async function runBackup() {
       });
 
       gzip.on('error', (err) => {
+        if (!pgDump.killed) pgDump.kill();
         reject(new Error(`[BACKUP] gzip stream error: ${err.message}`));
       });
 
@@ -68,7 +70,7 @@ async function runBackup() {
       const upload = new Upload({
         client: s3Client,
         params: {
-          Bucket: AWS_S3_BUCKET,
+          Bucket: bucketName,
           Key: backupKey,
           Body: gzip,
         },
@@ -79,13 +81,16 @@ async function runBackup() {
           uploadFinished = true;
           if (pgDumpExited) resolve();
         })
-        .catch((err) => reject(new Error(`[BACKUP] S3 upload failed: ${err.message}`)));
+        .catch((err) => {
+          if (!pgDump.killed) pgDump.kill();
+          reject(new Error(`[BACKUP] S3 upload failed: ${err.message}`));
+        });
     });
 
     console.log(`[BACKUP] Successfully uploaded ${backupKey} to S3.`);
 
     // 4. Retention cleanup (Keep newest 4)
-    await cleanupOldBackups(s3Client, AWS_S3_BUCKET);
+    await cleanupOldBackups(s3Client, bucketName);
 
   } catch (error) {
     console.error(`[BACKUP] Backup failed: ${error.message}`);
