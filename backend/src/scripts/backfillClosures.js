@@ -82,15 +82,15 @@ async function backfillClosures() {
     return;
   }
 
-  // Find an admin user to use as closedBy (fall back to null)
-  let adminUser = await prisma.user.findFirst({
-    where: { role: { name: 'ADMIN' } },
+  // Find an admin employee to use as closedBy (fall back to null)
+  let adminEmployee = await prisma.employee.findFirst({
+    where: { primaryRole: { name: 'ADMIN' }, status: 'ACTIVE' },
     select: { id: true },
     orderBy: { id: 'asc' },
   });
 
-  const closedBy = adminUser?.id || null;
-  console.log(`Using closedBy: ${closedBy}${closedBy ? '' : ' (null)'}`);
+  const closedBy = adminEmployee?.id || null;
+  console.log(`Using closedBy employee: ${closedBy}${closedBy ? '' : ' (null)'}`);
 
   // Build DailyClosure records
   const now = new Date();

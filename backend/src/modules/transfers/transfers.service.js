@@ -36,7 +36,7 @@ const transferService = {
           product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
           sourceBranch: { select: { id: true, name: true } },
           dependentBranch: { select: { id: true, name: true } },
-          creator: { select: { id: true, name: true, username: true } },
+          creator: { select: { id: true, name: true } },
         },
       });
 
@@ -72,7 +72,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -117,7 +117,7 @@ const transferService = {
           product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
           sourceBranch: { select: { id: true, name: true } },
           dependentBranch: { select: { id: true, name: true } },
-          creator: { select: { id: true, name: true, username: true } },
+          creator: { select: { id: true, name: true } },
         },
       }),
       prisma.productTransfer.count({ where }),
@@ -141,7 +141,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -180,7 +180,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -213,7 +213,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 

@@ -29,6 +29,10 @@ export const userService = {
   restoreUser: async (id) => {
     return safeCall(api.put(`/users/${id}/restore`));
   },
+
+  permanentDeleteUser: async (id) => {
+    return safeCall(api.delete(`/users/${id}/permanent`));
+  },
 };
 
 export default userService;
