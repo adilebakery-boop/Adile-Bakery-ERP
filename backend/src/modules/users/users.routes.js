@@ -5,6 +5,7 @@ const { allowRoles } = require('../../middlewares/role.middleware');
 const prisma = require('../../config/prisma');
 const bcrypt = require('bcrypt');
 const { createUserSchema, updateUserSchema } = require('../../utils/validations/user.validation');
+const refreshTokenUtil = require('../../utils/refreshToken');
 
 const SALT_ROUNDS = 10;
 
@@ -260,6 +261,10 @@ router.put(
       }
     }
 
+    if (isBlocked && targetUserId === req.user.userId) {
+      return res.status(400).json({ success: false, message: 'You cannot block your own account' });
+    }
+
     const user = await prisma.user.update({
       where: { id: targetUserId },
       data: { 
@@ -272,7 +277,102 @@ router.put(
       },
       include: { role: true }
     });
+
+    if (isBlocked === true) {
+      await refreshTokenUtil.revokeAll(targetUserId).catch((err) => {
+        console.warn(`[USERS] Failed to revoke tokens for blocked user ${targetUserId}:`, err);
+      });
+    }
+
     res.json({ success: true, message: 'User updated successfully', data: user });
+  })
+);
+
+router.delete(
+  '/:id/permanent',
+  authenticate,
+  allowRoles('ADMIN', 'MANAGER'),
+  asyncHandler(async (req, res) => {
+    const targetUserId = parseInt(req.params.id);
+
+    const canManage = await canManageTargetUser(req.user, targetUserId);
+    if (!canManage) {
+      return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
+    }
+
+    if (targetUserId === req.user.userId) {
+      return res.status(403).json({ success: false, message: 'You cannot delete your own account' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'User must be deactivated before permanent removal',
+      });
+    }
+
+    // Check all historical business records and audit references
+    const [
+      productionCount,
+      remainingCount,
+      wasteCount,
+      closureCount,
+      transferCount,
+      reopenCount,
+      auditCount,
+      snapshotCount,
+    ] = await Promise.all([
+      prisma.productionRecord.count({
+        where: { OR: [{ createdBy: targetUserId }, { updatedBy: targetUserId }] },
+      }),
+      prisma.remainingRecord.count({
+        where: { OR: [{ createdBy: targetUserId }, { updatedBy: targetUserId }] },
+      }),
+      prisma.wasteRecord.count({ where: { createdBy: targetUserId } }),
+      prisma.dailyClosure.count({ where: { closedBy: targetUserId } }),
+      prisma.productTransfer.count({ where: { createdBy: targetUserId } }),
+      prisma.reopenLog.count({ where: { reopenedBy: targetUserId } }),
+      prisma.auditLog.count({ where: { userId: targetUserId } }),
+      prisma.dailySnapshot.count({
+        where: { OR: [{ closedBy: targetUserId }, { invalidatedBy: targetUserId }] },
+      }),
+    ]);
+
+    const totalHistorical =
+      productionCount +
+      remainingCount +
+      wasteCount +
+      closureCount +
+      transferCount +
+      reopenCount +
+      auditCount +
+      snapshotCount;
+
+    if (totalHistorical > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Cannot permanently remove this user because they have historical business records. The account must remain deactivated to preserve business history.',
+      });
+    }
+
+    // Safe deletion of account and auth tokens in transaction
+    await prisma.$transaction([
+      prisma.refreshToken.deleteMany({ where: { userId: targetUserId } }),
+      prisma.passwordReset.deleteMany({ where: { userId: targetUserId } }),
+      prisma.user.delete({ where: { id: targetUserId } }),
+    ]);
+
+    res.json({
+      success: true,
+      message: 'User permanently deleted successfully',
+      data: {},
+    });
   })
 );
 

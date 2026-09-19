@@ -9,6 +9,7 @@ import { useCreateUserMutation } from '../../features/users/hooks/mutations/useC
 import { useUpdateUserMutation } from '../../features/users/hooks/mutations/useUpdateUserMutation';
 import { useDeleteUserMutation } from '../../features/users/hooks/mutations/useDeleteUserMutation';
 import { useRestoreUserMutation } from '../../features/users/hooks/mutations/useRestoreUserMutation';
+import { usePermanentDeleteUserMutation } from '../../features/users/hooks/mutations/usePermanentDeleteUserMutation';
 import { useDeactivatedUsersQuery } from '../../features/users/hooks/queries/useDeactivatedUsersQuery';
 import { useActiveBranchesQuery } from '../../features/branches/hooks/queries/useBranchesQuery';
 
@@ -101,8 +102,10 @@ export default function UsersPage() {
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
   const restoreMutation = useRestoreUserMutation();
+  const permanentDeleteMutation = usePermanentDeleteUserMutation();
 
   const [isDeactivatedModalOpen, setIsDeactivatedModalOpen] = useState(false);
+  const [deactivatedError, setDeactivatedError] = useState('');
 
   const { data: deactivatedUsers = [], isLoading: deactivatedLoading } =
     useDeactivatedUsersQuery({ enabled: isDeactivatedModalOpen });
@@ -196,10 +199,23 @@ export default function UsersPage() {
   };
 
   const handleRestoreUser = async (id) => {
+    setDeactivatedError('');
     try {
       await restoreMutation.mutateAsync(id);
     } catch (err) {
-      setError(err.message || 'Failed to restore user');
+      setDeactivatedError(err.message || 'Failed to restore user');
+    }
+  };
+
+  const handlePermanentDelete = async (id, name) => {
+    setDeactivatedError('');
+    const label = name ? ` (${name})` : '';
+    if (window.confirm(`Are you sure you want to permanently remove this user account${label}? This action cannot be undone.`)) {
+      try {
+        await permanentDeleteMutation.mutateAsync(id);
+      } catch (err) {
+        setDeactivatedError(err.message || 'Failed to permanently remove user');
+      }
     }
   };
 
@@ -223,7 +239,7 @@ export default function UsersPage() {
         {canManage && (
           <div className="flex flex-row flex-wrap gap-2">
             <button
-              onClick={() => setIsDeactivatedModalOpen(true)}
+              onClick={() => { setDeactivatedError(''); setIsDeactivatedModalOpen(true); }}
               className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm flex items-center gap-2"
             >
               <Eye className="w-4 h-4" />
@@ -330,7 +346,7 @@ export default function UsersPage() {
                             </button>
                           )}
                           {canUserDeleteTarget(user.role?.name) && (
-                            <button onClick={() => handleDelete(user.id, user.role?.name)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                            <button onClick={() => handleDelete(user.id, user.role?.name)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Deactivate">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
@@ -478,7 +494,12 @@ export default function UsersPage() {
         </form>
       </Modal>
 
-      <Modal isOpen={isDeactivatedModalOpen} onClose={() => setIsDeactivatedModalOpen(false)} title="Deactivated Users">
+      <Modal isOpen={isDeactivatedModalOpen} onClose={() => { setDeactivatedError(''); setIsDeactivatedModalOpen(false); }} title="Deactivated Users">
+        {deactivatedError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+            {deactivatedError}
+          </div>
+        )}
         {deactivatedLoading ? (
           <div className="py-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-500" />
@@ -493,20 +514,35 @@ export default function UsersPage() {
                   <div className="font-medium text-[#024A5B]">{user.name}</div>
                   <div className="text-sm text-gray-500">{user.role?.name} — {user.username}</div>
                 </div>
-                <button
-                  onClick={() => handleRestoreUser(user.id)}
-                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Restore"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleRestoreUser(user.id)}
+                    className="px-2.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium"
+                    title="Restore"
+                    disabled={restoreMutation.isPending || permanentDeleteMutation.isPending}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Restore
+                  </button>
+                  {canUserDeleteTarget(user.role?.name) && (
+                    <button
+                      onClick={() => handlePermanentDelete(user.id, user.name)}
+                      className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium"
+                      title="Remove permanently"
+                      disabled={restoreMutation.isPending || permanentDeleteMutation.isPending}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
         <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
           <button
-            onClick={() => setIsDeactivatedModalOpen(false)}
+            onClick={() => { setDeactivatedError(''); setIsDeactivatedModalOpen(false); }}
             className="w-full px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm"
           >
             Close
