@@ -33,7 +33,7 @@ const close = asyncHandler(async (req, res) => {
   const result = await closureService.closeDay(
     branchId,
     operationalDate,
-    req.user.userId,
+    req.user.employeeId || req.user.userId,
     note,
     req.user
   );

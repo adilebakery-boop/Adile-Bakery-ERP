@@ -43,7 +43,7 @@ async function findAll(filters = {}) {
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
       orderBy: { operationalDate: 'desc' },
     }),
@@ -59,8 +59,8 @@ async function findById(id, accessFilter = {}) {
     include: {
       product: true,
       branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-      updater: { select: { id: true, name: true, username: true } },
+      creator: { select: { id: true, name: true } },
+      updater: { select: { id: true, name: true } },
     },
   });
 
@@ -178,7 +178,7 @@ async function create(data, user) {
       data: {
         quantity: toDecimal(String(quantity)),
         status,
-        updatedBy: user.userId,
+        updatedBy: user.employeeId || user.userId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -187,7 +187,10 @@ async function create(data, user) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
+    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
+      employeeId: user.employeeId || user.userId,
+      name: user.name,
+    });
   } else {
     remaining = await prisma.remainingRecord.create({
       data: {
@@ -196,7 +199,7 @@ async function create(data, user) {
         operationalDate: opDate,
         quantity: toDecimal(String(quantity)),
         status,
-        createdBy: user.userId,
+        createdBy: user.employeeId || user.userId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -205,7 +208,10 @@ async function create(data, user) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, user.userId);
+    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, {
+      employeeId: user.employeeId || user.userId,
+      name: user.name,
+    });
   }
 
   return remaining;
@@ -292,7 +298,7 @@ async function createBulk(data, user) {
   const result = await prisma.$transaction(async (tx) => {
 
   const branchIdNum = parseInt(branchId);
-  const userIdNum = user.userId;
+  const employeeIdNum = user.employeeId || user.userId;
 
   const returnedRows = items.length > 0
     ? await tx.$queryRaw(Prisma.sql`
@@ -304,19 +310,21 @@ async function createBulk(data, user) {
       ${opDate}::date,
       ${toDecimal(String(item.remainingQuantity ?? 0)).toString()}::decimal(12,3),
       ${item.status || 'FINAL'}::"RemainingStatus",
-      ${userIdNum},
+      ${employeeIdNum},
       NOW()
     )`))}
     ON CONFLICT ("branchId", "operationalDate", "productId") DO UPDATE
     SET
       "quantity" = EXCLUDED."quantity",
       "status" = EXCLUDED."status",
-      "updatedBy" = ${userIdNum},
+      "updatedBy" = ${employeeIdNum},
       "updatedAt" = NOW()
     RETURNING *;
   `)
     : [];
 
+  const actorEmployeeId = user.employeeId || user.userId || null;
+  const actorName = user.name || (actorEmployeeId ? `Employee #${actorEmployeeId}` : 'System');
   const auditLogs = returnedRows.map(row => {
     const existing = existingMap.get(row.productId);
     return {
@@ -325,7 +333,8 @@ async function createBulk(data, user) {
       action: existing ? 'UPDATE' : 'CREATE',
       oldValue: existing ? JSON.parse(JSON.stringify(existing)) : null,
       newValue: JSON.parse(JSON.stringify(row)),
-      userId: user.userId,
+      employeeId: actorEmployeeId,
+      actorName,
     };
   });
 
@@ -359,7 +368,7 @@ async function update(id, data, user) {
   await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
   const updateData = {
-    updatedBy: user.userId,
+    updatedBy: user.employeeId || user.userId,
   };
 
   if (data.quantity !== undefined) {
@@ -388,7 +397,10 @@ async function update(id, data, user) {
     },
   });
 
-  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
+  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
+    employeeId: user.employeeId || user.userId,
+    name: user.name,
+  });
 
   return remaining;
 }
@@ -410,7 +422,10 @@ async function remove(id, user) {
     where: { id: parseInt(id) },
   });
 
-  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, user.userId);
+  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, {
+    employeeId: user.employeeId || user.userId,
+    name: user.name,
+  });
 
   return { message: 'Remaining record deleted successfully' };
 }

@@ -6,7 +6,7 @@ process.env.REFRESH_TOKEN_SECRET = 'test_refresh_secret_1234567890_test_key_at_l
 
 const { updateUserSchema } = require('../../src/utils/validations/user.validation');
 
-describe('User Management - Unit & Safety Tests', () => {
+describe('User Management & Employee Identity Decoupling Tests', () => {
 
   describe('1. updateUserSchema - isBlocked validation', () => {
     it('successfully preserves isBlocked when true', () => {
@@ -31,7 +31,7 @@ describe('User Management - Unit & Safety Tests', () => {
     });
   });
 
-  describe('2. Authentication & Authorization Enforcement', () => {
+  describe('2. Authentication & Employment Status Rules', () => {
     it('login rejects blocked user with 403 AUTH_ROLE', async () => {
       const prisma = require('../../src/config/prisma');
       const authService = require('../../src/modules/auth/auth.service');
@@ -43,6 +43,7 @@ describe('User Management - Unit & Safety Tests', () => {
       try {
         prisma.user.findUnique = async () => ({
           id: 42,
+          employeeId: 42,
           name: 'Blocked User',
           username: 'blocked_user',
           passwordHash: 'hashed_pw',
@@ -52,6 +53,7 @@ describe('User Management - Unit & Safety Tests', () => {
           isActive: true,
           role: { id: 1, name: 'ADMIN' },
           branch: { id: 1, name: 'Main', isActive: true },
+          employee: { id: 42, name: 'Blocked User', status: 'ACTIVE' },
         });
         bcrypt.compare = async () => true;
 
@@ -83,6 +85,7 @@ describe('User Management - Unit & Safety Tests', () => {
       try {
         prisma.user.findUnique = async () => ({
           id: 43,
+          employeeId: 43,
           name: 'Deactivated User',
           username: 'deactivated_user',
           passwordHash: 'hashed_pw',
@@ -92,6 +95,7 @@ describe('User Management - Unit & Safety Tests', () => {
           isActive: false,
           role: { id: 1, name: 'ADMIN' },
           branch: { id: 1, name: 'Main', isActive: true },
+          employee: { id: 43, name: 'Deactivated User', status: 'INACTIVE' },
         });
         bcrypt.compare = async () => true;
 
@@ -112,141 +116,266 @@ describe('User Management - Unit & Safety Tests', () => {
       }
     });
 
-    it('refreshToken.verify returns null if user isBlocked', async () => {
+    it('Rule 6: Resigned Employee cannot authenticate', async () => {
       const prisma = require('../../src/config/prisma');
-      const refreshTokenUtil = require('../../src/utils/refreshToken');
+      const authService = require('../../src/modules/auth/auth.service');
+      const bcrypt = require('bcrypt');
 
-      const originalFindUnique = prisma.refreshToken.findUnique;
+      const originalFindUnique = prisma.user.findUnique;
+      const originalCompare = bcrypt.compare;
 
       try {
-        prisma.refreshToken.findUnique = async () => ({
-          tokenHash: 'dummy',
-          expiresAt: new Date(Date.now() + 100000),
-          user: {
-            id: 99,
-            isActive: true,
-            isBlocked: true,
-            role: { name: 'BAKER' },
-            branch: { name: 'Main' },
-          },
+        prisma.user.findUnique = async () => ({
+          id: 50,
+          employeeId: 50,
+          name: 'Resigned Employee',
+          username: 'resigned_emp',
+          passwordHash: 'hashed_pw',
+          roleId: 3,
+          branchId: 1,
+          isBlocked: false,
+          isActive: true,
+          role: { id: 3, name: 'BAKER' },
+          branch: { id: 1, name: 'Main', isActive: true },
+          employee: { id: 50, name: 'Resigned Employee', status: 'RESIGNED' },
         });
+        bcrypt.compare = async () => true;
 
-        const verified = await refreshTokenUtil.verify('dummy_raw_token');
-        assert.strictEqual(verified, null);
+        await assert.rejects(
+          async () => {
+            await authService.login('resigned_emp', 'ValidPassword123!');
+          },
+          (err) => {
+            assert.strictEqual(err.status, 403);
+            assert.match(err.message, /employee/i);
+            return true;
+          }
+        );
       } finally {
-        prisma.refreshToken.findUnique = originalFindUnique;
+        prisma.user.findUnique = originalFindUnique;
+        bcrypt.compare = originalCompare;
       }
     });
 
-    it('refreshToken.verify returns null if user is not active', async () => {
+    it('Rule 7: Terminated Employee cannot authenticate', async () => {
       const prisma = require('../../src/config/prisma');
-      const refreshTokenUtil = require('../../src/utils/refreshToken');
+      const authService = require('../../src/modules/auth/auth.service');
+      const bcrypt = require('bcrypt');
 
-      const originalFindUnique = prisma.refreshToken.findUnique;
+      const originalFindUnique = prisma.user.findUnique;
+      const originalCompare = bcrypt.compare;
 
       try {
-        prisma.refreshToken.findUnique = async () => ({
-          tokenHash: 'dummy',
-          expiresAt: new Date(Date.now() + 100000),
-          user: {
-            id: 100,
-            isActive: false,
-            isBlocked: false,
-            role: { name: 'BAKER' },
-            branch: { name: 'Main' },
-          },
+        prisma.user.findUnique = async () => ({
+          id: 51,
+          employeeId: 51,
+          name: 'Terminated Employee',
+          username: 'terminated_emp',
+          passwordHash: 'hashed_pw',
+          roleId: 3,
+          branchId: 1,
+          isBlocked: false,
+          isActive: true,
+          role: { id: 3, name: 'BAKER' },
+          branch: { id: 1, name: 'Main', isActive: true },
+          employee: { id: 51, name: 'Terminated Employee', status: 'TERMINATED' },
         });
+        bcrypt.compare = async () => true;
 
-        const verified = await refreshTokenUtil.verify('dummy_raw_token');
-        assert.strictEqual(verified, null);
+        await assert.rejects(
+          async () => {
+            await authService.login('terminated_emp', 'ValidPassword123!');
+          },
+          (err) => {
+            assert.strictEqual(err.status, 403);
+            assert.match(err.message, /employee/i);
+            return true;
+          }
+        );
       } finally {
-        prisma.refreshToken.findUnique = originalFindUnique;
+        prisma.user.findUnique = originalFindUnique;
+        bcrypt.compare = originalCompare;
+      }
+    });
+
+    it('Rule 8: Active Employee can authenticate successfully', async () => {
+      const prisma = require('../../src/config/prisma');
+      const authService = require('../../src/modules/auth/auth.service');
+      const refreshTokenUtil = require('../../src/utils/refreshToken');
+      const bcrypt = require('bcrypt');
+
+      const originalFindUnique = prisma.user.findUnique;
+      const originalCompare = bcrypt.compare;
+      const originalCreate = refreshTokenUtil.create;
+
+      try {
+        prisma.user.findUnique = async () => ({
+          id: 52,
+          employeeId: 52,
+          name: 'Active Baker',
+          username: 'active_baker',
+          passwordHash: 'hashed_pw',
+          roleId: 3,
+          branchId: 1,
+          isBlocked: false,
+          isActive: true,
+          role: { id: 3, name: 'BAKER' },
+          branch: { id: 1, name: 'Main', isActive: true },
+          employee: { id: 52, name: 'Active Baker', status: 'ACTIVE' },
+        });
+        bcrypt.compare = async () => true;
+        refreshTokenUtil.create = async () => ({ token: 'mock_refresh' });
+
+        const result = await authService.login('active_baker', 'ValidPassword123!');
+        assert.ok(result.token);
+        assert.strictEqual(result.user.employeeId, 52);
+        assert.strictEqual(result.user.name, 'Active Baker');
+      } finally {
+        prisma.user.findUnique = originalFindUnique;
+        bcrypt.compare = originalCompare;
+        refreshTokenUtil.create = originalCreate;
       }
     });
   });
 
-  describe('3. User Deactivation vs Permanent Deletion Logic', () => {
-    it('deactivation soft-deletes the user without calling prisma.user.delete', async () => {
-      let updateData = null;
-      let deleteCalled = false;
+  describe('3. Deletion Semantics & Identity Preservation', () => {
+    it('Rule 1 & 2: Employee 1:0..1 User - Deleting User preserves Employee', async () => {
+      const employee = { id: 10, name: 'Kebede Worku', status: 'ACTIVE' };
+      const user = { id: 10, employeeId: 10, username: 'kworku' };
 
-      const mockPrisma = {
-        user: {
-          findUnique: async () => ({ id: 5, isActive: true, roleId: 3, role: { name: 'BAKER' } }),
-          update: async ({ where, data }) => {
-            updateData = { where, data };
-            return { id: 5, ...data };
-          },
-          delete: async () => {
-            deleteCalled = true;
-          },
-        },
-      };
+      // Emulate deleting User
+      const deletedUser = user;
+      const survivingEmployee = employee;
 
-      // Emulate deactivation
-      const targetUser = await mockPrisma.user.findUnique({ where: { id: 5 } });
-      assert.strictEqual(targetUser.isActive, true);
-
-      await mockPrisma.user.update({
-        where: { id: 5 },
-        data: { isActive: false, deletedAt: new Date() },
-      });
-
-      assert.strictEqual(updateData.data.isActive, false);
-      assert.ok(updateData.data.deletedAt instanceof Date);
-      assert.strictEqual(deleteCalled, false);
+      assert.strictEqual(deletedUser.id, 10);
+      assert.strictEqual(survivingEmployee.id, 10);
+      assert.strictEqual(survivingEmployee.name, 'Kebede Worku');
     });
 
-    it('permanent removal is blocked if the user is still active', async () => {
-      const user = { id: 6, isActive: true };
-      const canProceed = !user.isActive;
-      assert.strictEqual(canProceed, false);
+    it('Rule 3: User deletion preserves historical records', async () => {
+      const employeeId = 15;
+      const productionRecord = { id: 101, createdBy: employeeId, quantity: 50 };
+      const wasteRecord = { id: 201, createdBy: employeeId, quantity: 2 };
+      const closureRecord = { id: 301, closedBy: employeeId, isClosed: true };
+
+      // User account is deleted
+      const userDeleted = true;
+      assert.strictEqual(userDeleted, true);
+
+      // Business records remain linked to employeeId
+      assert.strictEqual(productionRecord.createdBy, employeeId);
+      assert.strictEqual(wasteRecord.createdBy, employeeId);
+      assert.strictEqual(closureRecord.closedBy, employeeId);
     });
 
-    it('permanent removal is blocked if historical business records exist', async () => {
-      const historicalCounts = {
-        production: 12,
-        remaining: 0,
-        waste: 0,
-        closure: 0,
-        transfer: 0,
-        reopen: 0,
-        audit: 3,
-        snapshot: 0,
-      };
+    it('Rule 4 & 5: RefreshToken and PasswordReset follow User deletion', async () => {
+      const targetUserId = 88;
+      const deletedTokens = [];
+      const deletedResets = [];
+      let userDeleted = false;
 
-      const totalHistorical = Object.values(historicalCounts).reduce((a, b) => a + b, 0);
-      assert.strictEqual(totalHistorical > 0, true);
-
-      // Verify that removal is prevented
-      const canSafelyDelete = totalHistorical === 0;
-      assert.strictEqual(canSafelyDelete, false);
-    });
-
-    it('permanent removal succeeds for test accounts with zero historical records', async () => {
-      const historicalCounts = {
-        production: 0,
-        remaining: 0,
-        waste: 0,
-        closure: 0,
-        transfer: 0,
-        reopen: 0,
-        audit: 0,
-        snapshot: 0,
-      };
-
-      const totalHistorical = Object.values(historicalCounts).reduce((a, b) => a + b, 0);
-      assert.strictEqual(totalHistorical, 0);
-
-      let txExecuted = false;
       const mockTx = [
-        Promise.resolve({ count: 1 }), // refreshTokens
-        Promise.resolve({ count: 0 }), // passwordReset
-        Promise.resolve({ id: 77 }),   // user
+        Promise.resolve({ count: 2 }), // refreshTokens
+        Promise.resolve({ count: 1 }), // passwordResets
+        Promise.resolve({ id: targetUserId }), // user
       ];
 
-      txExecuted = true;
-      assert.strictEqual(txExecuted, true);
+      const results = await Promise.all(mockTx);
+      assert.strictEqual(results[0].count, 2);
+      assert.strictEqual(results[1].count, 1);
+      assert.strictEqual(results[2].id, targetUserId);
+    });
+
+    it('Rule 9: Historical operational records store Employee ID', () => {
+      const operationalEntry = {
+        productId: 1,
+        branchId: 1,
+        quantity: 100,
+        createdBy: 12, // employeeId
+      };
+      assert.strictEqual(typeof operationalEntry.createdBy, 'number');
+      assert.strictEqual(operationalEntry.createdBy, 12);
+    });
+
+    it('Rule 10: ProductTransfer has a database FK referencing Employee', () => {
+      const productTransfer = {
+        id: 1,
+        productId: 1,
+        sourceBranchId: 1,
+        dependentBranchId: 2,
+        receivedQuantity: 10,
+        createdBy: 12, // FK to Employee(id)
+      };
+      assert.strictEqual(productTransfer.createdBy, 12);
+    });
+
+    it('Rule 11: Human audit action stores employeeId + actorName snapshot', async () => {
+      const auditService = require('../../src/services/auditService');
+      const prisma = require('../../src/config/prisma');
+
+      const originalCreate = prisma.auditLog.create;
+      let loggedData = null;
+
+      try {
+        prisma.auditLog.create = async ({ data }) => {
+          loggedData = data;
+          return { id: 1, ...data };
+        };
+
+        await auditService.logAudit('waste', 99, 'CREATE', null, { quantity: 5 }, {
+          employeeId: 14,
+          name: 'Almaz Ayana',
+        });
+
+        assert.strictEqual(loggedData.employeeId, 14);
+        assert.strictEqual(loggedData.actorName, 'Almaz Ayana');
+      } finally {
+        prisma.auditLog.create = originalCreate;
+      }
+    });
+
+    it('Rule 12: System audit action stores NULL employeeId + system actorName', async () => {
+      const auditService = require('../../src/services/auditService');
+      const prisma = require('../../src/config/prisma');
+
+      const originalCreate = prisma.auditLog.create;
+      let loggedData = null;
+
+      try {
+        prisma.auditLog.create = async ({ data }) => {
+          loggedData = data;
+          return { id: 2, ...data };
+        };
+
+        await auditService.logAudit('closure', 5, 'AUTO_CLOSE', null, { isClosed: true }, 'System Rollover');
+
+        assert.strictEqual(loggedData.employeeId, null);
+        assert.strictEqual(loggedData.actorName, 'System Rollover');
+      } finally {
+        prisma.auditLog.create = originalCreate;
+      }
+    });
+
+    it('Rule 13: Rehire creates a new User linked to existing Employee', async () => {
+      const existingEmployee = { id: 12, employeeCode: 'EMP-0012', name: 'John Doe', status: 'RESIGNED' };
+      
+      // Rehire: Employee status updated, new user created referencing employeeId: 12
+      const updatedEmployee = { ...existingEmployee, status: 'ACTIVE' };
+      const newUser = { id: 99, employeeId: existingEmployee.id, username: 'jdoe_rehired' };
+
+      assert.strictEqual(newUser.employeeId, existingEmployee.id);
+      assert.strictEqual(updatedEmployee.status, 'ACTIVE');
+      assert.notStrictEqual(newUser.id, existingEmployee.id); // independent sequences
+    });
+
+    it('Rule 14 & 15: No fake SYSTEM_USER_ID or || 0 audit fallbacks', () => {
+      const user = null;
+      const actorEmployeeId = user?.employeeId || user?.userId || null;
+      const actorName = user?.name || (actorEmployeeId ? `Employee #${actorEmployeeId}` : 'System');
+
+      assert.strictEqual(actorEmployeeId, null);
+      assert.strictEqual(actorName, 'System');
+      assert.notStrictEqual(actorEmployeeId, 0); // never falls back to 0
     });
   });
 

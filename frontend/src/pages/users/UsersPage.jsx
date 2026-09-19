@@ -210,7 +210,7 @@ export default function UsersPage() {
   const handlePermanentDelete = async (id, name) => {
     setDeactivatedError('');
     const label = name ? ` (${name})` : '';
-    if (window.confirm(`Are you sure you want to permanently remove this user account${label}? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to permanently remove this login account${label}? The employee profile and all historical business records will remain permanently preserved.`)) {
       try {
         await permanentDeleteMutation.mutateAsync(id);
       } catch (err) {

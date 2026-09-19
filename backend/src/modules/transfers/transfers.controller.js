@@ -2,7 +2,8 @@ const transferService = require('./transfers.service');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const create = asyncHandler(async (req, res) => {
-  const transfer = await transferService.create(req.body, req.user?.userId, req.user);
+  const actorId = req.user?.employeeId || req.user?.userId;
+  const transfer = await transferService.create(req.body, actorId, req.user);
   res.status(201).json({ success: true, message: 'Transfer created', data: transfer });
 });
 
@@ -17,12 +18,14 @@ const findById = asyncHandler(async (req, res) => {
 });
 
 const updateSent = asyncHandler(async (req, res) => {
-  const transfer = await transferService.updateSent(req.params.id, req.body, req.user?.userId, req.user);
+  const actorId = req.user?.employeeId || req.user?.userId;
+  const transfer = await transferService.updateSent(req.params.id, req.body, actorId, req.user);
   res.json({ success: true, message: 'Sent quantity updated', data: transfer });
 });
 
 const updateReceived = asyncHandler(async (req, res) => {
-  const transfer = await transferService.updateReceived(req.params.id, req.body, req.user?.userId, req.user);
+  const actorId = req.user?.employeeId || req.user?.userId;
+  const transfer = await transferService.updateReceived(req.params.id, req.body, actorId, req.user);
   res.json({ success: true, message: 'Received quantity updated', data: transfer });
 });
 

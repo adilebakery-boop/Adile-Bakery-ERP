@@ -183,18 +183,69 @@ router.post(
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    if (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') {
-      const user = await prisma.user.create({
-        data: { name, username, passwordHash, roleId: targetRole.id, branchId: branchId || null, email: email || null },
-        include: { role: true }
-      });
-      return res.status(201).json({ success: true, message: 'User created successfully', data: user });
-    }
+    let assignedEmployeeId = req.body.employeeId ? Number(req.body.employeeId) : null;
+    const effectiveBranchId = (currentUserRole === 'ADMIN' && targetRole.name === 'MANAGER') ? (branchId || null) : branchId;
 
-    const user = await prisma.user.create({
-      data: { name, username, passwordHash, roleId: targetRole.id, branchId, email: email || null },
-      include: { role: true }
+    const user = await prisma.$transaction(async (tx) => {
+      if (!assignedEmployeeId) {
+        const empCode = `EMP-${Date.now().toString().slice(-6)}`;
+        const employee = await tx.employee.create({
+          data: {
+            employeeCode: empCode,
+            name,
+            email: email || null,
+            status: 'ACTIVE',
+            primaryRoleId: targetRole.id,
+            primaryBranchId: effectiveBranchId || null,
+            userAccountCreatedAt: new Date(),
+          },
+        });
+        assignedEmployeeId = employee.id;
+
+        await tx.employeeRoleHistory.create({
+          data: {
+            employeeId: employee.id,
+            roleId: targetRole.id,
+            startDate: new Date(),
+          },
+        });
+      } else {
+        const existingEmp = await tx.employee.findUnique({ where: { id: assignedEmployeeId } });
+        if (!existingEmp) {
+          throw Object.assign(new Error('Specified employee not found'), { status: 404 });
+        }
+        await tx.employee.update({
+          where: { id: assignedEmployeeId },
+          data: {
+            status: 'ACTIVE',
+            name: name || existingEmp.name,
+            primaryRoleId: targetRole.id,
+            primaryBranchId: effectiveBranchId || existingEmp.primaryBranchId,
+          },
+        });
+        await tx.employeeRoleHistory.create({
+          data: {
+            employeeId: assignedEmployeeId,
+            roleId: targetRole.id,
+            startDate: new Date(),
+          },
+        });
+      }
+
+      return tx.user.create({
+        data: {
+          employeeId: assignedEmployeeId,
+          name,
+          username,
+          passwordHash,
+          roleId: targetRole.id,
+          branchId: effectiveBranchId,
+          email: email || null,
+        },
+        include: { role: true, branch: true, employee: true },
+      });
     });
+
     res.status(201).json({ success: true, message: 'User created successfully', data: user });
   })
 );
@@ -275,8 +326,18 @@ router.put(
         isBlocked,
         email: email === undefined ? undefined : (email || null)
       },
-      include: { role: true }
+      include: { role: true, branch: true, employee: true }
     });
+
+    if (user.employeeId && (name || email !== undefined)) {
+      await prisma.employee.update({
+        where: { id: user.employeeId },
+        data: {
+          ...(name ? { name } : {}),
+          ...(email !== undefined ? { email: email || null } : {}),
+        },
+      }).catch((err) => console.warn('[USERS] Failed to sync employee details:', err));
+    }
 
     if (isBlocked === true) {
       await refreshTokenUtil.revokeAll(targetUserId).catch((err) => {
@@ -316,52 +377,8 @@ router.delete(
       });
     }
 
-    // Check all historical business records and audit references
-    const [
-      productionCount,
-      remainingCount,
-      wasteCount,
-      closureCount,
-      transferCount,
-      reopenCount,
-      auditCount,
-      snapshotCount,
-    ] = await Promise.all([
-      prisma.productionRecord.count({
-        where: { OR: [{ createdBy: targetUserId }, { updatedBy: targetUserId }] },
-      }),
-      prisma.remainingRecord.count({
-        where: { OR: [{ createdBy: targetUserId }, { updatedBy: targetUserId }] },
-      }),
-      prisma.wasteRecord.count({ where: { createdBy: targetUserId } }),
-      prisma.dailyClosure.count({ where: { closedBy: targetUserId } }),
-      prisma.productTransfer.count({ where: { createdBy: targetUserId } }),
-      prisma.reopenLog.count({ where: { reopenedBy: targetUserId } }),
-      prisma.auditLog.count({ where: { userId: targetUserId } }),
-      prisma.dailySnapshot.count({
-        where: { OR: [{ closedBy: targetUserId }, { invalidatedBy: targetUserId }] },
-      }),
-    ]);
-
-    const totalHistorical =
-      productionCount +
-      remainingCount +
-      wasteCount +
-      closureCount +
-      transferCount +
-      reopenCount +
-      auditCount +
-      snapshotCount;
-
-    if (totalHistorical > 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Cannot permanently remove this user because they have historical business records. The account must remain deactivated to preserve business history.',
-      });
-    }
-
-    // Safe deletion of account and auth tokens in transaction
+    // Safe deletion of account and auth credentials in transaction
+    // Historical business records (production, waste, closures, audit) reference Employee and remain preserved
     await prisma.$transaction([
       prisma.refreshToken.deleteMany({ where: { userId: targetUserId } }),
       prisma.passwordReset.deleteMany({ where: { userId: targetUserId } }),
@@ -370,7 +387,7 @@ router.delete(
 
     res.json({
       success: true,
-      message: 'User permanently deleted successfully',
+      message: 'User login account permanently deleted successfully. Employee record and historical business records remain preserved.',
       data: {},
     });
   })

@@ -26,7 +26,19 @@ const authenticate = async (req, res, next) => {
 
     const dbUser = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true, branchId: true, isBlocked: true, isActive: true },
+      select: {
+        id: true,
+        employeeId: true,
+        roleId: true,
+        role: true,
+        branchId: true,
+        isBlocked: true,
+        isActive: true,
+        username: true,
+        employee: {
+          select: { id: true, name: true, status: true },
+        },
+      },
     });
 
     if (!dbUser) {
@@ -57,9 +69,20 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    if (dbUser.employee && dbUser.employee.status !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your employee record is no longer active. Contact your manager.',
+        errors: []
+      });
+    }
+
     req.user = {
       userId: dbUser.id,
+      employeeId: dbUser.employeeId || dbUser.employee?.id || dbUser.id,
+      name: dbUser.employee?.name || dbUser.username,
       role: dbUser.role.name,
+      roleId: dbUser.roleId,
       branchId: dbUser.branchId,
       isBlocked: dbUser.isBlocked,
       isActive: dbUser.isActive,
@@ -86,13 +109,33 @@ const optionalAuth = async (req, res, next) => {
     if (decoded) {
       const dbUser = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, role: true, branchId: true, isBlocked: true, isActive: true },
+        select: {
+          id: true,
+          employeeId: true,
+          roleId: true,
+          role: true,
+          branchId: true,
+          isBlocked: true,
+          isActive: true,
+          username: true,
+          employee: {
+            select: { id: true, name: true, status: true },
+          },
+        },
       });
 
-      if (dbUser && !dbUser.isBlocked && dbUser.isActive) {
+      if (
+        dbUser &&
+        !dbUser.isBlocked &&
+        dbUser.isActive &&
+        (!dbUser.employee || dbUser.employee.status === 'ACTIVE')
+      ) {
         req.user = {
           userId: dbUser.id,
+          employeeId: dbUser.employeeId || dbUser.employee?.id || dbUser.id,
+          name: dbUser.employee?.name || dbUser.username,
           role: dbUser.role.name,
+          roleId: dbUser.roleId,
           branchId: dbUser.branchId,
           isBlocked: dbUser.isBlocked,
           isActive: dbUser.isActive,
