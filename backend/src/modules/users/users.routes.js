@@ -11,6 +11,13 @@ const SALT_ROUNDS = 10;
 
 const router = express.Router();
 
+const EMPLOYEE_PUBLIC_SELECT = {
+  id: true,
+  employeeCode: true,
+  name: true,
+  status: true,
+};
+
 const validate = (schema) => (req, res, next) => {
   try {
     req.body = schema.parse(req.body);
@@ -48,7 +55,11 @@ router.get(
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        include: { role: true, branch: true },
+        include: {
+          role: true,
+          branch: true,
+          employee: { select: EMPLOYEE_PUBLIC_SELECT },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -78,7 +89,11 @@ router.get(
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      include: { role: true, branch: true }
+      include: {
+        role: true,
+        branch: true,
+        employee: { select: EMPLOYEE_PUBLIC_SELECT },
+      },
     });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -98,13 +113,17 @@ router.get(
     }
     const users = await prisma.user.findMany({
       where,
-      include: { role: true, branch: true },
-      orderBy: { deletedAt: 'desc' }
+      include: {
+        role: true,
+        branch: true,
+        employee: { select: EMPLOYEE_PUBLIC_SELECT },
+      },
+      orderBy: { deletedAt: 'desc' },
     });
     res.json({
       success: true,
       message: 'Deactivated users retrieved successfully',
-      data: { users }
+      data: { users },
     });
   })
 );
@@ -120,7 +139,11 @@ router.get(
     }
     const user = await prisma.user.findUnique({
       where,
-      include: { role: true, branch: true }
+      include: {
+        role: true,
+        branch: true,
+        employee: { select: EMPLOYEE_PUBLIC_SELECT },
+      },
     });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -223,13 +246,20 @@ router.post(
             primaryBranchId: effectiveBranchId || existingEmp.primaryBranchId,
           },
         });
-        await tx.employeeRoleHistory.create({
-          data: {
-            employeeId: assignedEmployeeId,
-            roleId: targetRole.id,
-            startDate: new Date(),
-          },
-        });
+        if (existingEmp.primaryRoleId !== targetRole.id) {
+          await tx.employeeRoleHistory.updateMany({
+            where: { employeeId: assignedEmployeeId, endDate: null },
+            data: { endDate: new Date() },
+          });
+          await tx.employeeRoleHistory.create({
+            data: {
+              employeeId: assignedEmployeeId,
+              roleId: targetRole.id,
+              startDate: new Date(),
+              endDate: null,
+            },
+          });
+        }
       }
 
       return tx.user.create({
@@ -242,7 +272,11 @@ router.post(
           branchId: effectiveBranchId,
           email: email || null,
         },
-        include: { role: true, branch: true, employee: true },
+        include: {
+          role: true,
+          branch: true,
+          employee: { select: EMPLOYEE_PUBLIC_SELECT },
+        },
       });
     });
 
@@ -270,10 +304,22 @@ router.put(
       return res.status(400).json({ success: false, message: 'User is already active' });
     }
 
-    const restored = await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: true, deletedAt: null },
-      include: { role: true, branch: true }
+    const restored = await prisma.$transaction(async (tx) => {
+      if (user.employeeId) {
+        await tx.employee.update({
+          where: { id: user.employeeId },
+          data: { status: 'ACTIVE' },
+        });
+      }
+      return tx.user.update({
+        where: { id: userId },
+        data: { isActive: true, deletedAt: null },
+        include: {
+          role: true,
+          branch: true,
+          employee: { select: EMPLOYEE_PUBLIC_SELECT },
+        },
+      });
     });
 
     res.json({ success: true, message: 'User restored successfully', data: restored });
@@ -293,6 +339,14 @@ router.put(
     const canManage = await canManageTargetUser(req.user, targetUserId);
     if (!canManage) {
       return res.status(403).json({ success: false, message: 'You do not have permission to manage this user' });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { role: true, employee: true },
+    });
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     let targetRole = null;
@@ -316,28 +370,72 @@ router.put(
       return res.status(400).json({ success: false, message: 'You cannot block your own account' });
     }
 
-    const user = await prisma.user.update({
-      where: { id: targetUserId },
-      data: { 
-        name, 
-        username,
-        roleId: targetRole?.id,
-        branchId, 
-        isBlocked,
-        email: email === undefined ? undefined : (email || null)
-      },
-      include: { role: true, branch: true, employee: true }
-    });
+    const effectiveBranchId = (currentUserRole === 'ADMIN' && targetRole?.name === 'MANAGER')
+      ? (branchId !== undefined ? branchId : existingUser.branchId)
+      : branchId;
 
-    if (user.employeeId && (name || email !== undefined)) {
-      await prisma.employee.update({
-        where: { id: user.employeeId },
-        data: {
-          ...(name ? { name } : {}),
-          ...(email !== undefined ? { email: email || null } : {}),
+    const user = await prisma.$transaction(async (tx) => {
+      if (existingUser.employeeId) {
+        if (targetRole) {
+          const emp = await tx.employee.findUnique({ where: { id: existingUser.employeeId } });
+          const currentPrimaryRoleId = emp?.primaryRoleId ?? existingUser.roleId;
+
+          if (targetRole.id !== currentPrimaryRoleId) {
+            // Close the active role history entry (endDate is null)
+            await tx.employeeRoleHistory.updateMany({
+              where: {
+                employeeId: existingUser.employeeId,
+                endDate: null,
+              },
+              data: {
+                endDate: new Date(),
+              },
+            });
+
+            // Create a new role history entry
+            await tx.employeeRoleHistory.create({
+              data: {
+                employeeId: existingUser.employeeId,
+                roleId: targetRole.id,
+                startDate: new Date(),
+                endDate: null,
+              },
+            });
+          }
+        }
+
+        const employeeUpdateData = {};
+        if (name !== undefined) employeeUpdateData.name = name;
+        if (email !== undefined) employeeUpdateData.email = email || null;
+        if (targetRole) employeeUpdateData.primaryRoleId = targetRole.id;
+        if (effectiveBranchId !== undefined) employeeUpdateData.primaryBranchId = effectiveBranchId;
+
+        if (Object.keys(employeeUpdateData).length > 0) {
+          await tx.employee.update({
+            where: { id: existingUser.employeeId },
+            data: employeeUpdateData,
+          });
+        }
+      }
+
+      const userUpdateData = {};
+      if (name !== undefined) userUpdateData.name = name;
+      if (username !== undefined) userUpdateData.username = username;
+      if (targetRole) userUpdateData.roleId = targetRole.id;
+      if (effectiveBranchId !== undefined) userUpdateData.branchId = effectiveBranchId;
+      if (isBlocked !== undefined) userUpdateData.isBlocked = isBlocked;
+      if (email !== undefined) userUpdateData.email = email || null;
+
+      return tx.user.update({
+        where: { id: targetUserId },
+        data: userUpdateData,
+        include: {
+          role: true,
+          branch: true,
+          employee: { select: EMPLOYEE_PUBLIC_SELECT },
         },
-      }).catch((err) => console.warn('[USERS] Failed to sync employee details:', err));
-    }
+      });
+    });
 
     if (isBlocked === true) {
       await refreshTokenUtil.revokeAll(targetUserId).catch((err) => {
@@ -417,9 +515,17 @@ router.delete(
       return res.status(404).json({ success: false, message: 'User already deactivated' });
     }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false, deletedAt: new Date() }
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { isActive: false, deletedAt: new Date() },
+      });
+      if (user.employeeId) {
+        await tx.employee.update({
+          where: { id: user.employeeId },
+          data: { status: 'INACTIVE' },
+        });
+      }
     });
 
     res.json({ success: true, message: 'User deactivated successfully', data: {} });

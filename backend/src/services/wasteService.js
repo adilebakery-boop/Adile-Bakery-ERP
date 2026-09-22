@@ -138,6 +138,13 @@ async function create(data, userId) {
 
   await requireDayNotClosed(branchId, opDate);
 
+  const authorEmployeeId = (userId && typeof userId === 'object') ? userId.employeeId : (typeof userId === 'number' ? userId : null);
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated user must have an associated employee ID to create waste records');
+    error.status = 400;
+    throw error;
+  }
+
   const waste = await prisma.wasteRecord.create({
     data: {
       productId: parseInt(productId),
@@ -145,7 +152,7 @@ async function create(data, userId) {
       operationalDate: opDate,
       quantity: toDecimal(String(quantity)),
       reason: reason || null,
-      createdBy: (userId && userId.employeeId) || (userId && userId.userId) || (typeof userId === 'number' ? userId : null),
+      createdBy: authorEmployeeId,
     },
     include: {
       product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -154,8 +161,8 @@ async function create(data, userId) {
     },
   });
 
-  const actorEmployeeId = (userId && userId.employeeId) || (userId && userId.userId) || (typeof userId === 'number' ? userId : null);
-  const actorName = (userId && userId.name) || (actorEmployeeId ? `Employee #${actorEmployeeId}` : 'System');
+  const actorEmployeeId = authorEmployeeId;
+  const actorName = (userId && userId.name) || `Employee #${actorEmployeeId}`;
   await auditService.logAudit('waste', waste.id, 'CREATE', null, waste, {
     employeeId: actorEmployeeId,
     name: actorName,
@@ -204,7 +211,7 @@ async function update(id, data, userId) {
     },
   });
 
-  const actorUpdateId = (userId && userId.employeeId) || (userId && userId.userId) || (typeof userId === 'number' ? userId : null);
+  const actorUpdateId = (userId && typeof userId === 'object') ? userId.employeeId : null;
   const actorUpdateName = (userId && userId.name) || (actorUpdateId ? `Employee #${actorUpdateId}` : 'System');
   await auditService.logAudit('waste', waste.id, 'UPDATE', oldValue, waste, {
     employeeId: actorUpdateId,
@@ -231,7 +238,7 @@ async function remove(id, userId) {
     where: { id: parseInt(id) },
   });
 
-  const actorRemoveId = (userId && userId.employeeId) || (userId && userId.userId) || (typeof userId === 'number' ? userId : null);
+  const actorRemoveId = (userId && typeof userId === 'object') ? userId.employeeId : null;
   const actorRemoveName = (userId && userId.name) || (actorRemoveId ? `Employee #${actorRemoveId}` : 'System');
   await auditService.logAudit('waste', parseInt(id), 'DELETE', existing, null, {
     employeeId: actorRemoveId,

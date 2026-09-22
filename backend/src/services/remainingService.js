@@ -169,6 +169,13 @@ async function create(data, user) {
     },
   });
 
+  const authorEmployeeId = user?.employeeId;
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to record remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   let remaining;
 
   if (existing) {
@@ -178,7 +185,7 @@ async function create(data, user) {
       data: {
         quantity: toDecimal(String(quantity)),
         status,
-        updatedBy: user.employeeId || user.userId,
+        updatedBy: authorEmployeeId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -188,7 +195,7 @@ async function create(data, user) {
     });
 
     await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
-      employeeId: user.employeeId || user.userId,
+      employeeId: authorEmployeeId,
       name: user.name,
     });
   } else {
@@ -199,7 +206,7 @@ async function create(data, user) {
         operationalDate: opDate,
         quantity: toDecimal(String(quantity)),
         status,
-        createdBy: user.employeeId || user.userId,
+        createdBy: authorEmployeeId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -209,7 +216,7 @@ async function create(data, user) {
     });
 
     await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, {
-      employeeId: user.employeeId || user.userId,
+      employeeId: authorEmployeeId,
       name: user.name,
     });
   }
@@ -295,10 +302,16 @@ async function createBulk(data, user) {
     }
   }
 
+  const employeeIdNum = user?.employeeId;
+  if (!employeeIdNum) {
+    const error = new Error('Authenticated employee ID is required to record remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   const result = await prisma.$transaction(async (tx) => {
 
   const branchIdNum = parseInt(branchId);
-  const employeeIdNum = user.employeeId || user.userId;
 
   const returnedRows = items.length > 0
     ? await tx.$queryRaw(Prisma.sql`
@@ -323,8 +336,8 @@ async function createBulk(data, user) {
   `)
     : [];
 
-  const actorEmployeeId = user.employeeId || user.userId || null;
-  const actorName = user.name || (actorEmployeeId ? `Employee #${actorEmployeeId}` : 'System');
+  const actorEmployeeId = employeeIdNum;
+  const actorName = user.name || `Employee #${actorEmployeeId}`;
   const auditLogs = returnedRows.map(row => {
     const existing = existingMap.get(row.productId);
     return {
@@ -367,8 +380,15 @@ async function update(id, data, user) {
 
   await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
+  const updaterEmployeeId = user?.employeeId;
+  if (!updaterEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to update remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   const updateData = {
-    updatedBy: user.employeeId || user.userId,
+    updatedBy: updaterEmployeeId,
   };
 
   if (data.quantity !== undefined) {
@@ -398,7 +418,7 @@ async function update(id, data, user) {
   });
 
   await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
-    employeeId: user.employeeId || user.userId,
+    employeeId: updaterEmployeeId,
     name: user.name,
   });
 
@@ -423,7 +443,7 @@ async function remove(id, user) {
   });
 
   await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, {
-    employeeId: user.employeeId || user.userId,
+    employeeId: user?.employeeId || null,
     name: user.name,
   });
 

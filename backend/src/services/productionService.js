@@ -203,6 +203,13 @@ async function create(data, user) {
 
   await requireDayNotClosed(assignedBranchId, opDate);
 
+  const authorEmployeeId = user?.employeeId;
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to create a production record');
+    error.status = 400;
+    throw error;
+  }
+
   const production = await prisma.productionRecord.create({
     data: {
       productId: parseInt(productId),
@@ -211,7 +218,7 @@ async function create(data, user) {
       operationalDate: opDate,
       shift,
       quantity: new Prisma.Decimal(String(quantity)),
-      createdBy: user.employeeId || user.userId,
+      createdBy: authorEmployeeId,
     },
     include: {
       product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -221,7 +228,7 @@ async function create(data, user) {
   });
 
   await auditService.logAudit('production', production.id, 'CREATE', null, production, {
-    employeeId: user.employeeId || user.userId,
+    employeeId: authorEmployeeId,
     name: user.name,
   });
 
@@ -254,8 +261,15 @@ async function update(id, data, user) {
     throw error;
   }
 
+  const updaterEmployeeId = user?.employeeId;
+  if (!updaterEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to update a production record');
+    error.status = 400;
+    throw error;
+  }
+
   const updateData = {
-    updatedBy: user.employeeId || user.userId,
+    updatedBy: updaterEmployeeId,
   };
 
   if (data.quantity !== undefined) {
@@ -282,7 +296,7 @@ async function update(id, data, user) {
   });
 
   await auditService.logAudit('production', production.id, 'UPDATE', oldValue, production, {
-    employeeId: user.employeeId || user.userId,
+    employeeId: updaterEmployeeId,
     name: user.name,
   });
 
@@ -308,7 +322,7 @@ async function remove(id, user) {
   });
 
   await auditService.logAudit('production', parseInt(id), 'DELETE', existing, null, {
-    employeeId: user.employeeId || user.userId,
+    employeeId: user?.employeeId || null,
     name: user.name,
   });
 

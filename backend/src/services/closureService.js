@@ -266,7 +266,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
         operationalDate: opDate,
         quantity: 0,
         status: 'FINAL',
-        createdBy: userId,
+        createdBy: user?.employeeId || (typeof userId === 'number' && userId > 0 ? userId : null),
         createdAt: now,
         updatedAt: now,
       }));
@@ -287,7 +287,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
       throw error;
     }
 
-    const closingEmployeeId = (user && user.employeeId) || (typeof userId === 'number' && userId > 0 ? userId : null);
+    const closingEmployeeId = user?.employeeId || (typeof userId === 'number' && userId > 0 ? userId : null);
     let closure = existingClosure;
     
     if (!closure) {
@@ -413,6 +413,13 @@ async function reopenDay(branchId, operationalDate, user, reason) {
     throw error;
   }
 
+  const reopeningEmployeeId = user?.employeeId;
+  if (!reopeningEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to reopen an operational day');
+    error.status = 400;
+    throw error;
+  }
+
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
 
@@ -431,7 +438,7 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       data: {
         branchId: branchIdInt,
         operationalDate: opDate,
-        reopenedBy: user?.userId || user?.id || 0,
+        reopenedBy: reopeningEmployeeId,
         reason,
       },
     });
@@ -439,8 +446,6 @@ async function reopenDay(branchId, operationalDate, user, reason) {
     const snapshot = await tx.dailySnapshot.findFirst({
       where: { branchId: branchIdInt, operationalDate: opDate, isInvalidated: false },
     });
-
-    const reopeningEmployeeId = (user && user.employeeId) || (user && user.userId) || (typeof user === 'number' && user > 0 ? user : null);
 
     if (snapshot) {
       await tx.dailySnapshot.update({
@@ -467,7 +472,7 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       },
     });
 
-    const reopenActorName = (user && user.name) || (reopeningEmployeeId ? `Employee #${reopeningEmployeeId}` : 'System');
+    const reopenActorName = (user && user.name) || `Employee #${reopeningEmployeeId}`;
     await tx.auditLog.create({
       data: {
         entityType: 'closure',

@@ -3,7 +3,7 @@ const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const create = asyncHandler(async (req, res) => {
   const actor = {
-    employeeId: req.user?.employeeId || req.user?.userId,
+    employeeId: req.user?.employeeId || null,
     name: req.user?.name,
   };
   const branch = await branchService.create(req.body, actor);
@@ -44,7 +44,7 @@ const findById = asyncHandler(async (req, res) => {
 
 const update = asyncHandler(async (req, res) => {
   const actor = {
-    employeeId: req.user?.employeeId || req.user?.userId,
+    employeeId: req.user?.employeeId || null,
     name: req.user?.name,
   };
   const branch = await branchService.update(parseInt(req.params.id), req.body, actor);
@@ -57,7 +57,7 @@ const update = asyncHandler(async (req, res) => {
 
 const deleteBranch = asyncHandler(async (req, res) => {
   const actor = {
-    employeeId: req.user?.employeeId || req.user?.userId,
+    employeeId: req.user?.employeeId || null,
     name: req.user?.name,
   };
   await branchService.delete(parseInt(req.params.id), actor);
@@ -69,7 +69,7 @@ const deleteBranch = asyncHandler(async (req, res) => {
 
 const restore = asyncHandler(async (req, res) => {
   const actor = {
-    employeeId: req.user?.employeeId || req.user?.userId,
+    employeeId: req.user?.employeeId || null,
     name: req.user?.name,
   };
   const branch = await branchService.restore(parseInt(req.params.id), actor);

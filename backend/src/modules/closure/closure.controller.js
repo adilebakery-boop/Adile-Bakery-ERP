@@ -30,10 +30,18 @@ const validate = asyncHandler(async (req, res) => {
 const close = asyncHandler(async (req, res) => {
   const { operationalDate, note } = req.body;
   const branchId = req.user.role === 'MANAGER' ? req.user.branchId : (req.body.branchId || req.user.branchId);
+
+  const closingEmployeeId = req.user.employeeId;
+  if (!closingEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to close an operational day');
+    error.status = 400;
+    throw error;
+  }
+
   const result = await closureService.closeDay(
     branchId,
     operationalDate,
-    req.user.employeeId || req.user.userId,
+    closingEmployeeId,
     note,
     req.user
   );
