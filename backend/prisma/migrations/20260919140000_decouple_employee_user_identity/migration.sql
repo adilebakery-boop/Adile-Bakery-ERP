@@ -52,7 +52,10 @@ SELECT
 FROM "User" u;
 
 -- 3. Synchronize Sequence for Employee Table
-SELECT setval('Employee_id_seq', COALESCE((SELECT MAX(id) FROM "Employee"), 1));
+SELECT setval(
+  pg_get_serial_sequence('"Employee"', 'id'),
+  COALESCE((SELECT MAX(id) FROM "Employee"), 1)
+);
 
 -- 4. Establish User -> Employee Relationship
 ALTER TABLE "User" ADD COLUMN "employeeId" INTEGER;
