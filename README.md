@@ -1,281 +1,146 @@
 # Adile Bakery ERP
 
-Adile Bakery ERP is a multi-branch Enterprise Resource Planning (ERP) system designed specifically for bakery operations. It facilitates the recording of daily production outputs across different shifts, manages end-of-day remaining inventory, tracks product waste, and generates consolidated financial and operational snapshots. 
-
-Designed for both operational staff (bakers, cashiers, managers) and administrators, the system incorporates features like multi-lingual support (English & Amharic), timezone-safe daily rollovers, collaborative draft workflows, and Excel-based report exports.
+A production multi-branch Enterprise Resource Planning (ERP) system designed for commercial bakery operations, managing daily production batches across shifts, end-of-day inventory finalization, waste tracking, and financial snapshots.
 
 ---
 
-## Table of Contents
+## Overview
 
-1. [Project Overview](#1-project-overview)
-2. [Prerequisites & Setup](#2-prerequisites--setup)
-3. [Quick Start Guide](#3-quick-start-guide)
-4. [Core Features / Usage](#4-core-features--usage)
-5. [Architecture / Structure](#5-architecture--structure)
-6. [Troubleshooting / FAQ](#6-troubleshooting--faq)
+Adile Bakery ERP coordinates daily operational workflows across multi-branch bakery locations. Production staff log batch runs by shift, front-of-house staff record unsold inventory through collaborative drafts, and branch managers review aggregated figures to execute end-of-day closures. Closing an operational day calculates physical flows:
 
----
+$$\text{Opening Stock} + \text{Total Production} - \text{Remaining Stock} - \text{Waste} = \text{Estimated Sold}$$
 
-## 1. Project Overview
-
-The primary objective of Adile Bakery ERP is to streamline the day-to-day inventory and production logging of a multi-branch bakery. Bakings of different products are logged per shift, while remaining items are logged at the end of the operational day. Closing the day aggregates all production, remaining, and waste numbers into a consolidated financial and physical inventory snapshot.
-
-### Tech Stack
-
-#### **Backend**
-* **Runtime**: Node.js
-* **Framework**: Express.js
-* **Database & ORM**: PostgreSQL, Prisma ORM
-* **Math / Precision**: `decimal.js` (for exact product weight and monetary computations)
-* **Date & Time**: `date-fns` and `date-fns-tz` (handles operational day transitions using the `Africa/Addis_Ababa` timezone)
-* **Security**: `bcrypt` (password hashing), `helmet` (HTTP headers security), `jsonwebtoken` (session handling with Access & Refresh tokens), and `express-rate-limit` (API rate-limiting)
-* **Reporting**: `exceljs` (generates detailed Excel reports)
-
-#### **Frontend**
-* **Framework**: React (v18)
-* **Bundler & Tooling**: Vite, ESLint
-* **Styling**: Tailwind CSS (v3.4), PostCSS, Autoprefixer
-* **State Management**: TanStack React Query (v5) (efficient server cache synchronization)
-* **Navigation**: React Router DOM (v7)
-* **Icons**: Lucide React
-* **Localization**: `i18next` (supports English and Amharic language toggling)
-
-### Target Audience
-* **Bakers & Chefs (Baker, Cake Chef, Cookie Baker, Fetir Chef)**: End-users logging daily production quantities per product category.
-* **Cashiers & Front-of-House Staff**: Logging end-of-day remaining stock.
-* **Branch Managers**: Verifying shift reports, logging waste, closing/reopening operational days, and monitoring branch dashboards.
-* **System Administrators / Developers**: Managing the product catalog, user directories, role permissions, and database schemas.
+The system persists immutable daily snapshots for financial auditing, enforces timezone-safe (`Africa/Addis_Ababa`) automated rollovers, supports multi-lingual operations (English & Amharic), and exports reports to Excel spreadsheets.
 
 ---
 
-## 2. Prerequisites & Setup
+## Technology
 
-Follow these steps to configure your environment and run the backend and frontend services locally.
-
-### Prerequisites
-* **Node.js** (v18.0.0 or higher recommended)
-* **npm** (v9.0.0 or higher)
-* **PostgreSQL** instance (running locally or hosted)
-
----
-
-### Setup Instructions
-
-#### Step 1: Clone the Repository
-Clone the project repository and navigate to the root directory:
-```bash
-git clone https://github.com/nathanzerfu-B/Adile-Bakery-ERP.git
-cd Adile-Bakery-ERP
-```
-
-#### Step 2: Configure Environment Variables
-Copy the environment template files in both backend and frontend directories, and populate them with your secrets.
-
-* **Backend Configuration**:
-  Navigate to the `backend/` directory and configure the environment variables:
-  ```bash
-  cd backend
-  cp .env.example .env
-  ```
-  Edit the `.env` file with appropriate values:
-  ```env
-  DATABASE_URL="postgresql://<username>:<password>@localhost:5432/<database_name>"
-  PORT=3000
-  JWT_SECRET="your-64-byte-hex-secret-here"
-  REFRESH_TOKEN_SECRET="your-other-64-byte-hex-secret-here"
-  JWT_EXPIRES_IN=15m
-  FRONTEND_URL="http://localhost:5173"
-  ```
-  *(Note: You can generate secure secrets using `openssl rand -hex 64`)*
-
-* **Frontend Configuration**:
-  Navigate to the `frontend/` directory and configure the API URL:
-  ```bash
-  cd ../frontend
-  cp .env.example .env
-  ```
-  Edit the `.env` file to point to the backend API:
-  ```env
-  VITE_API_URL=http://localhost:3000/api
-  ```
+- **Frontend**: React 18, Vite, TanStack React Query (v5), React Router DOM (v7), Tailwind CSS, i18next (English & Amharic), Lucide React
+- **Backend**: Node.js, Express
+- **Database & Data Layer**: PostgreSQL, Prisma ORM, Decimal.js (monetary & weight precision)
+- **Authentication & Security**: BCrypt, JSON Web Tokens (Access & Refresh Tokens), Helmet, Express Rate Limit
+- **Timezone Management**: date-fns, date-fns-tz (`Africa/Addis_Ababa`)
+- **API Testing & Tooling**: Postman Collections & Environments
+- **Reporting**: ExcelJS (.xlsx report generation)
 
 ---
 
-#### Step 3: Install Dependencies
-Install packages for both the backend and frontend services:
+## Testing & QA Validation
 
-* **Backend**:
-  ```bash
-  cd ../backend
-  npm install
-  ```
+The platform undergoes rigorous validation across API endpoints, data persistence, and security layers:
 
-* **Frontend**:
-  ```bash
-  cd ../frontend
-  npm install
-  ```
+### 1. API Verification & Postman Suites
+- Dedicated **Postman API test collections** (`postman/Adile-Bakery-ERP.postman_collection.json`) and sandbox environment configuration (`postman/local.postman_environment.json`).
+- Automated validation of HTTP status codes, structured response schemas (`docs/api-response-standard.md`), and JWT Bearer token headers across role endpoints.
 
----
+### 2. Role-Based Access Control (RBAC) Boundary Testing
+- Validation of permission enforcement across all 7 user roles (`ADMIN`, `MANAGER`, `BAKER`, `CAKE_CHEF`, `COOKIE_BAKER`, `FETIR_CHEF`, `CASHIER`).
+- Verification that unauthorized role mutations (e.g., non-admin attempting branch modifications or unauthorized password resets) correctly return HTTP `403 Forbidden`.
 
-#### Step 4: Run Database Migrations & Seed Data
-With your PostgreSQL database running, execute the Prisma migrations and seed the initial users, roles, and product lists:
-
-```bash
-cd ../backend
-# Apply migrations to target database
-npx prisma migrate dev --name init
-
-# Seed roles, users, products, and schedules
-npm run seed:all
-```
-The seeding script creates default user profiles for testing, including:
-* **Admin**: `admin` / `admin123`
-* **Manager**: `sara.manager` / `password123`
-* **Baker**: `omar.baker` / `password123`
+### 3. Workflow & Lifecycle Testing
+- **Collaborative Draft-to-Final Lifecycle**: Verified that multiple cashier sessions can update `DRAFT` status remainings without conflict, and that `Finalize All` atomically transitions records to `FINAL`, locking values against further edits.
+- **Operational Closure Enforcement**: Verified that attempting to mutate quantities on closed operational days is rejected with HTTP `403 Forbidden` unless formally reopened by a Manager with an audit reason logged in `ReopenLog`.
+- **Timezone Rollover Edge Cases**: Validated transactional auto-closure when queries for a new date arrive in `Africa/Addis_Ababa` local time before manual closure has occurred.
 
 ---
 
-## 3. Quick Start Guide
+## My Contribution
 
-Once the setup is complete, you can get the application up and running in a few simple steps.
-
-### Step 1: Start the Backend Server
-From the `backend/` folder:
-```bash
-npm run dev
-```
-The server will spin up on `http://localhost:3000`, connecting to your PostgreSQL instance.
-
-### Step 2: Start the Frontend Application
-From the `frontend/` folder:
-```bash
-npm run dev
-```
-Vite will serve the frontend on `http://localhost:5173`. Open this URL in your web browser.
+- **Role**: Core Team Contributor (Multi-developer team — **129 verified commits** on project repository).
+- **Key Engineering & QA Deliverables**:
+  - **Authentication & Token Security**: Investigated, diagnosed, and resolved multi-device refresh token session invalidation defects, hardening token rotation and session revocation.
+  - **RBAC Enforcement**: Implemented and verified Role-Based Access Control boundary guards for manager password resets and protected endpoints.
+  - **Postman API Suite**: Configured and maintained Postman API collections and environment files for endpoint integration testing.
+  - **System-Wide Defect Remediation**: Investigated and patched production defects across the Production Shift logging page, Reports analytics tab data overflow, Remaining inventory draft saving, and Amharic localized unit labels.
+  - **Scheduler Stability**: Implemented error-handling boundaries on automated background schedulers to prevent unhandled promise rejections from terminating the backend process during startup.
 
 ---
 
-### Step 3: Try the Operational Lifecycle Workflow
+## Architecture
 
-1. **Log in as a Baker**:
-   - Access the login page and enter the credentials: Username: `omar.baker` / Password: `password123`.
-   - Go to the **Production** page.
-   - Enter a quantity of `150` for **Arabic Bread** under the **Morning** shift, and click **Save**.
-
-2. **Log in as a Cashier or Manager**:
-   - Log out, then log in using Manager credentials: Username: `sara.manager` / Password: `password123`.
-   - Go to the **Remaining** page at the end of the operational day.
-   - Enter `15` as the remaining quantity for **Arabic Bread**. Click **Save** to store it as a **DRAFT**.
-   - Verify the numbers, then click **Finalize All**. This changes the status from `DRAFT` to `FINAL`, locking the inventory values.
-
-3. **Close the Operational Day**:
-   - Navigate to the **Dashboard**.
-   - Review the aggregated quantities.
-   - Click **Close Day** to lock all entries for that date and generate a read-only **Daily Snapshot** containing estimated revenue and sales figures.
-
----
-
-## 4. Core Features / Usage
-
-### 🔑 User Role-Based Access Control (RBAC)
-Permissions are enforced on both the client (UI routing) and server (Express middleware). The system supports seven roles:
-* **ADMIN**: Full database control (create users, manage branches, add/edit products, override closures).
-* **MANAGER**: Manages branch operations, logs waste, reviews reports, and opens/closes operational days.
-* **BAKER / CAKE_CHEF / COOKIE_BAKER / FETIR_CHEF**: Logs production outputs for specific categories (e.g., Bakers handle Bread, Cake Chefs handle Cakes).
-* **CASHIER**: Inputs end-of-day remaining stock.
-
-### 🍞 Daily Production Entry
-Allows production staff to record batch runs.
-* Inputs are segmented by **Shift** (`DAY` or `NIGHT` shifts depending on product line).
-* Backed by validation to prevent entry on closed operational days.
-
-### 📦 End-of-Day Remaining Stock (Collaborative Drafts)
-Tracks unsold items to calculate sales and revenue.
-* **Draft Saving**: Multiple users can enter values collaboratively. Saves are stored in `DRAFT` status so staff can double-check numbers.
-* **Deactivated Product Logic**: If a product is deactivated during the day, the finalization step automatically skips it to maintain consistency.
-* **Finalize**: Changes status to `FINAL` which locks the numbers for the day.
-
-### 📅 Daily Closure & Snapshot Lifecycle
-* **Manual Day Close**: Initiated by a manager on the Dashboard. This computes the day's physical flow:
-  $$\text{Opening Stock} + \text{Total Production} - \text{Remaining Stock} - \text{Waste} = \text{Estimated Sold}$$
-* **Daily Snapshot**: Stores frozen metrics (prices, opening stock, production, sales, estimated revenue) for audit compliance.
-* **Reopening a Day**: Reopening a closed day invalidates its snapshot, logs the event to the `ReopenLog` with a reason, and permits edits.
-
-### 🔄 Timezone-Safe Automated Rollover
-To prevent branches from omitting closures:
-* If a request is made for a new date (computed in `Africa/Addis_Ababa` time) and the previous day remains unclosed, the backend initiates a transactional rollover.
-* All stale `DRAFT` remainings are updated to `FINAL` and tagged with `autoFinalizedAt`.
-* A `DailyClosure` of type `AUTO_FINALIZE` is created, and the snapshot is taken, clearing the queue for the current day's business.
-
-### 📊 Reports & Excel Exports
-* Provides real-time charts on branch production, remaining stock, waste ratios, and sales revenue.
-* Supports filtering by date ranges and branch.
-* Features single-click exports to `.xlsx` spreadsheet files using `exceljs`.
-
----
-
-## 5. Architecture / Structure
+The system follows a layered client-server architecture with strict separation of concerns:
 
 ```
 Adile-Bakery-ERP/
-├── docs/                      # Technical specs & guidelines
-│   ├── api.md                 # Full HTTP API specifications
+├── docs/                      # Technical specifications & API contracts
+│   ├── api.md                 # Full HTTP REST API specification
 │   ├── api-response-standard.md
-│   ├── development-guide.md   # Git workflows & branch conventions
-│   └── test-data.md           # Seed data tables & sandbox credentials
-├── postman/                   # API test collections
+│   ├── development-guide.md   # Git conventions & workflow guidelines
+│   └── test-data.md           # Sandbox credentials & seed tables
+├── postman/                   # API test suites
 │   ├── Adile-Bakery-ERP.postman_collection.json
 │   └── local.postman_environment.json
-├── backend/                   # Node.js + Express backend
-│   ├── prisma/
-│   │   ├── schema.prisma      # DB schema definitions
-│   │   └── seed.js            # Base seed configurations
+├── backend/                   # Express REST API
+│   ├── prisma/                # Schema definitions & seed scripts
+│   │   ├── schema.prisma
+│   │   └── seed.js
 │   ├── src/
-│   │   ├── config/            # Prisma, timezone, and security configs
-│   │   ├── controllers/       # HTTP request controllers
-│   │   ├── middleware/        # Authentication & closure validations
-│   │   ├── routes/            # Express route groups
-│   │   ├── services/          # Core transaction and business logic
-│   │   ├── utils/             # Helpers (date converters, math formatters)
-│   │   ├── app.js             # Express app bootstrap
-│   │   └── server.js          # Main entry point
+│   │   ├── config/            # Security, database, & timezone configuration
+│   │   ├── controllers/       # HTTP request handlers
+│   │   ├── middleware/        # Auth, RBAC, & day-closure validation middleware
+│   │   ├── routes/            # Route groups
+│   │   ├── services/          # Transactional business logic
+│   │   └── app.js             # Express application bootstrap
 │   └── package.json
-├── frontend/                  # React + Vite client app
-│   ├── public/
+├── frontend/                  # React Single-Page Application (SPA)
 │   ├── src/
-│   │   ├── components/        # Reusable UI elements (cards, forms, modals)
-│   │   ├── hooks/             # Custom React Query api hooks
-│   │   ├── pages/             # Page views (Dashboard, Production, Inventory)
-│   │   ├── utils/             # Date formatters, auth tokens
-│   │   ├── App.jsx            # Application routing
-│   │   └── main.jsx
-│   ├── tailwind.config.js     # CSS styling tokens
+│   │   ├── components/        # Reusable UI cards, tables, & modals
+│   │   ├── hooks/             # Custom React Query data hooks
+│   │   ├── pages/             # Dashboard, Production, Remaining, Reports
+│   │   └── App.jsx            # Role-guarded client router
+│   ├── tailwind.config.js
 │   └── package.json
-└── README.md                  # Master project guide
+└── README.md
 ```
 
 ---
 
-## 6. Troubleshooting / FAQ
+## Setup & Running Locally
 
-### Q1: The backend fails to start and logs `PrismaClientInitializationError` or database connection errors.
-* **Why**: The backend cannot connect to your PostgreSQL server.
-* **Resolution**:
-  1. Confirm your PostgreSQL service is running (e.g., in Windows services or Docker).
-  2. Verify the database credentials in `backend/.env`. The port (default `5432`), username, password, and database name must match your database configuration exactly.
-  3. Ensure the database specified in `DATABASE_URL` exists. You can run `npx prisma db push` to verify connection and push the schema.
+### Prerequisites
+- Node.js (v18+)
+- npm (v9+)
+- PostgreSQL 14+ running locally or in Docker
 
-### Q2: I get a `403 Forbidden` response saying "Operational day is closed. Reopen required to make changes" when trying to save quantities.
-* **Why**: The operational day for the selected date and branch has been closed (either manually or by the system's auto-finalize rollover logic).
-* **Resolution**:
-  1. If edits are required, request a **Manager** or **Admin** to reopen the operational day.
-  2. Reopen the day via the **Dashboard** by providing a valid operational reason. This will log the action and invalidate the current snapshot, allowing staff to re-save.
+### 1. Installation
+```bash
+git clone https://github.com/adilebakery-boop/Adile-Bakery-ERP.git
+cd Adile-Bakery-ERP
+```
 
-### Q3: When registering or testing in a local environment, my API requests are failing with `Network Error` or CORS policy blocks.
-* **Why**: The backend origin CORS whitelist doesn't match the frontend client's address.
-* **Resolution**:
-  1. Check what port Vite is running on in the frontend terminal (typically `http://localhost:5173`).
-  2. Open `backend/.env` and verify that `FRONTEND_URL` is set to exactly that origin (without a trailing slash).
-  3. Restart the backend server so the updated environment variables take effect.
+### 2. Backend Setup
+```bash
+cd backend
+cp .env.example .env
+npm install
+
+# Apply database migrations
+npx prisma migrate dev --name init
+
+# Seed test roles, users, and product catalog
+npm run seed:all
+
+# Start backend server
+npm run dev
+```
+The backend API will start on `http://localhost:3000`. Default sandbox users created by seeding:
+- **Admin**: `admin` / `admin123`
+- **Manager**: `sara.manager` / `password123`
+- **Baker**: `omar.baker` / `password123`
+
+### 3. Frontend Setup
+```bash
+cd ../frontend
+cp .env.example .env
+npm install
+
+# Start Vite frontend
+npm run dev
+```
+The client application will start on `http://localhost:5173`.
+
+### 4. Running API Tests with Postman
+Import the collection and environment into Postman or run with Newman:
+- Collection: `postman/Adile-Bakery-ERP.postman_collection.json`
+- Environment: `postman/local.postman_environment.json`
