@@ -146,16 +146,6 @@ async function processRolloverDay(branchId, date, draftCount) {
   const dateStr = toDateString(date);
   const now = new Date();
 
-  const adminUser = await prisma.user.findFirst({
-    where: { role: { name: 'ADMIN' } },
-    select: { id: true },
-  });
-  if (!adminUser) {
-    console.log(`[ROLLOVER] skipped branchId=${branchId} date=${dateStr} — no ADMIN user found`);
-    return;
-  }
-  const rolloverUserId = adminUser.id;
-
   try {
     await prisma.$transaction(async (tx) => {
     const existing = await tx.dailyClosure.findUnique({
@@ -241,7 +231,8 @@ async function processRolloverDay(branchId, date, draftCount) {
           action: 'AUTO_FINALIZE',
           oldValue: { status: 'DRAFT' },
           newValue: { status: 'FINAL', autoFinalizedAt: now.toISOString() },
-          userId: rolloverUserId,
+          employeeId: null,
+          actorName: 'System Rollover',
         },
       });
     }
@@ -253,7 +244,8 @@ async function processRolloverDay(branchId, date, draftCount) {
         action: 'AUTO_CLOSE',
         oldValue: null,
         newValue: { branchId, operationalDate: dateStr, closureType: 'AUTO_FINALIZE', finalizedDrafts: draftRecords.length },
-        userId: rolloverUserId,
+        employeeId: null,
+        actorName: 'System Rollover',
       },
     });
 

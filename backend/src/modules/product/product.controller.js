@@ -2,7 +2,11 @@ const productService = require('./product.service');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const create = asyncHandler(async (req, res) => {
-  const product = await productService.create(req.body, req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const product = await productService.create(req.body, actor);
   res.status(201).json({
     success: true,
     message: 'Product created successfully',
@@ -30,7 +34,11 @@ const findById = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
-  const product = await productService.update(parseInt(req.params.id), req.body, req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const product = await productService.update(parseInt(req.params.id), req.body, actor);
   res.json({
     success: true,
     message: 'Product updated successfully',
@@ -39,7 +47,11 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const delete_ = asyncHandler(async (req, res) => {
-  await productService.delete(parseInt(req.params.id), req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  await productService.delete(parseInt(req.params.id), actor);
   res.json({
     success: true,
     message: 'Product deleted successfully',
@@ -47,7 +59,11 @@ const delete_ = asyncHandler(async (req, res) => {
 });
 
 const restore = asyncHandler(async (req, res) => {
-  const product = await productService.restore(parseInt(req.params.id), req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const product = await productService.restore(parseInt(req.params.id), actor);
   res.json({
     success: true,
     message: 'Product restored successfully',

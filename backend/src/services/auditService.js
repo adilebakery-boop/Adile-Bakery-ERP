@@ -9,7 +9,29 @@ function safeClone(value) {
   }
 }
 
-async function logAudit(entityType, entityId, action, oldValue, newValue, userId) {
+async function logAudit(entityType, entityId, action, oldValue, newValue, actor) {
+  let employeeId = null;
+  let actorName = 'System';
+
+  if (typeof actor === 'object' && actor !== null) {
+    if (actor.employeeId) {
+      employeeId = parseInt(actor.employeeId);
+    } else if (actor.userId) {
+      employeeId = parseInt(actor.userId);
+    }
+    actorName = actor.name || actor.actorName || (employeeId ? `Employee #${employeeId}` : 'System');
+  } else if (typeof actor === 'number' || (typeof actor === 'string' && !isNaN(actor) && String(actor).trim() !== '')) {
+    const parsedId = parseInt(actor);
+    if (parsedId > 0) {
+      employeeId = parsedId;
+      actorName = `Employee #${employeeId}`;
+    } else {
+      actorName = 'System';
+    }
+  } else if (typeof actor === 'string' && actor) {
+    actorName = actor;
+  }
+
   return prisma.auditLog.create({
     data: {
       entityType,
@@ -17,7 +39,8 @@ async function logAudit(entityType, entityId, action, oldValue, newValue, userId
       action,
       oldValue: safeClone(oldValue),
       newValue: safeClone(newValue),
-      userId: parseInt(userId),
+      employeeId,
+      actorName,
     },
   });
 }
@@ -27,13 +50,13 @@ async function getAuditLogs(entityType, entityId, limit = 50) {
     where: { entityType, entityId: parseInt(entityId) },
     orderBy: { createdAt: 'desc' },
     take: parseInt(limit),
-    include: { user: { select: { name: true, username: true } } },
+    include: { employee: { select: { id: true, name: true, employeeCode: true } } },
   });
 }
 
-async function getAuditLogsByUser(userId, limit = 50) {
+async function getAuditLogsByUser(employeeId, limit = 50) {
   return prisma.auditLog.findMany({
-    where: { userId: parseInt(userId) },
+    where: { employeeId: parseInt(employeeId) },
     orderBy: { createdAt: 'desc' },
     take: parseInt(limit),
   });

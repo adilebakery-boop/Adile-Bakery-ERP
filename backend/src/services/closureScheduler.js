@@ -5,32 +5,16 @@ const integrityService = require("./integrityService");
 const { subDays } = require("date-fns");
 const { toDateString, getPreviousDay } = require("../utils/dateUtils");
 
-let adminUserId = null;
-let adminUserObj = null;
-
-async function getAdminUser() {
-  if (adminUserId) return { id: adminUserId, user: adminUserObj };
-  const admin = await prisma.user.findFirst({
-    where: { role: { name: "ADMIN" } },
-    select: { id: true, role: true, branchId: true },
-    orderBy: { id: "asc" },
-  });
-  if (admin) {
-    adminUserId = admin.id;
-    adminUserObj = { userId: admin.id, role: "ADMIN", branchId: null };
-  }
-  return { id: adminUserId, user: adminUserObj };
-}
+const SYSTEM_CLOSURE_ACTOR = {
+  userId: null,
+  employeeId: null,
+  role: 'ADMIN',
+  name: 'System Auto-Close',
+  branchId: null,
+};
 
 async function autoCloseOldOpenDays() {
   const todayStr = toDateString(new Date());
-  const admin = await getAdminUser();
-  if (!admin.id) {
-    console.log(
-      "[CLOSURE_SCHEDULER] No ADMIN user found, skipping autoCloseOldOpenDays",
-    );
-    return;
-  }
 
   const threeDaysAgo = getPreviousDay(
     getPreviousDay(getPreviousDay(new Date())),
@@ -107,9 +91,9 @@ async function autoCloseOldOpenDays() {
       await closureService.closeDay(
         day.branchId,
         toDateString(day.date),
-        admin.id,
+        null,
         "Auto-closed: day past 3-day edit window",
-        admin.user,
+        SYSTEM_CLOSURE_ACTOR,
         "AUTO_FINALIZE",
       );
       closed++;
@@ -132,14 +116,6 @@ async function autoCloseOldOpenDays() {
 }
 
 async function autoCloseExpiredReopenedDays() {
-  const admin = await getAdminUser();
-  if (!admin.id) {
-    console.log(
-      "[CLOSURE_SCHEDULER] No ADMIN user found, skipping autoCloseExpiredReopenedDays",
-    );
-    return;
-  }
-
   const now = new Date();
 
   const expired = await prisma.dailyClosure.findMany({
@@ -159,9 +135,9 @@ async function autoCloseExpiredReopenedDays() {
       await closureService.closeDay(
         day.branchId,
         toDateString(day.operationalDate),
-        admin.id,
+        null,
         "Auto-closed: reopen window (3h) expired",
-        admin.user,
+        SYSTEM_CLOSURE_ACTOR,
         "AUTO_FINALIZE",
       );
       closed++;

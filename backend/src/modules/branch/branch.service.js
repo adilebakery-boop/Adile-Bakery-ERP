@@ -176,6 +176,116 @@ const branchService = {
     cache.invalidatePrefix('branches:');
     return restored;
   },
+
+  async permanentDelete(id, actor) {
+    const branch = await prisma.branch.findUnique({
+      where: { id },
+    });
+
+    if (!branch) {
+      const error = new Error('Branch not found');
+      error.code = 'P2025';
+      error.status = 404;
+      throw error;
+    }
+
+    if (branch.isActive) {
+      const error = new Error('Branch must be deactivated before permanent removal');
+      error.status = 400;
+      throw error;
+    }
+
+    if (branch.id === 1) {
+      const error = new Error('The primary system branch cannot be permanently deleted');
+      error.status = 403;
+      throw error;
+    }
+
+    const totalBranches = await prisma.branch.count();
+    if (totalBranches <= 1) {
+      const error = new Error('Cannot delete the only branch in the system');
+      error.status = 400;
+      throw error;
+    }
+
+    const dependentBranchesCount = await prisma.branch.count({
+      where: { sourceBranchId: id },
+    });
+    if (dependentBranchesCount > 0) {
+      const error = new Error('Cannot delete branch: other branches depend on it as a source branch');
+      error.status = 400;
+      throw error;
+    }
+
+    const employeeCount = await prisma.employee.count({
+      where: { primaryBranchId: id },
+    });
+    if (employeeCount > 0) {
+      const error = new Error('Cannot delete branch: employees are currently assigned to this branch. Please reassign employees first');
+      error.status = 400;
+      throw error;
+    }
+
+    const activeUserCount = await prisma.user.count({
+      where: { branchId: id, isActive: true },
+    });
+    if (activeUserCount > 0) {
+      const error = new Error('Cannot delete branch: active users are assigned to this branch. Please reassign or deactivate users first');
+      error.status = 400;
+      throw error;
+    }
+
+    const [prodCount, remCount, wasteCount, closureCount, transferCount] = await Promise.all([
+      prisma.productionRecord.count({ where: { branchId: id } }),
+      prisma.remainingRecord.count({ where: { branchId: id } }),
+      prisma.wasteRecord.count({ where: { branchId: id } }),
+      prisma.dailyClosure.count({ where: { branchId: id } }),
+      prisma.productTransfer.count({
+        where: { OR: [{ sourceBranchId: id }, { dependentBranchId: id }] },
+      }),
+    ]);
+
+    if (prodCount + remCount + wasteCount + closureCount + transferCount > 0) {
+      const error = new Error('Cannot permanently delete branch: historical operational records exist. Deactivate the branch instead to preserve history');
+      error.status = 400;
+      throw error;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.updateMany({
+        where: { branchId: id },
+        data: { branchId: null },
+      });
+
+      await tx.rolloverCache.deleteMany({
+        where: { key: { startsWith: `${id}-` } },
+      });
+
+      await tx.branch.delete({
+        where: { id },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          entityType: 'branch',
+          entityId: id,
+          action: 'PERMANENT_DELETE',
+          oldValue: branch,
+          newValue: {
+            deletedAt: new Date().toISOString(),
+            branchName: branch.name,
+            branchId: id,
+            deletedBy: actor?.name || 'System',
+          },
+          employeeId: actor?.employeeId || null,
+          actorName: actor?.name || 'System',
+        },
+      });
+    });
+
+    cache.invalidatePrefix('branches:');
+    return { success: true, id };
+  },
 };
 
 module.exports = branchService;

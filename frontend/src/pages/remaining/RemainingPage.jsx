@@ -134,12 +134,13 @@ export default function RemainingPage() {
 
   const hasActivity = useCallback((productId) => {
     const existing = existingRemainings[productId];
-    if (existing !== undefined && Number(existing.remainingQuantity) > 0) return true;
+    if (existing !== undefined && existing.remainingQuantity !== null && existing.remainingQuantity !== '') return true;
     const flow = flowProductsMap[productId];
     if (!flow) return false;
     return (flow.openingStock || 0) > 0 ||
            (flow.dayProduction || 0) > 0 ||
            (flow.nightProduction || 0) > 0 ||
+           (flow.wasteQuantity || 0) > 0 ||
            (flow.receivedTransfer || 0) > 0 ||
            (flow.sentTransfer || 0) > 0;
   }, [existingRemainings, flowProductsMap]);

@@ -2,7 +2,6 @@ const prisma = require('../config/prisma');
 const { toDateString } = require('../utils/dateUtils');
 const { logAudit } = require('./auditService');
 
-const SYSTEM_USER_ID = 1;
 const SYSTEM_AUDIT_ENTITY = 'integrity_check';
 
 async function checkSnapshotIntegrity() {
@@ -54,7 +53,11 @@ async function checkSnapshotIntegrity() {
   }
 
   if (issues.length > 0) {
-    try { await logAudit(SYSTEM_AUDIT_ENTITY, 0, 'SNAPSHOT_INTEGRITY_ISSUE', null, { issues }, SYSTEM_USER_ID); } catch (e) { /* ignore */ }
+    try {
+      await logAudit(SYSTEM_AUDIT_ENTITY, 0, 'SNAPSHOT_INTEGRITY_ISSUE', null, { issues }, 'Integrity Check Service');
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   return { issues, ok: issues.length === 0 };
@@ -65,11 +68,22 @@ async function checkAll() {
 
   const allOk = snapshotResult.ok;
 
-  try { await logAudit(SYSTEM_AUDIT_ENTITY, 0, 'INTEGRITY_CHECK_ALL', null, {
-    snapshotResult,
-    allOk,
-    timestamp: new Date().toISOString(),
-  }, SYSTEM_USER_ID); } catch (e) { /* ignore */ }
+  try {
+    await logAudit(
+      SYSTEM_AUDIT_ENTITY,
+      0,
+      'INTEGRITY_CHECK_ALL',
+      null,
+      {
+        snapshotResult,
+        allOk,
+        timestamp: new Date().toISOString(),
+      },
+      'Integrity Check Service'
+    );
+  } catch (e) {
+    /* ignore */
+  }
 
   return { snapshotResult, allOk };
 }

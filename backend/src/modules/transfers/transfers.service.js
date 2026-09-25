@@ -2,8 +2,14 @@ const prisma = require('../../config/prisma');
 const { canEditOperationalRecord } = require('../../utils/dateUtils');
 
 const transferService = {
-  async create(data, userId, user) {
+  async create(data, employeeId, user) {
     const { branchType = 'DEPENDENT', productId, operationalDate } = data;
+
+    if (!employeeId) {
+      const err = new Error('Authenticated user must have an associated employee ID to create transfer records');
+      err.status = 400;
+      throw err;
+    }
 
     const userRole = user?.role;
     if (!canEditOperationalRecord(operationalDate, userRole)) {
@@ -30,13 +36,13 @@ const transferService = {
           dependentBranchId,
           sentQuantity,
           operationalDate: new Date(operationalDate),
-          createdBy: userId,
+          createdBy: employeeId,
         },
         include: {
           product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
           sourceBranch: { select: { id: true, name: true } },
           dependentBranch: { select: { id: true, name: true } },
-          creator: { select: { id: true, name: true, username: true } },
+          creator: { select: { id: true, name: true } },
         },
       });
 
@@ -66,13 +72,13 @@ const transferService = {
         dependentBranchId,
         operationalDate: new Date(operationalDate),
         receivedQuantity,
-        createdBy: userId,
+        createdBy: employeeId,
       },
       include: {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -117,7 +123,7 @@ const transferService = {
           product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
           sourceBranch: { select: { id: true, name: true } },
           dependentBranch: { select: { id: true, name: true } },
-          creator: { select: { id: true, name: true, username: true } },
+          creator: { select: { id: true, name: true } },
         },
       }),
       prisma.productTransfer.count({ where }),
@@ -141,7 +147,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -180,7 +186,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -213,7 +219,7 @@ const transferService = {
         product: { select: { id: true, name: true, name_am: true, category: true, unitType: true } },
         sourceBranch: { select: { id: true, name: true } },
         dependentBranch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
     });
 

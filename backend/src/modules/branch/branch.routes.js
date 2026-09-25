@@ -95,4 +95,12 @@ router.patch(
   branchController.restore
 );
 
+router.delete(
+  '/:id/permanent',
+  authenticate,
+  allowRoles('ADMIN'),
+  validateParams(branchIdSchema),
+  branchController.permanentDelete
+);
+
 module.exports = router;
