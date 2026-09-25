@@ -29,6 +29,10 @@ export const branchService = {
   restoreBranch: async (id) => {
     return safeCall(api.patch(`/branches/${id}/restore`));
   },
+
+  permanentDeleteBranch: async (id) => {
+    return safeCall(api.delete(`/branches/${id}/permanent`));
+  },
 };
 
 export default branchService;

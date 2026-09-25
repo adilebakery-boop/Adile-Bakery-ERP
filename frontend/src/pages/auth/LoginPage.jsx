@@ -49,7 +49,7 @@ export default function LoginPage() {
         });
       }, 1000);
     } else {
-      setError('Invalid username or password');
+      setError(result.message || 'Invalid username or password');
     }
   };
 

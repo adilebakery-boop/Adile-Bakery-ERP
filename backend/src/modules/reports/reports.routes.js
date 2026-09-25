@@ -19,10 +19,14 @@ const validateQuery = (schema) => (req, res, next) => {
 
 const router = express.Router();
 
+const INVENTORY_FLOW_ROLES = [
+  'ADMIN', 'MANAGER', 'BAKER', 'CAKE_CHEF', 'COOKIE_BAKER', 'FETIR_CHEF', 'CASHIER', 'TRANSFER_OPERATOR'
+];
+
 router.get(
   '/inventory-flow',
   authenticate,
-  allowRoles('ADMIN', 'MANAGER'),
+  allowRoles(...INVENTORY_FLOW_ROLES),
   validateQuery(reportQuerySchema),
   reportsController.getInventoryFlow
 );

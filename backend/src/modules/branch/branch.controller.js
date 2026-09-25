@@ -80,6 +80,18 @@ const restore = asyncHandler(async (req, res) => {
   });
 });
 
+const permanentDelete = asyncHandler(async (req, res) => {
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  await branchService.permanentDelete(parseInt(req.params.id), actor);
+  res.json({
+    success: true,
+    message: 'Branch permanently deleted successfully',
+  });
+});
+
 module.exports = {
   create,
   findActive,
@@ -88,4 +100,5 @@ module.exports = {
   update,
   delete: deleteBranch,
   restore,
+  permanentDelete,
 };
