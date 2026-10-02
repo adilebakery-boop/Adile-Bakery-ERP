@@ -3,7 +3,7 @@ const exportService = require('../../services/exportService');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
 function resolveBranchId(branchId, user) {
-  if (user?.role === 'MANAGER') return parseInt(user.branchId);
+  if (user?.role !== 'ADMIN') return parseInt(user.branchId);
   if (!branchId || branchId === 'all') return null;
   return parseInt(branchId);
 }

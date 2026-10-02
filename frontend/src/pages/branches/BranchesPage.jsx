@@ -18,7 +18,7 @@ export default function BranchesPage() {
   const canManage = user?.role === 'ADMIN';
 
   const { data: branches, isLoading, error: queryError, refetch } = useBranchesQuery({ limit: 100 });
-  const { addBranch, editBranch, removeBranch, restoreBranch } = useBranchMutations();
+  const { addBranch, editBranch, removeBranch, restoreBranch, permanentDeleteBranch } = useBranchMutations();
 
   const sourceBranches = useMemo(() =>
     (branches || []).filter(b => b.branchType === 'SOURCE' || !b.branchType),
@@ -31,6 +31,7 @@ export default function BranchesPage() {
   const [editingBranch, setEditingBranch] = useState(null);
   const [formData, setFormData] = useState({ name: '', name_am: '', address: '', phone: '', branchType: 'INDEPENDENT', sourceBranchId: '' });
   const [actionError, setActionError] = useState(null);
+  const [deletedModalError, setDeletedModalError] = useState(null);
 
   const { data: deletedBranches = [], isLoading: deletedLoading } = useBranchesQuery(
     { isActive: false, limit: 100 },
@@ -83,7 +84,7 @@ export default function BranchesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this branch?')) {
+    if (window.confirm('Are you sure you want to deactivate this branch?')) {
       setActionError(null);
       try {
         await removeBranch.mutateAsync(id);
@@ -100,6 +101,21 @@ export default function BranchesPage() {
         await restoreBranch.mutateAsync(id);
       } catch (err) {
         setActionError(err.message);
+      }
+    }
+  };
+
+  const handlePermanentDelete = async (id, branchName) => {
+    setDeletedModalError(null);
+    if (
+      window.confirm(
+        `PERMANENT DELETE: Are you sure you want to permanently delete "${branchName || 'this branch'}"?\n\nThis action is irreversible and will permanently delete the branch record. It is only permitted if the branch has no operational records (production, remaining, waste, transfers, closures) and no assigned staff.`
+      )
+    ) {
+      try {
+        await permanentDeleteBranch.mutateAsync(id);
+      } catch (err) {
+        setDeletedModalError(err.message || 'Failed to permanently delete branch');
       }
     }
   };
@@ -224,7 +240,7 @@ export default function BranchesPage() {
                           <button onClick={() => handleEditClick(branch)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-[#024A5B] dark:hover:text-white hover:bg-[#DFEDE2] dark:hover:bg-[#1E3A3F] rounded-lg transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(branch.id)} className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                          <button onClick={() => handleDelete(branch.id)} title="Deactivate Branch" aria-label="Deactivate branch" className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -452,7 +468,12 @@ required
       </Modal>
 
       {/* Deleted Branches Modal */}
-      <Modal isOpen={isDeletedModalOpen} onClose={() => setIsDeletedModalOpen(false)} title="Deleted Branches">
+      <Modal isOpen={isDeletedModalOpen} onClose={() => { setIsDeletedModalOpen(false); setDeletedModalError(null); }} title="Deleted / Inactive Branches">
+        {deletedModalError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-300 whitespace-pre-line">
+            {deletedModalError}
+          </div>
+        )}
         {deletedLoading ? (
           <div className="py-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-500" />
@@ -462,25 +483,36 @@ required
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {deletedBranches.map((branch) => (
-              <div key={branch.id} className="flex items-center justify-between p-3 bg-[#DFEDE2] rounded-xl">
+              <div key={branch.id} className="flex items-center justify-between p-3 bg-[#DFEDE2] dark:bg-[#1E3A3F] rounded-xl">
                 <div>
-                  <div className="font-medium text-[#024A5B]">{getLocalizedName(branch, i18n.language)}</div>
-                  <div className="text-sm text-gray-500">{branch.address || 'No address'}</div>
+                  <div className="font-medium text-[#024A5B] dark:text-white">{getLocalizedName(branch, i18n.language)}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{branch.address || 'No address'}</div>
                 </div>
-                <button
-                  onClick={() => handleRestore(branch.id)}
-                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Restore"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleRestore(branch.id)}
+                    className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                    title="Restore Branch"
+                    aria-label="Restore branch"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDelete(branch.id, getLocalizedName(branch, i18n.language))}
+                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Permanently Delete Branch"
+                    aria-label="Permanently delete branch"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
-        <div className="mt-4 pt-4 border-t border-[#E5E1D8]">
+        <div className="mt-4 pt-4 border-t border-[#E5E1D8] dark:border-[#1E3A3F]">
           <button
-            onClick={() => setIsDeletedModalOpen(false)}
+            onClick={() => { setIsDeletedModalOpen(false); setDeletedModalError(null); }}
             className="w-full px-6 py-3 bg-[#4CB094] text-[#002830] rounded-xl font-medium hover:bg-[#236B56] transition-colors text-sm"
           >
             Close

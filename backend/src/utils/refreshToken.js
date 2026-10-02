@@ -73,12 +73,13 @@ async function verify(rawToken) {
 
   const record = await prisma.refreshToken.findUnique({
     where: { tokenHash },
-    include: { user: { include: { role: true, branch: true } } },
+    include: { user: { include: { role: true, branch: true, employee: true } } },
   });
 
   if (!record) return null;
   if (record.expiresAt < new Date()) return null;
   if (!record.user.isActive || record.user.isBlocked) return null;
+  if (record.user.employee && record.user.employee.status !== 'ACTIVE') return null;
 
   try {
     await prisma.refreshToken.update({

@@ -2,7 +2,11 @@ const branchService = require('./branch.service');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 
 const create = asyncHandler(async (req, res) => {
-  const branch = await branchService.create(req.body, req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const branch = await branchService.create(req.body, actor);
   res.status(201).json({
     success: true,
     message: 'Branch created successfully',
@@ -39,7 +43,11 @@ const findById = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
-  const branch = await branchService.update(parseInt(req.params.id), req.body, req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const branch = await branchService.update(parseInt(req.params.id), req.body, actor);
   res.json({
     success: true,
     message: 'Branch updated successfully',
@@ -48,7 +56,11 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const deleteBranch = asyncHandler(async (req, res) => {
-  await branchService.delete(parseInt(req.params.id), req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  await branchService.delete(parseInt(req.params.id), actor);
   res.json({
     success: true,
     message: 'Branch deleted successfully',
@@ -56,11 +68,27 @@ const deleteBranch = asyncHandler(async (req, res) => {
 });
 
 const restore = asyncHandler(async (req, res) => {
-  const branch = await branchService.restore(parseInt(req.params.id), req.user?.userId);
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  const branch = await branchService.restore(parseInt(req.params.id), actor);
   res.json({
     success: true,
     message: 'Branch restored successfully',
     data: branch,
+  });
+});
+
+const permanentDelete = asyncHandler(async (req, res) => {
+  const actor = {
+    employeeId: req.user?.employeeId || null,
+    name: req.user?.name,
+  };
+  await branchService.permanentDelete(parseInt(req.params.id), actor);
+  res.json({
+    success: true,
+    message: 'Branch permanently deleted successfully',
   });
 });
 
@@ -72,4 +100,5 @@ module.exports = {
   update,
   delete: deleteBranch,
   restore,
+  permanentDelete,
 };

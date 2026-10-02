@@ -39,7 +39,7 @@ async function findAll(filters = {}) {
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -62,7 +62,7 @@ async function findById(id, accessFilter = {}) {
     include: {
       product: true,
       branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
+      creator: { select: { id: true, name: true } },
     },
   });
 
@@ -138,6 +138,13 @@ async function create(data, userId) {
 
   await requireDayNotClosed(branchId, opDate);
 
+  const authorEmployeeId = (userId && typeof userId === 'object') ? userId.employeeId : (typeof userId === 'number' ? userId : null);
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated user must have an associated employee ID to create waste records');
+    error.status = 400;
+    throw error;
+  }
+
   const waste = await prisma.wasteRecord.create({
     data: {
       productId: parseInt(productId),
@@ -145,7 +152,7 @@ async function create(data, userId) {
       operationalDate: opDate,
       quantity: toDecimal(String(quantity)),
       reason: reason || null,
-      createdBy: userId.userId,
+      createdBy: authorEmployeeId,
     },
     include: {
       product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -154,7 +161,12 @@ async function create(data, userId) {
     },
   });
 
-  await auditService.logAudit('waste', waste.id, 'CREATE', null, waste, userId.userId);
+  const actorEmployeeId = authorEmployeeId;
+  const actorName = (userId && userId.name) || `Employee #${actorEmployeeId}`;
+  await auditService.logAudit('waste', waste.id, 'CREATE', null, waste, {
+    employeeId: actorEmployeeId,
+    name: actorName,
+  });
 
   return waste;
 }
@@ -199,7 +211,12 @@ async function update(id, data, userId) {
     },
   });
 
-  await auditService.logAudit('waste', waste.id, 'UPDATE', oldValue, waste, userId.userId);
+  const actorUpdateId = (userId && typeof userId === 'object') ? userId.employeeId : null;
+  const actorUpdateName = (userId && userId.name) || (actorUpdateId ? `Employee #${actorUpdateId}` : 'System');
+  await auditService.logAudit('waste', waste.id, 'UPDATE', oldValue, waste, {
+    employeeId: actorUpdateId,
+    name: actorUpdateName,
+  });
 
   return waste;
 }
@@ -221,7 +238,12 @@ async function remove(id, userId) {
     where: { id: parseInt(id) },
   });
 
-  await auditService.logAudit('waste', parseInt(id), 'DELETE', existing, null, userId.userId);
+  const actorRemoveId = (userId && typeof userId === 'object') ? userId.employeeId : null;
+  const actorRemoveName = (userId && userId.name) || (actorRemoveId ? `Employee #${actorRemoveId}` : 'System');
+  await auditService.logAudit('waste', parseInt(id), 'DELETE', existing, null, {
+    employeeId: actorRemoveId,
+    name: actorRemoveName,
+  });
 
   return { message: 'Waste record deleted successfully' };
 }

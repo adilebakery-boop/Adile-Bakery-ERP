@@ -43,7 +43,7 @@ async function findAll(filters = {}) {
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
       orderBy: { operationalDate: 'desc' },
     }),
@@ -59,8 +59,8 @@ async function findById(id, accessFilter = {}) {
     include: {
       product: true,
       branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-      updater: { select: { id: true, name: true, username: true } },
+      creator: { select: { id: true, name: true } },
+      updater: { select: { id: true, name: true } },
     },
   });
 
@@ -169,6 +169,13 @@ async function create(data, user) {
     },
   });
 
+  const authorEmployeeId = user?.employeeId;
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to record remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   let remaining;
 
   if (existing) {
@@ -178,7 +185,7 @@ async function create(data, user) {
       data: {
         quantity: toDecimal(String(quantity)),
         status,
-        updatedBy: user.userId,
+        updatedBy: authorEmployeeId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -187,7 +194,10 @@ async function create(data, user) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
+    await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
+      employeeId: authorEmployeeId,
+      name: user.name,
+    });
   } else {
     remaining = await prisma.remainingRecord.create({
       data: {
@@ -196,7 +206,7 @@ async function create(data, user) {
         operationalDate: opDate,
         quantity: toDecimal(String(quantity)),
         status,
-        createdBy: user.userId,
+        createdBy: authorEmployeeId,
       },
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -205,7 +215,10 @@ async function create(data, user) {
       },
     });
 
-    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, user.userId);
+    await auditService.logAudit('remaining', remaining.id, 'CREATE', null, remaining, {
+      employeeId: authorEmployeeId,
+      name: user.name,
+    });
   }
 
   return remaining;
@@ -289,10 +302,16 @@ async function createBulk(data, user) {
     }
   }
 
+  const employeeIdNum = user?.employeeId;
+  if (!employeeIdNum) {
+    const error = new Error('Authenticated employee ID is required to record remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   const result = await prisma.$transaction(async (tx) => {
 
   const branchIdNum = parseInt(branchId);
-  const userIdNum = user.userId;
 
   const returnedRows = items.length > 0
     ? await tx.$queryRaw(Prisma.sql`
@@ -304,19 +323,21 @@ async function createBulk(data, user) {
       ${opDate}::date,
       ${toDecimal(String(item.remainingQuantity ?? 0)).toString()}::decimal(12,3),
       ${item.status || 'FINAL'}::"RemainingStatus",
-      ${userIdNum},
+      ${employeeIdNum},
       NOW()
     )`))}
     ON CONFLICT ("branchId", "operationalDate", "productId") DO UPDATE
     SET
       "quantity" = EXCLUDED."quantity",
       "status" = EXCLUDED."status",
-      "updatedBy" = ${userIdNum},
+      "updatedBy" = ${employeeIdNum},
       "updatedAt" = NOW()
     RETURNING *;
   `)
     : [];
 
+  const actorEmployeeId = employeeIdNum;
+  const actorName = user.name || `Employee #${actorEmployeeId}`;
   const auditLogs = returnedRows.map(row => {
     const existing = existingMap.get(row.productId);
     return {
@@ -325,7 +346,8 @@ async function createBulk(data, user) {
       action: existing ? 'UPDATE' : 'CREATE',
       oldValue: existing ? JSON.parse(JSON.stringify(existing)) : null,
       newValue: JSON.parse(JSON.stringify(row)),
-      userId: user.userId,
+      employeeId: actorEmployeeId,
+      actorName,
     };
   });
 
@@ -358,8 +380,15 @@ async function update(id, data, user) {
 
   await requireDayNotClosed(existing.branchId, existing.operationalDate);
 
+  const updaterEmployeeId = user?.employeeId;
+  if (!updaterEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to update remaining stock');
+    error.status = 400;
+    throw error;
+  }
+
   const updateData = {
-    updatedBy: user.userId,
+    updatedBy: updaterEmployeeId,
   };
 
   if (data.quantity !== undefined) {
@@ -388,7 +417,10 @@ async function update(id, data, user) {
     },
   });
 
-  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, user.userId);
+  await auditService.logAudit('remaining', remaining.id, 'UPDATE', oldValue, remaining, {
+    employeeId: updaterEmployeeId,
+    name: user.name,
+  });
 
   return remaining;
 }
@@ -410,7 +442,10 @@ async function remove(id, user) {
     where: { id: parseInt(id) },
   });
 
-  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, user.userId);
+  await auditService.logAudit('remaining', parseInt(id), 'DELETE', existing, null, {
+    employeeId: user?.employeeId || null,
+    name: user.name,
+  });
 
   return { message: 'Remaining record deleted successfully' };
 }

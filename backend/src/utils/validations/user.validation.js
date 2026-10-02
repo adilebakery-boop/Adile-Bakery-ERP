@@ -37,7 +37,8 @@ const createUserSchema = z.object({
   password: passwordSchema,
   roleName: z.string().min(1, 'Role name is required'),
   branchId: z.number().int().positive('Branch ID must be a positive integer').nullable().optional(),
-  email: emailSchema
+  email: emailSchema,
+  employeeId: z.number().int().positive('Employee ID must be a positive integer').optional(),
 });
 
 const updateUserSchema = z.object({
@@ -45,6 +46,7 @@ const updateUserSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username must be less than 50 characters').optional(),
   roleName: z.string().min(1, 'Role name is required').optional(),
   branchId: z.number().int().positive('Branch ID must be a positive integer').nullable().optional(),
+  isBlocked: z.boolean().optional(),
   email: emailSchema
 });
 

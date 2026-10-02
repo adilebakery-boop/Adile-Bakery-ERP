@@ -15,13 +15,25 @@ const ZERO = new Prisma.Decimal(0);
 // ── Helpers ──────────────────────────────────────────────────────────
 
 async function createTestUser(role) {
+  const empCode = `EMP-${Date.now().toString().slice(-6)}`;
+  const employee = await prisma.employee.create({
+    data: {
+      employeeCode: empCode,
+      name: `${TEST_PREFIX}Employee`,
+      status: 'ACTIVE',
+      primaryRoleId: role.id,
+    },
+  });
+
   return prisma.user.create({
     data: {
+      employeeId: employee.id,
       name: `${TEST_PREFIX}User`,
       username: `${TEST_PREFIX}user_${Date.now()}`,
       passwordHash: 'hash',
       roleId: role.id,
     },
+    include: { employee: true },
   });
 }
 
@@ -74,6 +86,7 @@ async function wipeTestData() {
   await prisma.product.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await prisma.branch.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await prisma.user.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await deleteIfExists(prisma.employee, { where: { name: { startsWith: TEST_PREFIX } } });
   await prisma.role.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
 }
 
@@ -128,30 +141,31 @@ if (!transferTableExists) {
 describe('Transfer invariants', () => {
   beforeAll(async () => {
     // Seed operational data for all three branches
+    const creatorId = user.employeeId || user.id;
     // SOURCE: production 100, remaining 10
     await prisma.productionRecord.create({
-      data: { productId: product.id, quantity: 100, branchId: sourceBranch.id, shift: 'DAY', createdBy: user.id, operationalDate: TEST_DATE, productionDate: TEST_DATE },
+      data: { productId: product.id, quantity: 100, branchId: sourceBranch.id, shift: 'DAY', createdBy: creatorId, operationalDate: TEST_DATE, productionDate: TEST_DATE },
     });
     await prisma.remainingRecord.create({
-      data: { productId: product.id, quantity: 10, branchId: sourceBranch.id, createdBy: user.id, operationalDate: TEST_DATE, status: 'FINAL' },
+      data: { productId: product.id, quantity: 10, branchId: sourceBranch.id, createdBy: creatorId, operationalDate: TEST_DATE, status: 'FINAL' },
     });
 
     // DEPENDENT: no production, remaining 5
     await prisma.remainingRecord.create({
-      data: { productId: product.id, quantity: 5, branchId: depBranch.id, createdBy: user.id, operationalDate: TEST_DATE, status: 'FINAL' },
+      data: { productId: product.id, quantity: 5, branchId: depBranch.id, createdBy: creatorId, operationalDate: TEST_DATE, status: 'FINAL' },
     });
 
     // INDEPENDENT: production 50, remaining 3
     await prisma.productionRecord.create({
-      data: { productId: product.id, quantity: 50, branchId: independentBranch.id, shift: 'DAY', createdBy: user.id, operationalDate: TEST_DATE, productionDate: TEST_DATE },
+      data: { productId: product.id, quantity: 50, branchId: independentBranch.id, shift: 'DAY', createdBy: creatorId, operationalDate: TEST_DATE, productionDate: TEST_DATE },
     });
     await prisma.remainingRecord.create({
-      data: { productId: product.id, quantity: 3, branchId: independentBranch.id, createdBy: user.id, operationalDate: TEST_DATE, status: 'FINAL' },
+      data: { productId: product.id, quantity: 3, branchId: independentBranch.id, createdBy: creatorId, operationalDate: TEST_DATE, status: 'FINAL' },
     });
 
     // Transfer 30 from SOURCE → DEPENDENT (APPROVED)
     await prisma.productTransfer.create({
-      data: { productId: product.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: TEST_DATE, receivedQuantity: 30, sentQuantity: 30, status: 'APPROVED', createdBy: user.id },
+      data: { productId: product.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: TEST_DATE, receivedQuantity: 30, sentQuantity: 30, status: 'APPROVED', createdBy: creatorId },
     });
   });
 
@@ -273,16 +287,17 @@ describe('Transfer balance invariant (integrityService)', () => {
 
   beforeAll(async () => {
     balanceProduct = await createTestProduct();
+    const creatorId = user.employeeId || user.id;
     // Create two matching transfers and one mismatched
     await prisma.productTransfer.create({
-      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-20'), receivedQuantity: 10, sentQuantity: 10, status: 'APPROVED', createdBy: user.id },
+      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-20'), receivedQuantity: 10, sentQuantity: 10, status: 'APPROVED', createdBy: creatorId },
     });
     await prisma.productTransfer.create({
-      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-20'), receivedQuantity: 5, sentQuantity: 5, status: 'PENDING', createdBy: user.id },
+      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-20'), receivedQuantity: 5, sentQuantity: 5, status: 'PENDING', createdBy: creatorId },
     });
     // Mismatch: sent 15 but received 12
     await prisma.productTransfer.create({
-      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-21'), receivedQuantity: 12, sentQuantity: 15, status: 'APPROVED', createdBy: user.id },
+      data: { productId: balanceProduct.id, sourceBranchId: sourceBranch.id, dependentBranchId: depBranch.id, operationalDate: new Date('2026-06-21'), receivedQuantity: 12, sentQuantity: 15, status: 'APPROVED', createdBy: creatorId },
     });
   });
 

@@ -64,7 +64,7 @@ async function findAll(filters = {}, user) {
       include: {
         product: { select: PRODUCT_SELECT_LOCALIZED },
         branch: { select: { id: true, name: true } },
-        creator: { select: { id: true, name: true, username: true } },
+        creator: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -80,8 +80,8 @@ async function findById(id, accessFilter = {}) {
     include: {
       product: true,
       branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
-      updater: { select: { id: true, name: true, username: true } },
+      creator: { select: { id: true, name: true } },
+      updater: { select: { id: true, name: true } },
     },
   });
 
@@ -203,6 +203,13 @@ async function create(data, user) {
 
   await requireDayNotClosed(assignedBranchId, opDate);
 
+  const authorEmployeeId = user?.employeeId;
+  if (!authorEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to create a production record');
+    error.status = 400;
+    throw error;
+  }
+
   const production = await prisma.productionRecord.create({
     data: {
       productId: parseInt(productId),
@@ -211,7 +218,7 @@ async function create(data, user) {
       operationalDate: opDate,
       shift,
       quantity: new Prisma.Decimal(String(quantity)),
-      createdBy: user.userId,
+      createdBy: authorEmployeeId,
     },
     include: {
       product: { select: PRODUCT_SELECT_LOCALIZED },
@@ -220,7 +227,10 @@ async function create(data, user) {
     },
   });
 
-  await auditService.logAudit('production', production.id, 'CREATE', null, production, user.userId);
+  await auditService.logAudit('production', production.id, 'CREATE', null, production, {
+    employeeId: authorEmployeeId,
+    name: user.name,
+  });
 
   return production;
 }
@@ -251,8 +261,15 @@ async function update(id, data, user) {
     throw error;
   }
 
+  const updaterEmployeeId = user?.employeeId;
+  if (!updaterEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to update a production record');
+    error.status = 400;
+    throw error;
+  }
+
   const updateData = {
-    updatedBy: user.userId,
+    updatedBy: updaterEmployeeId,
   };
 
   if (data.quantity !== undefined) {
@@ -278,7 +295,10 @@ async function update(id, data, user) {
     },
   });
 
-  await auditService.logAudit('production', production.id, 'UPDATE', oldValue, production, user.userId);
+  await auditService.logAudit('production', production.id, 'UPDATE', oldValue, production, {
+    employeeId: updaterEmployeeId,
+    name: user.name,
+  });
 
   return production;
 }
@@ -301,7 +321,10 @@ async function remove(id, user) {
     where: { id: parseInt(id) },
   });
 
-  await auditService.logAudit('production', parseInt(id), 'DELETE', existing, null, user.userId);
+  await auditService.logAudit('production', parseInt(id), 'DELETE', existing, null, {
+    employeeId: user?.employeeId || null,
+    name: user.name,
+  });
 
   return { message: 'Production record deleted successfully' };
 }
@@ -426,7 +449,7 @@ async function findAllGrouped(filters = {}, user) {
     include: {
       product: { select: PRODUCT_SELECT_LOCALIZED },
       branch: { select: { id: true, name: true } },
-      creator: { select: { id: true, name: true, username: true } },
+      creator: { select: { id: true, name: true } },
     },
     orderBy: [
       { operationalDate: 'desc' },

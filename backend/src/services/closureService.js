@@ -43,7 +43,7 @@ async function getStatus(branchId, operationalDate) {
   const closure = await prisma.dailyClosure.findUnique({
     where: { branchId_operationalDate: { branchId: branchIdInt, operationalDate: opDate } },
     include: {
-      closedByUser: { select: { id: true, name: true, username: true } },
+      closedByUser: { select: { id: true, name: true } },
     },
   });
 
@@ -266,7 +266,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
         operationalDate: opDate,
         quantity: 0,
         status: 'FINAL',
-        createdBy: userId,
+        createdBy: user?.employeeId || (typeof userId === 'number' && userId > 0 ? userId : null),
         createdAt: now,
         updatedAt: now,
       }));
@@ -287,6 +287,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
       throw error;
     }
 
+    const closingEmployeeId = user?.employeeId || (typeof userId === 'number' && userId > 0 ? userId : null);
     let closure = existingClosure;
     
     if (!closure) {
@@ -296,7 +297,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
           operationalDate: opDate,
           isClosed: true,
           closureType,
-          closedBy: userId,
+          closedBy: closingEmployeeId,
           closedAt: new Date(),
           note,
           reopenedAt: null,
@@ -309,7 +310,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
         data: {
           isClosed: true,
           closureType,
-          closedBy: userId,
+          closedBy: closingEmployeeId,
           closedAt: new Date(),
           note,
           reopenedAt: null,
@@ -334,7 +335,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
         where: { id: snapshot.id },
         data: {
           isInvalidated: false,
-          closedBy: userId,
+          closedBy: closingEmployeeId,
           closedAt: new Date(),
           invalidatedAt: null,
           invalidatedBy: null,
@@ -346,7 +347,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
           closureId: closure.id,
           branchId: branchIdInt,
           operationalDate: opDate,
-          closedBy: userId,
+          closedBy: closingEmployeeId,
           closedAt: new Date(),
           isInvalidated: false,
         },
@@ -371,6 +372,7 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
 
     await tx.dailySnapshotItem.createMany({ data: snapshotItems });
 
+    const actorName = (user && user.name) || (closingEmployeeId ? `Employee #${closingEmployeeId}` : (closureType === 'AUTO_FINALIZE' ? 'System Auto-Close' : 'System'));
     await tx.auditLog.create({
       data: {
         entityType: 'closure',
@@ -378,7 +380,8 @@ async function closeDay(branchId, operationalDate, userId, note = null, user = n
         action: 'CLOSE',
         oldValue: null,
         newValue: JSON.parse(JSON.stringify({ branchId: branchIdInt, operationalDate: toDateString(opDate), closureType, note })),
-        userId,
+        employeeId: closingEmployeeId,
+        actorName,
       },
     });
 
@@ -410,6 +413,13 @@ async function reopenDay(branchId, operationalDate, user, reason) {
     throw error;
   }
 
+  const reopeningEmployeeId = user?.employeeId;
+  if (!reopeningEmployeeId) {
+    const error = new Error('Authenticated employee ID is required to reopen an operational day');
+    error.status = 400;
+    throw error;
+  }
+
   const branchIdInt = parseInt(branchId);
   const opDate = new Date(operationalDate);
 
@@ -428,7 +438,7 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       data: {
         branchId: branchIdInt,
         operationalDate: opDate,
-        reopenedBy: user?.userId || user?.id || 0,
+        reopenedBy: reopeningEmployeeId,
         reason,
       },
     });
@@ -443,7 +453,7 @@ async function reopenDay(branchId, operationalDate, user, reason) {
         data: {
           isInvalidated: true,
           invalidatedAt: new Date(),
-          invalidatedBy: user?.userId || user?.id || 0,
+          invalidatedBy: reopeningEmployeeId,
         },
       });
     }
@@ -462,14 +472,16 @@ async function reopenDay(branchId, operationalDate, user, reason) {
       },
     });
 
+    const reopenActorName = (user && user.name) || `Employee #${reopeningEmployeeId}`;
     await tx.auditLog.create({
       data: {
         entityType: 'closure',
         entityId: closure.id,
         action: 'REOPEN',
         oldValue: JSON.parse(JSON.stringify({ wasClosed: true })),
-        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: user?.userId || user?.id || 0 })),
-        userId: user?.userId || user?.id || 0,
+        newValue: JSON.parse(JSON.stringify({ reason, reopenedBy: reopeningEmployeeId })),
+        employeeId: reopeningEmployeeId,
+        actorName: reopenActorName,
       },
     });
 

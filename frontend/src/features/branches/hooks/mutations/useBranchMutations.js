@@ -32,5 +32,10 @@ export function useBranchMutations() {
     onSuccess: invalidateBranches,
   });
 
-  return { addBranch, editBranch, removeBranch, restoreBranch };
+  const permanentDeleteBranch = useMutation({
+    mutationFn: (id) => unwrap(branchService.permanentDeleteBranch(id)),
+    onSuccess: invalidateBranches,
+  });
+
+  return { addBranch, editBranch, removeBranch, restoreBranch, permanentDeleteBranch };
 }

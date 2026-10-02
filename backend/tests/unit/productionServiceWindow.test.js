@@ -84,7 +84,7 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('BAKER can create production for 2 days ago (e.g. 8 Sep when today is 10 Sep)', async () => {
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     const record = await productionService.create(
       {
         productId: 1,
@@ -102,7 +102,7 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('CAKE_CHEF can create production for yesterday (1 day ago)', async () => {
-    const chefUser = { userId: 102, role: 'CAKE_CHEF', branchId: 10 };
+    const chefUser = { userId: 102, employeeId: 102, role: 'CAKE_CHEF', branchId: 10 };
     const record = await productionService.create(
       {
         productId: 2,
@@ -119,7 +119,7 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('CASHIER can create production for permitted category (DRINKS_AND_RETAIL_ITEMS) for 2 days ago', async () => {
-    const cashierUser = { userId: 103, role: 'CASHIER', branchId: 10 };
+    const cashierUser = { userId: 103, employeeId: 103, role: 'CASHIER', branchId: 10 };
     const record = await productionService.create(
       {
         productId: 3,
@@ -136,8 +136,8 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('ADMIN and MANAGER can create production for 2 days ago', async () => {
-    const adminUser = { userId: 1, role: 'ADMIN', branchId: null };
-    const managerUser = { userId: 2, role: 'MANAGER', branchId: 10 };
+    const adminUser = { userId: 1, employeeId: 1, role: 'ADMIN', branchId: null };
+    const managerUser = { userId: 2, employeeId: 2, role: 'MANAGER', branchId: 10 };
 
     const rec1 = await productionService.create(
       { productId: 1, branchId: 10, shift: 'DAY', quantity: 50, productionDate: twoDaysAgoStr },
@@ -153,7 +153,7 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('rejects BAKER when productionDate is 3 days ago (outside 3-day window)', async () => {
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     await assert.rejects(
       async () => {
         await productionService.create(
@@ -176,7 +176,7 @@ describe('productionService - Edit Window & Role Validation', () => {
   });
 
   it('rejects BAKER when attempting to record an unpermitted category (e.g. CREAM_CAKES)', async () => {
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     await assert.rejects(
       async () => {
         await productionService.create(
@@ -203,7 +203,7 @@ describe('productionService - Edit Window & Role Validation', () => {
       isClosed: true,
     });
 
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     await assert.rejects(
       async () => {
         await productionService.create(
@@ -251,7 +251,7 @@ describe('productionService - Edit Window & Role Validation', () => {
       creator: { id: 101, name: 'Baker' },
     });
 
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     const updated = await productionService.update(
       123,
       { quantity: 150 },
@@ -274,7 +274,7 @@ describe('productionService - Edit Window & Role Validation', () => {
       product: mockProductBread,
     });
 
-    const bakerUser = { userId: 101, role: 'BAKER', branchId: 10 };
+    const bakerUser = { userId: 101, employeeId: 101, role: 'BAKER', branchId: 10 };
     await assert.rejects(
       async () => {
         await productionService.update(124, { quantity: 200 }, bakerUser);

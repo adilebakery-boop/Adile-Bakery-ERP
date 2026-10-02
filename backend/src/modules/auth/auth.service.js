@@ -12,6 +12,7 @@ const login = async (username, password) => {
     include: {
       role: true,
       branch: true,
+      employee: true,
     },
   });
 
@@ -33,12 +34,17 @@ const login = async (username, password) => {
     throw new AppError('Your account has been deactivated. Contact your manager.', 403, 'AUTH_ROLE');
   }
 
+  if (user.employee && user.employee.status !== 'ACTIVE') {
+    throw new AppError('Your employee account is not active. Contact your manager.', 403, 'AUTH_ROLE');
+  }
+
   if (user.branchId && user.branch && !user.branch.isActive) {
     throw new AppError('Your branch is currently inactive. Contact your manager.', 403, 'AUTH_ROLE');
   }
 
   const token = generateToken({
     userId: user.id,
+    employeeId: user.employeeId || user.employee?.id || user.id,
     role: user.role.name,
     branchId: user.branchId,
     isBlocked: user.isBlocked || false,
@@ -52,7 +58,8 @@ const login = async (username, password) => {
     refreshToken: refreshToken.token,
     user: {
       id: user.id,
-      name: user.name,
+      employeeId: user.employeeId || user.employee?.id || user.id,
+      name: user.employee?.name || user.name,
       username: user.username,
       role: user.role.name,
       branchId: user.branchId,
@@ -65,13 +72,14 @@ const login = async (username, password) => {
 const refreshAccessToken = async (refreshTokenValue) => {
   const user = await refreshTokenUtil.verify(refreshTokenValue);
   if (!user) {
-throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
+    throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
   }
 
   const newRefresh = await refreshTokenUtil.rotate(refreshTokenValue, user.id);
 
   const token = generateToken({
     userId: user.id,
+    employeeId: user.employeeId || user.employee?.id || user.id,
     role: user.role.name,
     branchId: user.branchId,
     isBlocked: user.isBlocked || false,
@@ -83,7 +91,8 @@ throw new AppError('Invalid or expired refresh token', 401, 'AUTH_TOKEN');
     refreshToken: newRefresh.token,
     user: {
       id: user.id,
-      name: user.name,
+      employeeId: user.employeeId || user.employee?.id || user.id,
+      name: user.employee?.name || user.name,
       username: user.username,
       role: user.role.name,
       branchId: user.branchId,
