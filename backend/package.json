@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "npx prisma migrate deploy && node src/server.js",
     "dev": "node src/server.js",
     "seed": "node prisma/seed.js",
     "seed:base": "node prisma/seed.js",
